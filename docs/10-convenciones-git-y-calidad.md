@@ -23,11 +23,32 @@ No se trabaja nunca de forma directa sobre `master` ni sobre `testing`. Toda ram
 La rama por defecto del repositorio remoto debe ser `testing`, para que las peticiones de integracion
 apunten al lugar correcto del trabajo diario.
 
+### Unidad de trabajo: una spec (o una fase) por rama
+
+El trabajo de implementacion se abre **siempre** desde `testing` y se integra **siempre** hacia
+`testing` mediante una peticion de integracion. La unidad preferida es **una especificacion**:
+
+| Caso | Rama | Base del PR |
+|------|------|-------------|
+| Implementar una spec de `docs/specs/` | `feature/spec-NNN-<slug>` | `testing` |
+| Entrega transversal sin spec numerada (cimientos, infra) | `feature/fase-N-<slug>` | `testing` |
+| Correccion puntual | `bugfix/<slug>` o `hotfix/<slug>` | `testing` o `master` |
+
+Reglas:
+
+1. **Preferir una rama por spec.** Si el titulo del PR necesita "y" entre dos specs, son dos PR.
+2. **Fase completa solo cuando no se puede partir.** La fase 0 (cimientos) es el ejemplo tipico: no
+   hay una sola spec numerada que cubra el monorepo.
+3. Cada PR enlaza su spec (o el documento de fase) y cierra o avanza el estado en el roadmap en el
+   mismo cambio.
+4. El orden de specs dentro de una fase lo marca `docs/02-roadmap-sdd.md`; no se salta una
+   dependencia sin anotarlo en la spec.
+
 ### Prefijos de rama
 
 | Prefijo | Uso | Ejemplo |
 |---------|-----|---------|
-| `feature/` | Funcionalidad nueva | `feature/aprobacion-cotizacion` |
+| `feature/` | Funcionalidad nueva (spec o fase) | `feature/spec-000-plataforma-organizaciones` |
 | `bugfix/` | Correccion de un defecto no urgente | `bugfix/descuento-cantidad-limite` |
 | `hotfix/` | Correccion urgente sobre produccion | `hotfix/fuga-filtro-organizacion` |
 | `docs/` | Cambios de documentacion | `docs/adr-stack-tecnologico` |
@@ -39,8 +60,8 @@ Formato:
 <prefijo>/<descripcion-corta-en-kebab-case>
 ```
 
-La descripcion va sin tildes y sin mayusculas. Debe nombrar el area del dominio, no el archivo tocado:
-`feature/alias-aprendidos` es util, `feature/cambios-service` no.
+Para specs, el slug incluye el numero y el nombre del archivo sin extension:
+`feature/spec-004-catalogo-items`. La descripcion va sin tildes y sin mayusculas.
 
 ### Flujo
 

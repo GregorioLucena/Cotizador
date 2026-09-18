@@ -18,7 +18,7 @@ export default function LandingPage() {
           Cotizador
         </p>
         <Link
-          href="/login"
+          href="/acceso"
           className="inline-flex min-h-11 items-center rounded-md bg-ink px-5 text-sm font-semibold text-paper transition hover:bg-slate"
         >
           Entrar
@@ -39,7 +39,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
-              href="/login"
+              href="/acceso"
               className="inline-flex min-h-12 items-center rounded-md bg-brass px-6 text-base font-semibold text-white shadow-sm transition hover:bg-brass-dark"
             >
               Abrir el panel

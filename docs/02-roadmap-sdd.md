@@ -8,7 +8,7 @@ cierra cada modulo, y cual es el estado de cada pieza.
 El flujo es siempre el mismo y no se saltea:
 
 ```text
-Especificar  →  Revisar reglas y criterios  →  Diseñar datos  →  Implementar  →  Verificar  →  Cerrar
+Especificar  →  Revisar  →  Diseñar datos  →  Rama desde testing  →  Implementar  →  PR a testing  →  Verificar  →  Cerrar
 ```
 
 1. **Especificar.** Se escribe o refina la especificacion del modulo en `docs/specs/`. Debe tener
@@ -18,10 +18,13 @@ Especificar  →  Revisar reglas y criterios  →  Diseñar datos  →  Implemen
    se resuelven o se marcan explicitamente como diferidas.
 3. **Diseñar datos.** Si el modulo toca el esquema, se actualiza `06-diseno-tecnico.md` y se escribe la
    migracion.
-4. **Implementar.** Backend primero, luego interfaz. Nada fuera del alcance declarado.
-5. **Verificar.** Se cubren los criterios de aceptacion, incluida siempre la prueba de aislamiento
+4. **Rama.** Se crea una rama desde `testing` por spec (`feature/spec-NNN-...`) o, si no aplica, por
+   fase. Detalle en `10-convenciones-git-y-calidad.md`.
+5. **Implementar.** Backend primero, luego interfaz. Nada fuera del alcance declarado.
+6. **Integrar.** Se abre peticion de integracion hacia `testing`. Documentacion y codigo en el mismo PR.
+7. **Verificar.** Se cubren los criterios de aceptacion, incluida siempre la prueba de aislamiento
    entre organizaciones.
-6. **Cerrar.** Se agrega a la especificacion una seccion de cierre con la fecha, los entregables y la
+8. **Cerrar.** Se agrega a la especificacion una seccion de cierre con la fecha, los entregables y la
    tabla de verificacion de cada criterio.
 
 ### Regla de avance
@@ -90,23 +93,32 @@ Una especificacion esta lista para implementarse cuando tiene:
 
 | Entregable | Especificacion | Estado |
 |-----------|----------------|--------|
-| Monorepo, configuracion de herramientas, Docker de desarrollo | `11-arquitectura-monorepo.md`, `12-infraestructura-docker.md` | Pendiente |
-| Paquete compartido: errores, tipos, permisos, normalizacion de texto | `07-convenciones-implementacion.md` | Pendiente |
-| Migracion inicial con extensiones, tablas globales y semilla de permisos y perfiles | `06-diseno-tecnico.md` | Pendiente |
-| Filtro global de errores, paginacion, guard de autenticacion, contexto de organizacion | `specs/001` | Pendiente |
+| Monorepo, configuracion de herramientas, Docker de desarrollo | `11-arquitectura-monorepo.md`, `12-infraestructura-docker.md` | Cerrado |
+| Paquete compartido: errores, tipos, permisos, normalizacion de texto | `07-convenciones-implementacion.md` | Cerrado |
+| Migracion inicial con extensiones, tablas globales y semilla de permisos y perfiles | `06-diseno-tecnico.md` | Cerrado |
+| Salud de API, filtro de errores, paginacion base y esqueleto de contexto | `docs/pr/fase-0-cimientos.md` | Cerrado |
+
+Rama: integrada en `master` / `testing` como commit base del repositorio.
 
 Criterio de salida: la API arranca, responde el endpoint de salud, la base de datos migra desde cero y
 la semilla crea permisos, perfiles y el superadmin de plataforma.
 
 ### Fase 1 — Plataforma y seguridad
 
+Orden de PR sugerido (uno por spec, base `testing`):
+
+1. `feature/spec-001-usuarios-perfiles` — autenticacion y sesiones (en curso)
+2. `feature/spec-000-plataforma-organizaciones` — organizaciones y provisionamiento
+3. `feature/spec-002-configuracion-organizacion` — config, sucursales y resto de 001/002
+4. Interfaz ABM de usuarios (`/configuracion/usuarios`) si no entra en el PR de 001
+
 | Entregable | Especificacion | Estado |
 |-----------|----------------|--------|
-| Autenticacion, sesiones, refresco, cambio de contraseña | `specs/001-usuarios-perfiles.md` | Pendiente |
+| Autenticacion, sesiones, refresco, cambio de contraseña | `specs/001-usuarios-perfiles.md` | En curso |
 | Organizaciones y provisionamiento por vertical | `specs/000-plataforma-organizaciones.md` | Pendiente |
-| Usuarios, perfiles y sucursales de la organizacion | `specs/001`, `specs/002` | Pendiente |
+| Usuarios, perfiles y sucursales de la organizacion | `specs/001`, `specs/002` | En curso (API 001) |
 | Configuracion de la organizacion | `specs/002-configuracion-organizacion.md` | Pendiente |
-| Interfaz: login, guardas, navegacion y hub de configuracion | `09-guia-ux-ui.md` | Pendiente |
+| Interfaz: login, guardas, navegacion y hub de configuracion | `09-guia-ux-ui.md` | En curso (acceso/panel) |
 
 Criterio de salida: se puede registrar una organizacion, provisionarla, crear su administrador y sus
 cotizadores, e iniciar sesion con permisos diferenciados.

@@ -5,11 +5,14 @@ import type { PermisoCodigo } from '@cotizador/shared';
 import { AppDataSource } from '../data-source';
 import {
   Moneda,
+  Organizacion,
   Perfil,
   PerfilPermiso,
   Permiso,
+  Sucursal,
   Usuario,
   UsuarioPerfil,
+  UsuarioSucursal,
   Vertical,
 } from '../entities';
 import { AmbitoPerfil, EstadoRegistro } from '../enums';
@@ -162,6 +165,109 @@ function expandirPatrones(patrones: string[]): string[] {
   );
 }
 
+async function asegurarOrganizacionDemo(params: {
+  orgRepo: ReturnType<typeof AppDataSource.getRepository<Organizacion>>;
+  sucursalRepo: ReturnType<typeof AppDataSource.getRepository<Sucursal>>;
+  usuarioRepo: ReturnType<typeof AppDataSource.getRepository<Usuario>>;
+  usuarioPerfilRepo: ReturnType<typeof AppDataSource.getRepository<UsuarioPerfil>>;
+  usuarioSucursalRepo: ReturnType<typeof AppDataSource.getRepository<UsuarioSucursal>>;
+  verticalId: string;
+  monedaBaseId: string;
+  perfilAdminOrgId: string;
+}) {
+  const {
+    orgRepo,
+    sucursalRepo,
+    usuarioRepo,
+    usuarioPerfilRepo,
+    usuarioSucursalRepo,
+    verticalId,
+    monedaBaseId,
+    perfilAdminOrgId,
+  } = params;
+
+  let org = await orgRepo.findOne({ where: { nombre: 'Demo Ferretería' } });
+  if (!org) {
+    org = await orgRepo.save(
+      orgRepo.create({
+        nombre: 'Demo Ferretería',
+        razonSocial: 'Demo Ferretería C.A.',
+        verticalId,
+        monedaBaseId,
+        zonaHoraria: 'America/Caracas',
+        locale: 'es-VE',
+        usaIa: true,
+        umbralAutomatico: '0.8500',
+        umbralDescarte: '0.5000',
+        estadoRegistro: EstadoRegistro.ACTIVO,
+      }),
+    );
+    console.log('Organización demo creada: Demo Ferretería');
+  }
+
+  let sucursal = await sucursalRepo.findOne({
+    where: { organizacionId: org.id, esPrincipal: true },
+  });
+  if (!sucursal) {
+    sucursal = await sucursalRepo.save(
+      sucursalRepo.create({
+        organizacionId: org.id,
+        nombre: 'Principal',
+        codigo: 'PRIN',
+        esPrincipal: true,
+        estadoRegistro: EstadoRegistro.ACTIVO,
+      }),
+    );
+  }
+
+  const emailDemo = process.env.SEED_DEMO_ADMIN_EMAIL?.trim() || 'admin@demo.local';
+  const passwordDemo =
+    process.env.SEED_DEMO_ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD;
+  if (!passwordDemo) {
+    throw new Error('SEED_ADMIN_PASSWORD es obligatoria para el admin demo.');
+  }
+
+  let adminOrg = await usuarioRepo.findOne({ where: { email: emailDemo } });
+  if (!adminOrg) {
+    const passwordHash = await bcrypt.hash(passwordDemo, 12);
+    adminOrg = await usuarioRepo.save(
+      usuarioRepo.create({
+        organizacionId: org.id,
+        nombreCompleto: 'Administrador Demo',
+        email: emailDemo,
+        passwordHash,
+        debeCambiarPassword: true,
+        estadoRegistro: EstadoRegistro.ACTIVO,
+      }),
+    );
+    console.log(`Usuario admin demo creado: ${emailDemo}`);
+  }
+
+  const vinculoPerfil = await usuarioPerfilRepo.findOne({
+    where: { usuarioId: adminOrg.id, perfilId: perfilAdminOrgId },
+  });
+  if (!vinculoPerfil) {
+    await usuarioPerfilRepo.save(
+      usuarioPerfilRepo.create({
+        usuarioId: adminOrg.id,
+        perfilId: perfilAdminOrgId,
+      }),
+    );
+  }
+
+  const vinculoSucursal = await usuarioSucursalRepo.findOne({
+    where: { usuarioId: adminOrg.id, sucursalId: sucursal.id },
+  });
+  if (!vinculoSucursal) {
+    await usuarioSucursalRepo.save(
+      usuarioSucursalRepo.create({
+        usuarioId: adminOrg.id,
+        sucursalId: sucursal.id,
+      }),
+    );
+  }
+}
+
 async function runSeed() {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
@@ -174,6 +280,9 @@ async function runSeed() {
   const verticalRepo = AppDataSource.getRepository(Vertical);
   const usuarioRepo = AppDataSource.getRepository(Usuario);
   const usuarioPerfilRepo = AppDataSource.getRepository(UsuarioPerfil);
+  const orgRepo = AppDataSource.getRepository(Organizacion);
+  const sucursalRepo = AppDataSource.getRepository(Sucursal);
+  const usuarioSucursalRepo = AppDataSource.getRepository(UsuarioSucursal);
 
   await asegurarPermisos(permisoRepo);
   const permisos = await permisoRepo.find();
@@ -189,7 +298,7 @@ async function runSeed() {
     codigosPermitidos: expandirPatrones(PERFIL_SUPERADMIN_PATRONES),
   });
 
-  await asegurarPerfilConPermisos({
+  const perfilAdminOrg = await asegurarPerfilConPermisos({
     perfilRepo,
     perfilPermisoRepo,
     permisos,
@@ -273,8 +382,24 @@ async function runSeed() {
     );
   }
 
+  const verticalFerreteria = await verticalRepo.findOneOrFail({
+    where: { codigo: 'FERRETERIA' },
+  });
+  const monedaUsd = await monedaRepo.findOneOrFail({ where: { codigoIso: 'USD' } });
+
+  await asegurarOrganizacionDemo({
+    orgRepo,
+    sucursalRepo,
+    usuarioRepo,
+    usuarioPerfilRepo,
+    usuarioSucursalRepo,
+    verticalId: verticalFerreteria.id,
+    monedaBaseId: monedaUsd.id,
+    perfilAdminOrgId: perfilAdminOrg.id,
+  });
+
   console.log(
-    'Seed de plataforma completado (permisos, perfiles, monedas, verticales, superadmin).',
+    'Seed de plataforma completado (permisos, perfiles, monedas, verticales, superadmin, demo).',
   );
 
   await AppDataSource.destroy();

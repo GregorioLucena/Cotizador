@@ -1,5 +1,6 @@
 import type { OrgContext } from '../types/org-context';
-import { ForbiddenError } from '../errors';
+import { ForbiddenError } from '../errors/classes';
+import { contextoOrganizacionRequerido } from '../errors/auth.errors';
 
 export { PERMISOS, PERMISOS_DESCRIPCION } from './constants';
 export type { PermisoCodigo } from './constants';
@@ -18,5 +19,22 @@ export function hasPermission(ctx: OrgContext, codigo: string): boolean {
 export function requirePermission(ctx: OrgContext, codigo: string): void {
   if (!hasPermission(ctx, codigo)) {
     throw new ForbiddenError();
+  }
+}
+
+export function requireOrganizacionContext(
+  ctx: OrgContext,
+): asserts ctx is OrgContext & { organizacionId: string } {
+  if (!ctx.organizacionId) {
+    throw contextoOrganizacionRequerido();
+  }
+}
+
+export function assertSucursalAsignada(ctx: OrgContext, sucursalId: string): void {
+  if (!ctx.sucursalIds.includes(sucursalId)) {
+    throw new ForbiddenError(
+      'AUTH_SUCURSAL_NO_ASIGNADA',
+      'No tiene acceso a la sucursal seleccionada.',
+    );
   }
 }

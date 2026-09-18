@@ -61,7 +61,8 @@ export class UsuariosService {
     requireOrganizacionContext(ctx);
     requirePermission(ctx, PERMISOS.SEGURIDAD_USUARIOS_VER);
 
-    const { page, limit, search, estadoRegistro } = listQuerySchema.parse(query);
+    const { page, limit, search, estadoRegistro, perfilId } =
+      listQuerySchema.parse(query);
 
     const qb = this.usuarioRepo
       .createQueryBuilder('u')
@@ -77,6 +78,16 @@ export class UsuariosService {
       qb.andWhere(
         '(u.nombreCompleto ILIKE :search OR u.email ILIKE :search)',
         { search: `%${search}%` },
+      );
+    }
+
+    if (perfilId) {
+      qb.andWhere(
+        `EXISTS (
+          SELECT 1 FROM usuario_perfiles up
+          WHERE up."usuarioId" = u.id AND up."perfilId" = :perfilId
+        )`,
+        { perfilId },
       );
     }
 

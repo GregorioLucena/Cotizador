@@ -2,7 +2,7 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+En implementacion — rama `feature/spec-003-maestras-catalogo` (sobre ABM usuarios)
 
 ## Objetivo
 

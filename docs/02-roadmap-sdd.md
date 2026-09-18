@@ -127,7 +127,7 @@ cotizadores, e iniciar sesion con permisos diferenciados.
 
 | Entregable | Especificacion | Estado |
 |-----------|----------------|--------|
-| Maestras: unidades, categorias, marcas, definiciones de atributo | `specs/003-maestras-catalogo.md` | Pendiente |
+| Maestras: unidades, categorias, marcas, definiciones de atributo | `specs/003-maestras-catalogo.md` | En curso (`feature/spec-003-maestras-catalogo`) |
 | Items, atributos validados, alias, aplicaciones y busqueda por similitud | `specs/004-catalogo-items.md` | Pendiente |
 | Listas de precios, precios por item, reglas de descuento y tasas | `specs/006-listas-precios-reglas.md` | Pendiente |
 | Motor de precios puro con su bateria de pruebas | `decisions/0005-motor-de-precios.md` | Pendiente |

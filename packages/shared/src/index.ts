@@ -4,4 +4,6 @@ export * from './permissions';
 export * from './schemas/pagination.schemas';
 export * from './schemas/auth.schemas';
 export * from './schemas/organizacion.schemas';
+export * from './schemas/maestras.schemas';
 export * from './auth/password';
+export * from './normalizacion/texto';

@@ -22,3 +22,9 @@ export enum ModoRedondeo {
   ARRIBA = 'ARRIBA',
   ABAJO = 'ABAJO',
 }
+
+export enum TipoItem {
+  FUNGIBLE = 'FUNGIBLE',
+  SERIALIZADO = 'SERIALIZADO',
+  SERVICIO = 'SERVICIO',
+}

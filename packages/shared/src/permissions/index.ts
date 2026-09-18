@@ -1,6 +1,7 @@
 import type { OrgContext } from '../types/org-context';
 import { ForbiddenError } from '../errors/classes';
 import { contextoOrganizacionRequerido } from '../errors/auth.errors';
+import { contextoPlataformaRequerido } from '../errors/organizacion.errors';
 
 export { PERMISOS, PERMISOS_DESCRIPCION } from './constants';
 export type { PermisoCodigo } from './constants';
@@ -27,6 +28,12 @@ export function requireOrganizacionContext(
 ): asserts ctx is OrgContext & { organizacionId: string } {
   if (!ctx.organizacionId) {
     throw contextoOrganizacionRequerido();
+  }
+}
+
+export function requirePlataformaContext(ctx: OrgContext): void {
+  if (ctx.ambito !== 'PLATAFORMA' || ctx.organizacionId != null) {
+    throw contextoPlataformaRequerido();
   }
 }
 

@@ -115,7 +115,7 @@ Orden de PR sugerido (uno por spec, base `testing`):
 | Entregable | Especificacion | Estado |
 |-----------|----------------|--------|
 | Autenticacion, sesiones, refresco, cambio de contraseña | `specs/001-usuarios-perfiles.md` | En curso |
-| Organizaciones y provisionamiento por vertical | `specs/000-plataforma-organizaciones.md` | Pendiente |
+| Organizaciones y provisionamiento por vertical | `specs/000-plataforma-organizaciones.md` | En implementacion |
 | Usuarios, perfiles y sucursales de la organizacion | `specs/001`, `specs/002` | En curso (API 001) |
 | Configuracion de la organizacion | `specs/002-configuracion-organizacion.md` | Pendiente |
 | Interfaz: login, guardas, navegacion y hub de configuracion | `09-guia-ux-ui.md` | En curso (acceso/panel) |
@@ -186,7 +186,7 @@ el piloto funciona.
 
 | Spec | Modulo | Estado | Fase |
 |------|--------|--------|------|
-| `000` | Plataforma y organizaciones | Especificada | 1 |
+| `000` | Plataforma y organizaciones | En implementacion | 1 |
 | `001` | Usuarios, perfiles y permisos | Especificada | 1 |
 | `002` | Configuracion de la organizacion | Especificada | 1 |
 | `003` | Maestras del catalogo | Especificada | 2 |

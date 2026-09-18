@@ -192,6 +192,28 @@ export default function PanelPage() {
             </dd>
           </div>
         </dl>
+
+        {contexto.ambito === 'PLATAFORMA' ? (
+          <div className="flex flex-wrap gap-3 border-t border-borde pt-4">
+            <Link
+              href="/plataforma/organizaciones"
+              className="inline-flex min-h-11 items-center rounded-md bg-ink px-4 text-sm font-semibold text-paper hover:bg-slate"
+            >
+              Organizaciones
+            </Link>
+          </div>
+        ) : null}
+
+        {contexto.ambito === 'PLATAFORMA' && (
+          <div className="border-t border-borde pt-5">
+            <Link
+              href="/plataforma/organizaciones"
+              className="inline-flex min-h-11 items-center rounded-md bg-teal px-4 text-sm font-semibold text-white hover:bg-teal/90"
+            >
+              Administrar organizaciones
+            </Link>
+          </div>
+        )}
       </section>
     </main>
   );

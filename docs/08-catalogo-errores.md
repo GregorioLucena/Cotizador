@@ -86,6 +86,11 @@ van en `UPPER_SNAKE_CASE` **sin tildes**.
 | `ORGANIZACION_SUCURSAL_CODIGO_DUPLICADO` | 409 | Ya existe una sucursal con ese código. | Unicidad de código por organización |
 | `ORGANIZACION_SUCURSAL_PRINCIPAL_NO_INACTIVABLE` | 422 | No se puede inactivar la sucursal principal. | Intento de inactivar la principal |
 | `ORGANIZACION_SUCURSAL_EN_USO` | 422 | No se puede inactivar: hay usuarios que quedarían sin sucursal. | Inactivación dejaría usuarios sin acceso |
+| `ORGANIZACION_PACK_NO_DISPONIBLE` | 422 | No hay un pack disponible para el vertical elegido. | Alta sin pack registrado para el código del vertical |
+| `ORGANIZACION_PROVISIONAMIENTO_FALLIDO` | 500 | No se pudo provisionar la organización. No se creó ningún dato. | Fallo en un paso del provisionamiento; transacción revertida |
+| `ORGANIZACION_VERTICAL_NO_MODIFICABLE` | 422 | El vertical no se puede cambiar porque la organización ya fue provisionada. | Intento de cambiar `verticalId` tras el alta |
+| `ORGANIZACION_YA_TIENE_ADMINISTRADOR` | 409 | Esta organización ya tiene un administrador. | Crear usuario inicial cuando ya existe un admin activo |
+| `CONTEXTO_PLATAFORMA_REQUERIDO` | 403 | Esta operación requiere el ámbito de plataforma. | Usuario de organización invoca un endpoint de plataforma |
 
 ---
 

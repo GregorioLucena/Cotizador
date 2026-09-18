@@ -110,13 +110,13 @@ Orden de PR sugerido (uno por spec, base `testing`):
 1. `feature/spec-001-usuarios-perfiles` — autenticacion y sesiones (en curso)
 2. `feature/spec-000-plataforma-organizaciones` — organizaciones y provisionamiento
 3. `feature/spec-002-configuracion-organizacion` — config, sucursales y resto de 001/002
-4. Interfaz ABM de usuarios (`/configuracion/usuarios`) si no entra en el PR de 001
+4. Interfaz ABM de usuarios (`/configuracion/usuarios`) — en curso (`feature/spec-001-abm-usuarios`)
 
 | Entregable | Especificacion | Estado |
 |-----------|----------------|--------|
 | Autenticacion, sesiones, refresco, cambio de contraseña | `specs/001-usuarios-perfiles.md` | En curso |
 | Organizaciones y provisionamiento por vertical | `specs/000-plataforma-organizaciones.md` | En implementacion |
-| Usuarios, perfiles y sucursales de la organizacion | `specs/001`, `specs/002` | En curso (API 001) |
+| Usuarios, perfiles y sucursales de la organizacion | `specs/001`, `specs/002` | En curso (UI ABM usuarios) |
 | Configuracion de la organizacion | `specs/002-configuracion-organizacion.md` | En curso |
 | Interfaz: login, guardas, navegacion y hub de configuracion | `09-guia-ux-ui.md` | En curso (acceso/panel) |
 

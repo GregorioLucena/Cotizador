@@ -20,7 +20,7 @@ const NAV = {
     {
       href: '/configuracion',
       label: 'Configuración',
-      desc: 'Identidad, sucursales y cotización',
+      desc: 'Identidad, sucursales, cotización y usuarios',
       icon: Settings2,
     },
   ],

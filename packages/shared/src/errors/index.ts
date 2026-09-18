@@ -10,3 +10,4 @@ export {
 } from './classes';
 
 export * from './auth.errors';
+export * from './organizacion.errors';

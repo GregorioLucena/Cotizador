@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Fraunces, Source_Sans_3 } from 'next/font/google';
+import { Outfit, Source_Sans_3 } from 'next/font/google';
 import './globals.css';
 
 const sourceSans = Source_Sans_3({
@@ -8,7 +8,7 @@ const sourceSans = Source_Sans_3({
   display: 'swap',
 });
 
-const fraunces = Fraunces({
+const outfit = Outfit({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${sourceSans.variable} ${fraunces.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="es" className={`${sourceSans.variable} ${outfit.variable}`}>
+      <body className="app-shell-bg font-sans antialiased">{children}</body>
     </html>
   );
 }

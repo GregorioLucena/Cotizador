@@ -101,3 +101,99 @@ export function monedaInactiva(): AppError {
     400,
   );
 }
+
+export function organizacionConfiguracionAusente(): BusinessRuleError {
+  return new BusinessRuleError(
+    'ORGANIZACION_CONFIGURACION_AUSENTE',
+    'Falta la configuración de cotización de la organización.',
+  );
+}
+
+export function organizacionUmbralFueraDeRango(): AppError {
+  return new AppError(
+    'ORGANIZACION_UMBRAL_FUERA_DE_RANGO',
+    'Los umbrales deben estar entre 0 y 1.',
+    400,
+  );
+}
+
+export function organizacionCambioMonedaBaseNoConfirmado(): BusinessRuleError {
+  return new BusinessRuleError(
+    'ORGANIZACION_CAMBIO_MONEDA_BASE_NO_CONFIRMADO',
+    'Confirme de forma explícita el cambio de moneda base.',
+  );
+}
+
+export function organizacionLogoFormatoNoSoportado(): AppError {
+  return new AppError(
+    'ORGANIZACION_LOGO_FORMATO_NO_SOPORTADO',
+    'El logo debe ser PNG, JPG o SVG.',
+    400,
+  );
+}
+
+export function organizacionLogoDemasiadoGrande(): AppError {
+  return new AppError(
+    'ORGANIZACION_LOGO_DEMASIADO_GRANDE',
+    'El logo no puede superar 2 MB.',
+    400,
+  );
+}
+
+export function organizacionLogoDimensionesInsuficientes(): AppError {
+  return new AppError(
+    'ORGANIZACION_LOGO_DIMENSIONES_INSUFICIENTES',
+    'El logo debe medir al menos 200 por 200 píxeles.',
+    400,
+  );
+}
+
+export function organizacionSucursalNoEncontrada(): NotFoundError {
+  return new NotFoundError(
+    'ORGANIZACION_SUCURSAL_NO_ENCONTRADA',
+    'No se encontró la sucursal indicada.',
+  );
+}
+
+export function organizacionSucursalNombreDuplicado(): ConflictError {
+  return new ConflictError(
+    'ORGANIZACION_SUCURSAL_NOMBRE_DUPLICADO',
+    'Ya existe una sucursal con ese nombre.',
+  );
+}
+
+export function organizacionSucursalCodigoDuplicado(): ConflictError {
+  return new ConflictError(
+    'ORGANIZACION_SUCURSAL_CODIGO_DUPLICADO',
+    'Ya existe una sucursal con ese código.',
+  );
+}
+
+export function organizacionSucursalPrincipalNoInactivable(): BusinessRuleError {
+  return new BusinessRuleError(
+    'ORGANIZACION_SUCURSAL_PRINCIPAL_NO_INACTIVABLE',
+    'No se puede inactivar la sucursal principal.',
+  );
+}
+
+export function organizacionSucursalEnUso(details?: unknown): BusinessRuleError {
+  return new BusinessRuleError(
+    'ORGANIZACION_SUCURSAL_EN_USO',
+    'No se puede inactivar: hay usuarios que quedarían sin sucursal.',
+    details,
+  );
+}
+
+export function impuestoPorcentajeRequerido(): BusinessRuleError {
+  return new BusinessRuleError(
+    'IMPUESTO_PORCENTAJE_REQUERIDO',
+    'Indique el porcentaje de impuesto o desactive su aplicación.',
+  );
+}
+
+export function listaPrecioInactiva(): BusinessRuleError {
+  return new BusinessRuleError(
+    'LISTA_INACTIVA',
+    'La lista de precios está inactiva.',
+  );
+}

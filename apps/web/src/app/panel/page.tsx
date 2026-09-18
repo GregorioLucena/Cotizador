@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { ChevronRight, Settings2, Building2 } from 'lucide-react';
 import type { OrgContext } from '@cotizador/shared';
 import {
   ApiClientError,
@@ -11,6 +12,9 @@ import {
   getAccessToken,
   setAccessToken,
 } from '@/lib/api';
+import { AppShell, StatusBanner } from '@/components/shell/app-shell';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardBody } from '@/components/ui/card';
 
 type PerfilData = {
   usuario: {
@@ -105,116 +109,132 @@ export default function PanelPage() {
     };
   }, [router]);
 
-  async function cerrarSesion() {
-    try {
-      await apiFetch('/auth/logout', { method: 'POST' });
-    } catch {
-      /* idempotente */
-    }
-    clearSession();
-    router.replace('/acceso');
-  }
-
   if (loading) {
     return (
-      <main className="flex min-h-dvh items-center justify-center px-5">
-        <p className="text-sm text-muted">Cargando panel…</p>
-      </main>
+      <AppShell>
+        <p className="py-20 text-center text-sm text-muted">Cargando panel…</p>
+      </AppShell>
     );
   }
 
   if (error || !perfil) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-5">
-        <p className="text-sm text-peligro">{error ?? 'Sesión no disponible.'}</p>
-        <Link href="/acceso" className="text-sm font-semibold text-ink underline">
-          Volver al acceso
-        </Link>
-      </main>
+      <AppShell>
+        <div className="flex flex-col items-center gap-4 py-16">
+          <StatusBanner tone="error">{error ?? 'Sesión no disponible.'}</StatusBanner>
+          <Link href="/acceso" className="text-sm font-semibold text-teal underline">
+            Volver al acceso
+          </Link>
+        </div>
+      </AppShell>
     );
   }
 
   const { usuario, contexto } = perfil;
+  const nav = contexto.ambito === 'PLATAFORMA' ? 'plataforma' : 'organizacion';
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 py-10">
-      <header className="mb-10 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <Link href="/" className="font-display text-2xl font-semibold text-ink">
-            Cotizador
-          </Link>
-          <p className="mt-1 text-sm text-muted">Panel</p>
-        </div>
-        <button
-          type="button"
-          onClick={cerrarSesion}
-          className="min-h-11 rounded-md border border-borde bg-surface px-4 text-sm font-semibold text-ink hover:border-slate"
-        >
-          Cerrar sesión
-        </button>
-      </header>
+    <AppShell nav={nav}>
+      <section className="mb-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal">Panel</p>
+        <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink md:text-4xl">
+          Hola, {usuario.nombreCompleto.split(' ')[0]}
+        </h1>
+        <p className="mt-1 text-sm text-muted">{usuario.email}</p>
+      </section>
 
-      <section className="space-y-6 rounded-lg border border-borde bg-surface p-6 shadow-[0_20px_50px_-30px_rgba(20,33,43,0.35)]">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">
-            Hola, {usuario.nombreCompleto}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{usuario.email}</p>
-        </div>
+      <Card accent className="mb-5">
+        <CardBody className="space-y-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="brand">{contexto.ambito}</Badge>
+            <Badge tone={usuario.estadoRegistro === 'ACTIVO' ? 'success' : 'neutral'}>
+              {usuario.estadoRegistro}
+            </Badge>
+          </div>
 
-        <dl className="grid gap-4 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-muted">Ámbito</dt>
-            <dd className="font-medium text-ink">{contexto.ambito}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">Organización</dt>
-            <dd className="font-medium text-ink">
-              {contexto.organizacionId ?? '— (plataforma)'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">Sucursal activa</dt>
-            <dd className="font-medium text-ink">
-              {contexto.sucursalActivaId ?? '—'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">Sucursales asignadas</dt>
-            <dd className="font-medium text-ink">{contexto.sucursalIds.length}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-muted">Permisos ({contexto.permisos.length})</dt>
-            <dd className="mt-1 max-h-40 overflow-auto rounded-md bg-paper p-3 font-mono text-xs text-slate">
-              {contexto.permisos.length > 0
-                ? contexto.permisos.join(', ')
-                : 'Ninguno'}
-            </dd>
-          </div>
-        </dl>
+          <dl className="grid gap-4 text-sm sm:grid-cols-2">
+            <div className="rounded-xl bg-paper/80 p-3.5">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Organización
+              </dt>
+              <dd className="mt-1 font-semibold text-ink">
+                {contexto.organizacionId ?? 'Plataforma'}
+              </dd>
+            </div>
+            <div className="rounded-xl bg-paper/80 p-3.5">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Sucursal activa
+              </dt>
+              <dd className="mt-1 font-semibold text-ink">
+                {contexto.sucursalActivaId ?? '—'}
+              </dd>
+            </div>
+            <div className="rounded-xl bg-paper/80 p-3.5">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Sucursales
+              </dt>
+              <dd className="mt-1 font-semibold text-ink">{contexto.sucursalIds.length}</dd>
+            </div>
+            <div className="rounded-xl bg-paper/80 p-3.5">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Permisos
+              </dt>
+              <dd className="mt-1 font-semibold text-ink">{contexto.permisos.length}</dd>
+            </div>
+          </dl>
 
+          <details className="rounded-xl border border-borde/70 bg-paper/40">
+            <summary className="cursor-pointer px-3.5 py-3 text-sm font-semibold text-slate">
+              Ver permisos
+            </summary>
+            <p className="max-h-36 overflow-auto border-t border-borde/70 px-3.5 py-3 font-mono text-xs leading-relaxed text-slate">
+              {contexto.permisos.length > 0 ? contexto.permisos.join(', ') : 'Ninguno'}
+            </p>
+          </details>
+        </CardBody>
+      </Card>
+
+      <div className="grid gap-3">
         {contexto.ambito === 'PLATAFORMA' ? (
-          <div className="flex flex-wrap gap-3 border-t border-borde pt-4">
-            <Link
-              href="/plataforma/organizaciones"
-              className="inline-flex min-h-11 items-center rounded-md bg-ink px-4 text-sm font-semibold text-paper hover:bg-slate"
-            >
-              Organizaciones
-            </Link>
-          </div>
+          <Link
+            href="/plataforma/organizaciones"
+            className="group flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-borde/80 bg-surface px-5 shadow-[0_14px_40px_-24px_rgba(18,32,30,0.4)] transition hover:border-teal/40 hover:shadow-[0_18px_44px_-20px_rgba(11,95,86,0.35)]"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex size-11 items-center justify-center rounded-xl bg-teal/10 text-teal">
+                <Building2 className="size-5" />
+              </span>
+              <span>
+                <span className="block font-display text-lg font-bold text-ink">
+                  Organizaciones
+                </span>
+                <span className="text-sm text-muted">Alta y listado de plataforma</span>
+              </span>
+            </span>
+            <ChevronRight className="size-5 text-muted transition group-hover:text-teal" />
+          </Link>
         ) : null}
 
-        {contexto.ambito === 'PLATAFORMA' && (
-          <div className="border-t border-borde pt-5">
-            <Link
-              href="/plataforma/organizaciones"
-              className="inline-flex min-h-11 items-center rounded-md bg-teal px-4 text-sm font-semibold text-white hover:bg-teal/90"
-            >
-              Administrar organizaciones
-            </Link>
-          </div>
-        )}
-      </section>
-    </main>
+        {contexto.ambito === 'ORGANIZACION' ? (
+          <Link
+            href="/configuracion"
+            className="group flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-borde/80 bg-surface px-5 shadow-[0_14px_40px_-24px_rgba(18,32,30,0.4)] transition hover:border-teal/40 hover:shadow-[0_18px_44px_-20px_rgba(11,95,86,0.35)]"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex size-11 items-center justify-center rounded-xl bg-brass/15 text-brass-dark">
+                <Settings2 className="size-5" />
+              </span>
+              <span>
+                <span className="block font-display text-lg font-bold text-ink">
+                  Configuración
+                </span>
+                <span className="text-sm text-muted">Identidad, sucursales y cotización</span>
+              </span>
+            </span>
+            <ChevronRight className="size-5 text-muted transition group-hover:text-teal" />
+          </Link>
+        ) : null}
+      </div>
+    </AppShell>
   );
 }

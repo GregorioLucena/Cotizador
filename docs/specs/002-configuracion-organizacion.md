@@ -2,7 +2,7 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+En implementacion — rama `feature/spec-002-configuracion-organizacion` (2026-09-18)
 
 ## Objetivo
 

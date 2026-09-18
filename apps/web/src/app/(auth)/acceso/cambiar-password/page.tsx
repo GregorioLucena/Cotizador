@@ -2,10 +2,18 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { requisitosPassword } from '@cotizador/shared';
-import { ApiClientError, apiFetch, clearAccessToken, getAccessToken, setAccessToken } from '@/lib/api';
-import { useEffect } from 'react';
+import {
+  ApiClientError,
+  apiFetch,
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -62,46 +70,38 @@ export default function CambiarPasswordPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-5 py-10">
-      <div className="mb-8 text-center">
-        <Link href="/" className="font-display text-3xl font-semibold text-ink">
+    <main className="hero-counter flex min-h-dvh flex-col items-center justify-center px-5 py-10">
+      <div className="mb-8 animate-rise text-center">
+        <Link href="/" className="font-display text-3xl font-semibold tracking-tight text-white">
           Cotizador
         </Link>
-        <p className="mt-2 max-w-sm text-sm text-muted">
+        <p className="mt-2 max-w-sm text-sm text-white/65">
           La contraseña fue asignada por un administrador y debe reemplazarse antes de continuar.
         </p>
       </div>
 
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-borde bg-surface p-6 shadow-[0_20px_50px_-30px_rgba(20,33,43,0.5)]"
+        className="animate-rise-delay w-full max-w-sm space-y-4 rounded-2xl border border-white/15 bg-white/95 p-6 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm"
       >
-        <div className="space-y-1.5">
-          <label htmlFor="actual" className="text-sm font-medium text-ink">
-            Contraseña actual
-          </label>
-          <input
+        <Field label="Contraseña actual" htmlFor="actual">
+          <Input
             id="actual"
             type="password"
             autoComplete="current-password"
             required
             value={passwordActual}
             onChange={(ev) => setPasswordActual(ev.target.value)}
-            className="min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink outline-none focus:border-brass"
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="nueva" className="text-sm font-medium text-ink">
-            Contraseña nueva
-          </label>
-          <input
+        </Field>
+        <Field label="Contraseña nueva" htmlFor="nueva">
+          <Input
             id="nueva"
             type="password"
             autoComplete="new-password"
             required
             value={passwordNueva}
             onChange={(ev) => setPasswordNueva(ev.target.value)}
-            className="min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink outline-none focus:border-brass"
           />
           <ul className="space-y-1 pt-1 text-xs text-muted">
             <li className={requisitos.longitud ? 'text-exito' : undefined}>
@@ -111,21 +111,17 @@ export default function CambiarPasswordPage() {
             <li className={requisitos.minuscula ? 'text-exito' : undefined}>Una minúscula</li>
             <li className={requisitos.digito ? 'text-exito' : undefined}>Un dígito</li>
           </ul>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="confirm" className="text-sm font-medium text-ink">
-            Confirmar nueva
-          </label>
-          <input
+        </Field>
+        <Field label="Confirmar nueva" htmlFor="confirm">
+          <Input
             id="confirm"
             type="password"
             autoComplete="new-password"
             required
             value={confirmacion}
             onChange={(ev) => setConfirmacion(ev.target.value)}
-            className="min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink outline-none focus:border-brass"
           />
-        </div>
+        </Field>
         {error ? (
           <p className="text-sm text-peligro" role="alert">
             {error}
@@ -136,13 +132,9 @@ export default function CambiarPasswordPage() {
             Contraseña actualizada. Se cerraron sus otras sesiones.
           </p>
         ) : null}
-        <button
-          type="submit"
-          disabled={pending || ok}
-          className="flex min-h-11 w-full items-center justify-center rounded-md bg-ink text-sm font-semibold text-paper disabled:opacity-60"
-        >
+        <Button type="submit" disabled={pending || ok} className="w-full min-h-12">
           {pending ? 'Guardando…' : 'Cambiar contraseña'}
-        </button>
+        </Button>
         <button
           type="button"
           onClick={cerrarSesion}

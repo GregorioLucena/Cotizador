@@ -76,7 +76,7 @@ cotizador/
 │       │   │   │   ├── layout.tsx
 │       │   │   │   └── login/page.tsx
 │       │   │   └── (app)/                # route group autenticado
-│       │   │       ├── layout.tsx        # cabecera, navegacion, selector de sucursal
+│       │   │       ├── layout.tsx        # usa AppShell (cabecera + menú lateral)
 │       │   │       ├── page.tsx          # inicio
 │       │   │       ├── cotizaciones/     # listado, nueva, detalle, revision del borrador
 │       │   │       ├── catalogo/         # items, categorias, marcas, unidades, atributos
@@ -87,8 +87,8 @@ cotizador/
 │       │   │       ├── configuracion/    # organizacion, sucursales, usuarios, plantilla
 │       │   │       └── plataforma/       # solo para usuarios de ambito PLATAFORMA
 │       │   ├── components/
-│       │   │   ├── ui/                   # boton, campo, tabla, dialogo, insignia
-│       │   │   ├── layout/               # AppShell, cabecera, navegacion
+│       │   │   ├── ui/                   # boton, campo, card, insignia
+│       │   │   ├── shell/                # AppShell canónico: cabecera + menú lateral
 │       │   │   ├── forms/                # campos conectados a esquemas Zod
 │       │   │   ├── data-display/         # tarjetas, semaforo de linea, estados vacios
 │       │   │   └── feedback/             # carga, errores, confirmaciones, avisos

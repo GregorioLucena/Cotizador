@@ -117,7 +117,7 @@ Orden de PR sugerido (uno por spec, base `testing`):
 | Autenticacion, sesiones, refresco, cambio de contraseña | `specs/001-usuarios-perfiles.md` | En curso |
 | Organizaciones y provisionamiento por vertical | `specs/000-plataforma-organizaciones.md` | En implementacion |
 | Usuarios, perfiles y sucursales de la organizacion | `specs/001`, `specs/002` | En curso (API 001) |
-| Configuracion de la organizacion | `specs/002-configuracion-organizacion.md` | Pendiente |
+| Configuracion de la organizacion | `specs/002-configuracion-organizacion.md` | En curso |
 | Interfaz: login, guardas, navegacion y hub de configuracion | `09-guia-ux-ui.md` | En curso (acceso/panel) |
 
 Criterio de salida: se puede registrar una organizacion, provisionarla, crear su administrador y sus

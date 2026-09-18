@@ -112,10 +112,13 @@ Estilos con Tailwind CSS ^4.1.13. Los tokens se declaran con `@theme inline` en
 | Iconos | Solo `lucide-react`, un icono por import |
 | Sin logica de negocio en UI | Recalculo de importes con `@cotizador/shared`, no formulas locales |
 
-Dirección visual: clara, de mostrador, con contraste suficiente. Evitar temas púrpura genéricos,
-fondos crema con tipografía ornamental o estética “dashboard SaaS” saturada de tarjetas. Las
+Dirección visual: **luz de taller** — hero de marca en teal profundo, papel frío y ámbar solo
+en CTAs. Tipografía display geométrica (Outfit) + cuerpo legible. Landing pública: una composición
+a pantalla completa (marca hero + una tesis + una CTA + demo chat→ticket). El producto interno
+prioriza claridad táctil a 375px (mobile-first). Evitar temas púrpura genéricos, fondos crema con
+serif ornamental, negro+acento ácido, o estética “dashboard SaaS” saturada de tarjetas. Las
 tarjetas se usan solo cuando contienen una interacción o un bloque de estado (p. ej. resumen del
-semaforo), no como decoración.
+semáforo), no como decoración.
 
 ### Semaforo de resolucion
 
@@ -143,30 +146,45 @@ basta. El administrador los ve en configuración.
 | Grupo | Rutas | Cascaron |
 |-------|-------|----------|
 | `(auth)` | Login, cambio de clave forzado | Sin barra de navegacion de la app |
-| `(app)` | Area autenticada | `AppShell`: cabecera, navegacion, selector de sucursal |
+| `(app)` | Area autenticada | `AppShell`: cabecera + menú lateral (base) |
 
 Usuarios de ámbito `PLATAFORMA` ven el área `plataforma/` para organizaciones; **no** operan
 cotizaciones de una organización ajena.
 
-### Barra principal (movil)
+### Navegación base (obligatoria)
 
-Cinco destinos fijos en la navegación inferior (o equivalente compacto). El quinto es un hub.
+Patrón canónico del área autenticada. **No sustituir** por dock inferior, tabs fijos ni
+sidebar permanente sin decisión explícita en esta guía.
+
+| Pieza | Comportamiento |
+|-------|----------------|
+| Cascarón | `AppShell` en `apps/web/src/components/shell/app-shell.tsx` |
+| Cabecera | Fija, marca Cotizador a la izquierda, botón **Menú** a la derecha |
+| Menú | Panel lateral derecho deslizante (overlay + Escape / tap fuera para cerrar) |
+| Destinos | Filas grandes (icono + título + descripción); activo resaltado en teal |
+| Cerrar sesión | Siempre al pie del menú lateral |
+| Mobile-first | Áreas táctiles ≥ 44px; el menú ocupa hasta ~22rem de ancho |
+
+Destinos nuevos (Cotizar, Historial, Catálogo, etc.) se **agregan como filas** en el mismo menú,
+filtradas por permiso del `OrgContext`. No se introduce otra barra de navegación paralela.
 
 | Destino | Ruta orientativa | Permiso minimo tipico |
 |---------|------------------|------------------------|
-| Inicio | `/(app)/` | autenticado en organizacion |
-| Cotizar | `/(app)/cotizaciones/nueva` (o equivalente) | `cotizaciones.crear` |
-| Historial | `/(app)/cotizaciones` | `cotizaciones.ver` |
-| Catalogo | `/(app)/catalogo` | `catalogo.items.ver` |
-| Mas | Hub de enlaces | autenticado; enlaces filtrados |
+| Inicio | `/panel` | autenticado |
+| Cotizar | `/cotizaciones/nueva` (o equivalente) | `cotizaciones.crear` |
+| Historial | `/cotizaciones` | `cotizaciones.ver` |
+| Catalogo | `/catalogo` | `catalogo.items.ver` |
+| Configuracion | `/configuracion` | `configuracion.organizacion.ver` |
+| Organizaciones | `/plataforma/organizaciones` | ambito `PLATAFORMA` |
 
-En escritorio la misma información puede vivir en barra lateral o superior; el orden y los nombres
-se conservan.
+En escritorio se conserva el mismo patrón (cabecera + menú lateral); no hay variante distinta
+obligatoria.
 
-### Hub «Mas»
+### Enlaces secundarios (ex-hub «Mas»)
 
-Lista de enlaces filtrada por permisos del `OrgContext`. Si el usuario no tiene el permiso, el
-enlace **no se muestra** (no solo se deshabilita).
+Los enlaces de administración que no son destinos primarios viven **dentro del menú lateral**
+(sección inferior o agrupados bajo Configuración), filtrados por permiso. Si el usuario no tiene
+el permiso, el enlace **no se muestra**.
 
 | Enlace | Permiso orientativo |
 |--------|---------------------|
@@ -176,14 +194,13 @@ enlace **no se muestra** (no solo se deshabilita).
 | Tasas de cambio | `precios.tasas.administrar` |
 | Importacion | `catalogo.items.importar` |
 | Metricas | `reportes.ver` |
-| Configuracion | `configuracion.organizacion.ver` |
 | Usuarios | `seguridad.usuarios.ver` |
 | Plantilla de documento | `plantillas.ver` |
 | Terminos no resueltos | `catalogo.items.ver` |
-| Cerrar sesion | autenticado |
+| Cerrar sesion | autenticado (pie del menú) |
 
-El perfil `Cotizador` ve un hub corto (clientes, métricas, catálogo ya está en la barra). El
-`Administrador Organizacion` ve el hub completo de organización.
+El perfil `Cotizador` ve un menú corto (destinos operativos + pocos secundarios). El
+`Administrador Organizacion` ve el menú completo de organización.
 
 ---
 

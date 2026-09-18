@@ -1,0 +1,90 @@
+name: cotizador
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cotizador-postgres
+    restart: unless-stopped
+    env_file:
+      - .env.development
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cotizador}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cotizador}
+      POSTGRES_DB: ${POSTGRES_DB:-cotizador}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-cotizador}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cotizador-dev-network
+
+  api:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cotizador-api-dev
+    restart: unless-stopped
+    command: pnpm --filter @cotizador/api exec nest start --watch
+    env_file:
+      - .env.development
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cotizador}:${POSTGRES_PASSWORD:-cotizador}@postgres:5432/${POSTGRES_DB:-cotizador}
+      PORT: 3001
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: 'true'
+    ports:
+      - '${API_PORT:-3001}:3001'
+    volumes:
+      - .:/app
+      - dev_root_node_modules:/app/node_modules
+      - dev_api_node_modules:/app/apps/api/node_modules
+      - dev_api_dist:/app/apps/api/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cotizador-dev-network
+
+  web:
+    profiles: ['full']
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cotizador-web-dev
+    restart: unless-stopped
+    command: pnpm --filter @cotizador/web dev
+    env_file:
+      - .env.development
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: 'true'
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    volumes:
+      - .:/app
+      - dev_root_node_modules:/app/node_modules
+      - dev_web_node_modules:/app/apps/web/node_modules
+      - dev_web_next:/app/apps/web/.next
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - cotizador-dev-network
+
+volumes:
+  postgres_data:
+  dev_root_node_modules:
+  dev_api_node_modules:
+  dev_api_dist:
+  dev_web_node_modules:
+  dev_web_next:
+
+networks:
+  cotizador-dev-network:
+    name: cotizador-dev-network

@@ -1,0 +1,42 @@
+---
+description: Convenciones de servicios, validacion, errores e importes en TypeScript
+globs: **/*.ts
+alwaysApply: false
+---
+
+# Orden obligatorio en cada metodo de servicio
+
+```typescript
+async crear(ctx: OrgContext, input: unknown) {
+  requirePermission(ctx, PERMISOS.CATALOGO_ITEMS_CREAR);   // 1. permiso
+  const parsed = crearItemSchema.parse(input);              // 2. forma de los datos
+  await this.assertPertenece(ctx, parsed.categoriaId);      // 3. tenant y existencia
+  await this.assertSkuDisponible(ctx, parsed.sku);          // 4. reglas de negocio
+  return this.repo.save({ ...parsed, organizacionId: ctx.organizacionId, createdById: ctx.usuarioId });
+}
+```
+
+- `organizacionId` se toma siempre de `ctx`, nunca de la entrada.
+- El filtro por organizacion va en el `WHERE`, no en una validacion posterior en memoria.
+- Un registro de otra organizacion se responde como no encontrado, nunca como prohibido.
+
+# Validacion y errores
+
+- Schemas Zod en `@cotizador/shared/schemas`: `crearXSchema`, `actualizarXSchema`, tipos `CrearXInput`.
+  No se usa class-validator ni DTOs de Nest.
+- Lanza siempre subclases de `AppError` (`ValidationError`, `NotFoundError`, `ConflictError`,
+  `BusinessRuleError`, `ForbiddenError`, `ExternalServiceError`). Prohibido `throw new Error()` o
+  `HttpException` en servicios de dominio.
+- Codigos de error en UPPER_SNAKE_CASE registrados en `docs/08-catalogo-errores.md`. Los mensajes van
+  en español y son aptos para mostrar al usuario.
+
+# Importes decimales
+
+- Prohibido usar `number` para dinero. Se calcula con aritmetica decimal y se transporta como cadena.
+- El calculo de precios vive en funciones puras en `@cotizador/shared/precios`: sin base de datos, sin
+  reloj propio, sin efectos secundarios. Debe tener pruebas Vitest en `*.rules.test.ts`.
+
+# Nomenclatura
+
+Identificadores en español sin tildes (`crearCotizacion`, `estadoResolucion`). Tablas snake_case
+plural, columnas camelCase, enumerados UPPER_SNAKE_CASE, archivos kebab-case.

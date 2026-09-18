@@ -1,0 +1,14 @@
+node_modules
+dist
+.next
+.pnpm-store
+.git
+.cursor
+.vscode
+docs
+.env
+.env.*
+!.env.development.example
+coverage
+.turbo
+*.log

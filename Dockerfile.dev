@@ -1,0 +1,21 @@
+FROM node:22-alpine
+
+RUN corepack enable
+
+WORKDIR /app
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/database/package.json ./packages/database/
+
+RUN pnpm install --frozen-lockfile || pnpm install
+
+COPY . .
+RUN pnpm run build:packages
+
+ENTRYPOINT ["sh", "scripts/docker-entrypoint-dev.sh"]

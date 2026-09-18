@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cotizador inteligente para ferretería — Propuesta MVP</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap');
+
+    :root {
+      --ink: #14212b;
+      --muted: #5a6b76;
+      --line: #d7dde2;
+      --paper: #f7f5f1;
+      --white: #ffffff;
+      --accent: #c45c26;
+      --accent-dark: #9a4218;
+      --steel: #1f3a4a;
+      --ok: #1f6b4a;
+      --warn: #9a6b12;
+      --bad: #9a2f2f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    html, body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--white);
+      font-size: 10.5pt;
+      line-height: 1.55;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 18mm 18mm 16mm;
+      page-break-after: always;
+      position: relative;
+    }
+
+    .page:last-child { page-break-after: auto; }
+
+    /* ========== COVER ========== */
+    .cover {
+      padding: 0;
+      background: linear-gradient(155deg, #10202b 0%, #1a3344 48%, #243f52 100%);
+      color: #f3efe8;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .cover::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 100% 0%, rgba(196, 92, 38, 0.28), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 0% 100%, rgba(255, 255, 255, 0.06), transparent 50%);
+      pointer-events: none;
+    }
+
+    .cover-inner {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      min-height: 297mm;
+      padding: 22mm 20mm 18mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .cover-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(243, 239, 232, 0.7);
+    }
+
+    .badge {
+      border: 1px solid rgba(243, 239, 232, 0.35);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .cover-main { margin-top: 48mm; max-width: 155mm; }
+
+    .eyebrow {
+      display: inline-block;
+      color: #e8a57a;
+      font-size: 10pt;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .cover h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 42pt;
+      font-weight: 400;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      margin-bottom: 18px;
+    }
+
+    .cover-lead {
+      font-size: 13pt;
+      line-height: 1.45;
+      color: rgba(243, 239, 232, 0.88);
+      max-width: 140mm;
+    }
+
+    .cover-rule {
+      width: 42px;
+      height: 3px;
+      background: var(--accent);
+      margin: 22px 0 18px;
+      border: none;
+    }
+
+    .cover-points {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 18px;
+      margin-top: 28px;
+      max-width: 160mm;
+    }
+
+    .cover-point {
+      border-left: 2px solid rgba(232, 165, 122, 0.55);
+      padding-left: 12px;
+      font-size: 9.5pt;
+      color: rgba(243, 239, 232, 0.9);
+    }
+
+    .cover-point strong {
+      display: block;
+      color: #fff;
+      font-size: 10pt;
+      margin-bottom: 2px;
+    }
+
+    .cover-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px solid rgba(243, 239, 232, 0.18);
+      padding-top: 16px;
+      font-size: 9pt;
+      color: rgba(243, 239, 232, 0.65);
+    }
+
+    .cover-footer strong { color: #f3efe8; font-weight: 600; }
+
+    /* ========== CONTENT ========== */
+    h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 18pt;
+      font-weight: 400;
+      color: var(--steel);
+      margin: 0 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+      min-width: 40%;
+    }
+
+    h3 {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: var(--steel);
+      margin: 14px 0 6px;
+    }
+
+    p { margin: 0 0 8px; color: var(--ink); }
+
+    ul, ol { margin: 0 0 10px 16px; }
+    li { margin-bottom: 3px; }
+
+    .section { margin-bottom: 16px; }
+
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: 8.5pt;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .callout {
+      background: var(--paper);
+      border-left: 4px solid var(--accent);
+      padding: 10px 14px;
+      margin: 10px 0 12px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .callout p { margin: 0; color: var(--ink); }
+    .callout strong { color: var(--accent-dark); }
+
+    .gold-rule {
+      background: #fff8f3;
+      border: 1px solid #f0d2c0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-style: italic;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px;
+      font-size: 9.5pt;
+    }
+
+    th {
+      background: var(--steel);
+      color: #fff;
+      text-align: left;
+      padding: 7px 9px;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 7px 9px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td { background: #faf9f7; }
+
+    .flow {
+      background: var(--paper);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 8px 0 12px;
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    .flow-step:last-child { padding-bottom: 0; }
+
+    .flow-num {
+      flex: 0 0 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 9pt;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .flow-text { flex: 1; padding-top: 2px; }
+    .flow-text strong { display: block; font-size: 10pt; }
+    .flow-text span { color: var(--muted); font-size: 9pt; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 8px 0 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .card h3 { margin-top: 0; }
+    .card.include { border-top: 3px solid var(--ok); }
+    .card.exclude { border-top: 3px solid #b0b8bf; }
+
+    .menu-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 12px;
+    }
+
+    .pill {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 9pt;
+      font-weight: 600;
+      color: var(--steel);
+    }
+
+    .panel-block {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+
+    .panel-block h3 {
+      margin: 0 0 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tag {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #efe8e1;
+      color: var(--accent-dark);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    .help {
+      margin-top: 6px;
+      font-size: 9pt;
+      color: var(--muted);
+    }
+
+    .help strong { color: var(--steel); }
+
+    .status-ok { color: var(--ok); font-weight: 700; }
+    .status-warn { color: var(--warn); font-weight: 700; }
+    .status-bad { color: var(--bad); font-weight: 700; }
+
+    .example {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      background: #152531;
+      color: #e8eef2;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 8.5pt;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      margin: 8px 0 12px;
+    }
+
+    .questions ol { margin-left: 18px; }
+    .questions li { margin-bottom: 6px; }
+
+    .closing {
+      margin-top: 18px;
+      background: linear-gradient(120deg, #10202b, #1f3a4a);
+      color: #f3efe8;
+      padding: 16px 18px;
+      border-radius: 10px;
+    }
+
+    .closing p {
+      color: rgba(243, 239, 232, 0.92);
+      margin: 0;
+      font-size: 11pt;
+      font-family: "Instrument Serif", Georgia, serif;
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      font-size: 8.5pt;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .avoid-break { page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+
+  <!-- PORTADA -->
+  <section class="page cover">
+    <div class="cover-inner">
+      <div class="cover-top">
+        <span>Propuesta de prueba · MVP</span>
+        <span class="badge">Uso interno</span>
+      </div>
+
+      <div class="cover-main">
+        <div class="eyebrow">Ferretería · WhatsApp · IA</div>
+        <h1>Cotizador inteligente para ferretería</h1>
+        <hr class="cover-rule" />
+        <p class="cover-lead">
+          Una herramienta para armar cotizaciones desde WhatsApp en segundos:
+          la IA propone, el catálogo cotiza y el ferretero aprueba.
+        </p>
+
+        <div class="cover-points">
+          <div class="cover-point">
+            <strong>Fase piloto</strong>
+            WhatsApp Business gratis + panel de aprobación
+          </div>
+          <div class="cover-point">
+            <strong>Sin bot al inicio</strong>
+            Copiar y pegar el chat del cliente
+          </div>
+          <div class="cover-point">
+            <strong>Control humano</strong>
+            Nada se envía sin revisión
+          </div>
+          <div class="cover-point">
+            <strong>Bajo riesgo</strong>
+            Validar con uso real antes de escalar
+          </div>
+        </div>
+      </div>
+
+      <div class="cover-footer">
+        <div>
+          <strong>Documento de propuesta</strong><br />
+          Versión 1.0
+        </div>
+        <div style="text-align:right">
+          Fase piloto<br />
+          Preparado para revisión con la ferretería
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PÁGINA 2 -->
+  <section class="page">
+    <div class="doc-header">
+      <span>Cotizador inteligente para ferretería</span>
+      <span>Propuesta MVP</span>
+    </div>
+
+    <div class="section">
+      <h2>1. El problema</h2>
+      <p>Hoy muchas cotizaciones llegan por WhatsApp: listas de materiales, audios y fotos. Atenderlas a mano implica:</p>
+      <ul>
+        <li>Buscar precios uno por uno</li>
+        <li>Calcular descuentos por volumen</li>
+        <li>Responder mientras se atiende el mostrador</li>
+        <li>Perder mensajes cuando el volumen sube</li>
+      </ul>
+      <div class="callout">
+        <p><strong>Resultado:</strong> tiempo perdido, respuestas tardías y ventas que se escapan.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>2. La solución (fase piloto)</h2>
+      <p>Un <strong>panel web simple</strong> donde:</p>
+      <ol>
+        <li>Se <strong>copia y pega</strong> el mensaje del cliente desde WhatsApp.</li>
+        <li>La <strong>IA arma un borrador</strong> de cotización cruzando el pedido con el catálogo.</li>
+        <li>El ferretero <strong>revisa, ajusta y aprueba</strong> en segundos.</li>
+        <li>Se <strong>copia la respuesta</strong> (o PDF) y se envía en el mismo chat.</li>
+      </ol>
+      <div class="callout">
+        <p>El cliente no descarga ninguna app. Sigue escribiendo por WhatsApp como siempre. En esta fase se usa <strong>WhatsApp Business App (gratis)</strong>. No se requiere WhatsApp API todavía.</p>
+      </div>
+    </div>
+
+    <div class="section avoid-break">
+      <h2>3. Ventajas para la ferretería</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32%">Beneficio</th>
+            <th>Qué significa en la práctica</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Más rapidez</strong></td><td>Cotizar en segundos, no en varios minutos</td></tr>
+          <tr><td><strong>Menos mensajes sin responder</strong></td><td>El borrador llega armado; solo hay que aprobar</td></tr>
+          <tr><td><strong>Menos errores</strong></td><td>Precios y descuentos salen del sistema, no de memoria</td></tr>
+          <tr><td><strong>Control total</strong></td><td>Nada se envía sin revisión humana</td></tr>
+          <tr><td><strong>Mejor atención</strong></td><td>Más tiempo para el mostrador y para clientes difíciles</td></tr>
+          <tr><td><strong>Historial claro</strong></td><td>Queda registro de lo cotizado, ganado o perdido</td></tr>
+          <tr><td><strong>Bajo riesgo de prueba</strong></td><td>Sin API de pago de WhatsApp; se valida con uso real</td></tr>
+          <tr><td><strong>Costo de IA muy bajo</strong></td><td>En volumen de una ferretería: centavos a pocos dólares al mes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PÁGINA 3 -->
+  <section class="page">
+    <div class="doc-header">
+      <span>Cotizador inteligente para ferretería</span>
+      <span>Flujo y panel</span>
+    </div>
+
+    <div class="section">
+      <h2>4. Flujo diario</h2>
+      <div class="flow">
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-text"><strong>Cliente escribe por WhatsApp</strong><span>Lista de materiales en el chat habitual</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-text"><strong>Ferretero pega el mensaje en el panel</strong><span>Sin cambiar de número ni de app del cliente</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-text"><strong>IA + catálogo → borrador</strong><span>Productos, cantidades, precios y descuentos sugeridos</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div class="flow-text"><strong>Revisión humana</strong><span>Estados: seguro · revisar · no encontrado</span></div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-num">5</div>
+            <div class="flow-text"><strong>Aprobar → copiar / PDF → WhatsApp</strong><span>La cotización queda registrada en el historial</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="gold-rule">
+        <strong>Regla de oro:</strong> La IA propone · El catálogo cotiza · El ferretero aprueba.
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>5. Qué vería en el panel</h2>
+      <p><strong>Menú principal</strong></p>
+      <div class="menu-pills">
+        <span class="pill">Nueva cotización</span>
+        <span class="pill">Historial</span>
+        <span class="pill">Catálogo</span>
+        <span class="pill">Precios y reglas</span>
+        <span class="pill">Clientes</span>
+      </div>
+
+      <div class="panel-block">
+        <h3>5.1 Nueva cotización <span class="tag">Pantalla principal</span></h3>
+        <ul>
+          <li>Campo para pegar el chat del cliente</li>
+          <li>Botón <strong>Armar borrador con IA</strong></li>
+          <li>Tipo de cliente: público / mayorista</li>
+          <li>Nombre o teléfono (opcional)</li>
+        </ul>
+        <p class="help"><strong>Ayuda:</strong> deja de armar la cotización desde cero.</p>
+      </div>
+
+      <div class="panel-block">
+        <h3>5.2 Revisión y aprobación</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Lo que pidió</th>
+              <th>Producto sugerido</th>
+              <th>Cant.</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>tubo pvc 1/2</td>
+              <td>Tubo PVC 1/2" x 3m</td>
+              <td>2</td>
+              <td class="status-ok">Seguro</td>
+            </tr>
+            <tr>
+              <td>pegamento azul</td>
+              <td>Pegamento PVC 1/4</td>
+              <td>1</td>
+              <td class="status-warn">Revisar</td>
+            </tr>
+            <tr>
+              <td>“eso del lavamanos”</td>
+              <td>—</td>
+              <td>—</td>
+              <td class="status-bad">No encontrado</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Acciones: cambiar producto, ajustar cantidad, ver total (USD/Bs), <strong>aprobar y copiar para WhatsApp</strong>, descargar PDF.</p>
+        <p class="help"><strong>Ayuda:</strong> control de calidad en 20–40 segundos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PÁGINA 4 -->
+  <section class="page">
+    <div class="doc-header">
+      <span>Cotizador inteligente para ferretería</span>
+      <span>Panel, alcance y prueba</span>
+    </div>
+
+    <div class="section">
+      <div class="panel-block">
+        <h3>5.3 Catálogo</h3>
+        <ul>
+          <li>Nombre comercial y <strong>alias</strong> (cómo lo pide la gente)</li>
+          <li>Unidad, precio público / mayorista</li>
+          <li>Stock aproximado (opcional) e importación desde Excel</li>
+        </ul>
+        <p class="help"><strong>Ayuda:</strong> cuanto mejor el catálogo, mejor acierta la IA.</p>
+      </div>
+
+      <div class="panel-block">
+        <h3>5.4 Precios y reglas</h3>
+        <ul>
+          <li>Descuentos por cantidad · listas público/mayorista</li>
+          <li>Tasa BCV editable · vigencia 24/48/72 h</li>
+          <li>Texto de pie de cotización</li>
+        </ul>
+        <p class="help"><strong>Ayuda:</strong> no recalcular descuentos a mano.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="panel-block" style="margin:0">
+          <h3>5.5 Historial</h3>
+          <ul>
+            <li>Folio, cliente, total, fecha</li>
+            <li>Estados: borrador, enviada, ganada, perdida, vencida</li>
+            <li>Reabrir, duplicar o volver a copiar</li>
+          </ul>
+        </div>
+        <div class="panel-block" style="margin:0">
+          <h3>5.6 Clientes</h3>
+          <ul>
+            <li>Nombre / WhatsApp</li>
+            <li>Tipo: público o mayorista</li>
+            <li>Notas y últimas cotizaciones</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section avoid-break">
+      <h2>6. Ejemplo de respuesta al cliente</h2>
+      <div class="example">Hola! Cotización #045 — Ferretería
+Válida 48 horas
+
+• Tubo PVC 1/2" x 3m     x2    $…
+• Codo PVC 1/2"          x10   $…
+• Pegamento PVC 1/4      x1    $…
+--------------------------------
+Subtotal: $…
+Desc. volumen: $…
+TOTAL: $…  (o Bs al BCV del día)
+
+¿La apartamos o pasas a retirar?</div>
+    </div>
+
+    <div class="section avoid-break">
+      <h2>7. Qué incluye la prueba y qué no</h2>
+      <div class="two-col">
+        <div class="card include">
+          <h3>Incluye (MVP)</h3>
+          <ul>
+            <li>Pegar texto del chat</li>
+            <li>Borrador con IA</li>
+            <li>Aprobación humana</li>
+            <li>Catálogo + aliases</li>
+            <li>Reglas de descuento</li>
+            <li>Historial</li>
+            <li>Copia a WhatsApp</li>
+          </ul>
+        </div>
+        <div class="card exclude">
+          <h3>No incluye todavía</h3>
+          <ul>
+            <li>Bot automático en WhatsApp</li>
+            <li>WhatsApp API de pago</li>
+            <li>Audio / imagen (después)</li>
+            <li>Facturación electrónica completa</li>
+            <li>Inventario avanzado / compras</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PÁGINA 5 -->
+  <section class="page">
+    <div class="doc-header">
+      <span>Cotizador inteligente para ferretería</span>
+      <span>Plan y próximos pasos</span>
+    </div>
+
+    <div class="section">
+      <h2>8. Plan de prueba sugerido</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28%">Etapa</th>
+            <th>Qué hacemos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Preparación</strong></td><td>Cargar 150–300 productos de más rotación</td></tr>
+          <tr><td><strong>Semana 1</strong></td><td>Usar el panel en paralelo al método actual</td></tr>
+          <tr><td><strong>Semana 2</strong></td><td>Usar el panel para las cotizaciones de WhatsApp</td></tr>
+          <tr><td><strong>Medición</strong></td><td>Tiempo por cotización, mensajes respondidos, ventas cerradas</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Señales de que vale la pena seguir</h3>
+      <ul>
+        <li>Baja el tiempo por cotización</li>
+        <li>Se responden más chats</li>
+        <li>No se quiere volver al método anterior</li>
+        <li>Hay disposición a usar (y luego pagar) la herramienta de forma continua</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>9. Evolución futura</h2>
+      <ol>
+        <li><strong>Audio e imagen</strong> → el panel también interpreta notas de voz y fotos de listas.</li>
+        <li><strong>WhatsApp API</strong> → el mensaje llega solo; notificación “cotización lista para aprobar”.</li>
+        <li><strong>Más ferreterías</strong> → mismo producto como servicio mensual (SaaS).</li>
+      </ol>
+    </div>
+
+    <div class="section questions">
+      <h2>10. Preguntas para la revisión</h2>
+      <ol>
+        <li>¿El flujo encaja con el día a día?</li>
+        <li>¿Qué molesta más hoy: tiempo, errores o mensajes sin contestar?</li>
+        <li>¿Cuántas cotizaciones por WhatsApp llegan en un día típico?</li>
+        <li>¿Quieren probar con el catálogo real en una prueba piloto?</li>
+      </ol>
+    </div>
+
+    <div class="closing">
+      <p>“Un asistente de cotización para WhatsApp: la IA arma el borrador, el ferretero aprueba, el cliente recibe rápido — y en la prueba inicial no hace falta pagar WhatsApp API.”</p>
+    </div>
+
+    <div class="footer-note">
+      <span>Documento de propuesta — fase piloto · Uso interno</span>
+      <span>Versión 1.0</span>
+    </div>
+  </section>
+
+</body>
+</html>

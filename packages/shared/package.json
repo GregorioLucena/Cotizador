@@ -1,0 +1,61 @@
+{
+  "name": "@cotizador/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors/index.d.ts",
+      "default": "./dist/errors/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./permissions": {
+      "types": "./dist/permissions/index.d.ts",
+      "default": "./dist/permissions/index.js"
+    },
+    "./schemas/pagination.schemas": {
+      "types": "./dist/schemas/pagination.schemas.d.ts",
+      "default": "./dist/schemas/pagination.schemas.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "errors": [
+        "dist/errors/index.d.ts"
+      ],
+      "types": [
+        "dist/types/index.d.ts"
+      ],
+      "permissions": [
+        "dist/permissions/index.d.ts"
+      ],
+      "schemas/pagination.schemas": [
+        "dist/schemas/pagination.schemas.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

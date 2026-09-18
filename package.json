@@ -1,0 +1,32 @@
+{
+  "name": "cotizador",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "predev": "pnpm run docker:db",
+    "dev": "dotenv -e .env.development -- pnpm --parallel --filter @cotizador/api --filter @cotizador/web run dev",
+    "dev:api": "dotenv -e .env.development -- pnpm --filter @cotizador/api dev",
+    "dev:web": "dotenv -e .env.development -- pnpm --filter @cotizador/web dev",
+    "build": "pnpm run build:packages && pnpm --filter @cotizador/api build && pnpm --filter @cotizador/web build",
+    "build:packages": "pnpm --filter @cotizador/shared build && pnpm --filter @cotizador/database build",
+    "lint": "pnpm --filter @cotizador/web lint",
+    "format": "prettier --write \"apps/**/*.{ts,tsx}\" \"packages/**/*.ts\"",
+    "typecheck": "pnpm --filter @cotizador/shared typecheck && pnpm --filter @cotizador/database typecheck && pnpm --filter @cotizador/api typecheck && pnpm --filter @cotizador/web typecheck",
+    "test": "pnpm --filter @cotizador/shared test",
+    "db:migrate": "dotenv -e .env.development -- pnpm --filter @cotizador/database db:migration:run",
+    "db:migration:generate": "dotenv -e .env.development -- pnpm --filter @cotizador/database db:migration:generate",
+    "db:migration:revert": "dotenv -e .env.development -- pnpm --filter @cotizador/database db:migration:revert",
+    "db:seed": "dotenv -e .env.development -- pnpm --filter @cotizador/database db:seed",
+    "docker:db": "docker compose --env-file .env.development -f docker-compose.dev.yml up -d postgres",
+    "docker:db:down": "docker compose --env-file .env.development -f docker-compose.dev.yml down",
+    "docker:dev": "docker compose --env-file .env.development -f docker-compose.dev.yml --profile full up --build",
+    "docker:down": "docker compose --env-file .env.development -f docker-compose.dev.yml --profile full down",
+    "docker:logs": "docker compose --env-file .env.development -f docker-compose.dev.yml logs -f"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,36 @@
+---
+description: Flujo de trabajo dirigido por especificacion y reglas permanentes del producto
+alwaysApply: true
+---
+
+# Flujo SDD
+
+`docs/` es la fuente de verdad. Antes de implementar un modulo, lee su especificacion en
+`docs/specs/` y el diseño en `docs/06-diseno-tecnico.md`.
+
+- No implementes nada que no este especificado. Lo que aparezca durante la implementacion se anota
+  como pregunta abierta en la spec o se difiere a una fase posterior.
+- No amplies el alcance de un modulo mientras lo implementas.
+- Si el codigo y la documentacion difieren, corrige el que este equivocado en el mismo cambio.
+- Al cerrar una spec, agrega la seccion de cierre con fecha, entregables y verificacion de cada
+  criterio de aceptacion.
+- Responde y documenta en español.
+- No hagas commits salvo peticion explicita del usuario.
+
+# Reglas del producto que no se negocian
+
+1. Ningun importe de una cotizacion proviene de la salida de un modelo de lenguaje. La IA solo
+   extrae descripcion, cantidad y unidad.
+2. Ninguna cotizacion se entrega sin aprobacion humana registrada.
+3. Ninguna consulta devuelve datos de otra organizacion. Un identificador ajeno responde 404.
+4. Las cotizaciones y sus eventos no se borran fisicamente.
+5. Una cotizacion aprobada congela precios, descuentos y tasa: su valor no cambia nunca.
+6. Ninguna regla de negocio ramifica por vertical. Si hace falta, es que falta configuracion.
+
+# Nomenclatura obligatoria
+
+- `Organizacion`: el negocio que contrata la plataforma. Nunca "tenant", "empresa" ni "cliente".
+- `Cliente`: unicamente quien pide una cotizacion por WhatsApp.
+- `Item`: unidad del catalogo. Nunca "producto".
+
+Glosario completo en `docs/01-glosario.md`.

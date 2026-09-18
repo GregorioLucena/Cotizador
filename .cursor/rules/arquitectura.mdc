@@ -1,0 +1,36 @@
+---
+description: Arquitectura del monorepo y limites entre capas
+alwaysApply: true
+---
+
+# Estructura
+
+```text
+apps/api       NestJS: modulos por dominio
+apps/web       Next.js App Router
+packages/database   Entidades TypeORM, migraciones, semillas, packs de vertical
+packages/shared     Schemas Zod, tipos, permisos, errores, motor de precios, normalizacion
+```
+
+# Dependencias permitidas
+
+| Paquete | Puede importar |
+|---------|----------------|
+| `apps/web` | `@cotizador/shared` |
+| `apps/api` | `@cotizador/shared`, `@cotizador/database` |
+| `@cotizador/database` | `@cotizador/shared` |
+| `@cotizador/shared` | nada del proyecto |
+
+Prohibido: `apps/web` importando `@cotizador/database`, o un paquete importando una app.
+
+# Limites de capa
+
+- `apps/web` no contiene reglas de negocio. Si una regla se necesita en la interfaz, vive en
+  `@cotizador/shared` y se consume desde ambos lados.
+- Los controladores no contienen logica: reciben `@OrgCtx() ctx` y `@Body() body: unknown`, delegan
+  al servicio y devuelven `{ data }`.
+- Los servicios de dominio no importan SDK de terceros. Los adaptadores externos (IA, PDF,
+  almacenamiento) se consumen por interfaz.
+- TypeORM opera con `synchronize: false`. Todo cambio de esquema es una migracion explicita con `down`.
+
+Detalle en `docs/11-arquitectura-monorepo.md` y `docs/06-diseno-tecnico.md`.

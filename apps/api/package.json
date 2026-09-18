@@ -1,0 +1,35 @@
+{
+  "name": "@cotizador/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "predev": "pnpm -w run build:packages",
+    "dev": "nest start --watch",
+    "prebuild": "pnpm -w run build:packages",
+    "build": "nest build",
+    "start:prod": "node dist/main.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cotizador/database": "workspace:*",
+    "@cotizador/shared": "workspace:*",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/typeorm": "^11.0.0",
+    "cookie-parser": "^1.4.7",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.26",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.7",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.18.6",
+    "typescript": "^5.9.2"
+  }
+}

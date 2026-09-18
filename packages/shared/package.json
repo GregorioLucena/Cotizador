@@ -27,6 +27,10 @@
     "./schemas/pagination.schemas": {
       "types": "./dist/schemas/pagination.schemas.d.ts",
       "default": "./dist/schemas/pagination.schemas.js"
+    },
+    "./schemas/auth.schemas": {
+      "types": "./dist/schemas/auth.schemas.d.ts",
+      "default": "./dist/schemas/auth.schemas.js"
     }
   },
   "typesVersions": {
@@ -42,6 +46,9 @@
       ],
       "schemas/pagination.schemas": [
         "dist/schemas/pagination.schemas.d.ts"
+      ],
+      "schemas/auth.schemas": [
+        "dist/schemas/auth.schemas.d.ts"
       ]
     }
   },
@@ -49,7 +56,7 @@
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "dependencies": {
     "zod": "^3.25.76"

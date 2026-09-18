@@ -1,15 +1,19 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { EstadoRegistro } from '../enums';
 import { BaseEntity } from './base.entity';
+import { Organizacion } from './organizacion.entity';
 
 @Entity('usuarios')
 export class Usuario extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  /** Nulo para usuarios de ambito PLATAFORMA. FK a organizaciones en fase posterior. */
   @Column({ type: 'uuid', nullable: true })
   organizacionId?: string | null;
+
+  @ManyToOne(() => Organizacion, { nullable: true })
+  @JoinColumn({ name: 'organizacionId' })
+  organizacion?: Organizacion | null;
 
   @Column()
   nombreCompleto!: string;

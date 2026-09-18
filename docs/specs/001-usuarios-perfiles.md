@@ -2,7 +2,10 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+En implementacion — rama `feature/spec-001-usuarios-perfiles` (2026-09-18)
+
+Códigos de error alineados a `docs/08-catalogo-errores.md` (`AUTH_*`, `USUARIO_*`, `SIN_PERMISO`).
+La tabla de errores funcionales de esta spec se interpreta con esos códigos canónicos.
 
 ## Objetivo
 

@@ -105,3 +105,105 @@ export const metricasQuerySchema = z.object({
 export type CrearOrganizacionInput = z.infer<typeof crearOrganizacionSchema>;
 export type EditarOrganizacionInput = z.infer<typeof editarOrganizacionSchema>;
 export type CrearUsuarioInicialInput = z.infer<typeof crearUsuarioInicialSchema>;
+
+const porcentajeImpuestoSchema = z.union([z.string().trim().min(1), z.number()]).transform(
+  (v, ctx) => {
+    const n = typeof v === 'number' ? v : Number(v);
+    if (Number.isNaN(n) || n < 0 || n > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El porcentaje de impuesto debe estar entre 0 y 100',
+      });
+      return z.NEVER;
+    }
+    return n.toFixed(4);
+  },
+);
+
+export const editarConfiguracionOrganizacionSchema = z
+  .object({
+    nombre: z.string().trim().min(3).max(120).optional(),
+    razonSocial: z.string().trim().min(1).max(200).nullable().optional(),
+    identificacionFiscal: z.string().trim().min(1).max(40).nullable().optional(),
+    telefono: z.string().trim().min(1).max(40).nullable().optional(),
+    email: z.string().email().nullable().optional(),
+    direccion: z.string().trim().min(1).max(500).nullable().optional(),
+    monedaBaseId: z.string().uuid().optional(),
+    monedaPresentacionId: z.string().uuid().nullable().optional(),
+    zonaHoraria: z.string().trim().min(3).max(80).optional(),
+    locale: z.string().trim().min(2).max(20).optional(),
+    usaIa: z.boolean().optional(),
+    umbralAutomatico: umbralSchema.optional(),
+    umbralDescarte: umbralSchema.optional(),
+    confirmarCambioMonedaBase: z.boolean().optional(),
+  })
+  .refine(
+    (v) =>
+      Object.entries(v).some(
+        ([key, value]) => key !== 'confirmarCambioMonedaBase' && value !== undefined,
+      ),
+    { message: 'Debe enviar al menos un campo para editar' },
+  );
+
+export const crearSucursalSchema = z.object({
+  nombre: z.string().trim().min(2).max(80),
+  codigo: z
+    .string()
+    .trim()
+    .min(2)
+    .max(10)
+    .transform((v) => v.replace(/\s+/g, '').toUpperCase())
+    .refine((v) => v.length >= 2 && v.length <= 10, {
+      message: 'El código debe tener entre 2 y 10 caracteres',
+    }),
+  direccion: z.string().trim().min(1).max(500).optional(),
+  telefono: z.string().trim().min(1).max(40).optional(),
+});
+
+export const editarSucursalSchema = z
+  .object({
+    nombre: z.string().trim().min(2).max(80).optional(),
+    codigo: z
+      .string()
+      .trim()
+      .min(2)
+      .max(10)
+      .transform((v) => v.replace(/\s+/g, '').toUpperCase())
+      .refine((v) => v.length >= 2 && v.length <= 10, {
+        message: 'El código debe tener entre 2 y 10 caracteres',
+      })
+      .optional(),
+    direccion: z.string().trim().min(1).max(500).nullable().optional(),
+    telefono: z.string().trim().min(1).max(40).nullable().optional(),
+    estadoRegistro: z.enum(['ACTIVO', 'INACTIVO']).optional(),
+  })
+  .refine(
+    (v) => Object.values(v).some((x) => x !== undefined),
+    { message: 'Debe enviar al menos un campo para editar' },
+  );
+
+export const editarConfiguracionCotizacionSchema = z
+  .object({
+    vigenciaHorasPredeterminada: z.number().int().min(1).max(8760).optional(),
+    aplicaImpuesto: z.boolean().optional(),
+    porcentajeImpuesto: porcentajeImpuestoSchema.optional(),
+    preciosIncluyenImpuesto: z.boolean().optional(),
+    decimalesRedondeo: z.number().int().min(0).max(4).optional(),
+    modoRedondeo: z.enum(['NORMAL', 'ARRIBA', 'ABAJO']).optional(),
+    mostrarDescuentoDetallado: z.boolean().optional(),
+    permiteSobrescribirPrecio: z.boolean().optional(),
+    listaPrecioPredeterminadaId: z.string().uuid().optional(),
+  })
+  .refine(
+    (v) => Object.values(v).some((x) => x !== undefined),
+    { message: 'Debe enviar al menos un campo para editar' },
+  );
+
+export type EditarConfiguracionOrganizacionInput = z.infer<
+  typeof editarConfiguracionOrganizacionSchema
+>;
+export type CrearSucursalInput = z.infer<typeof crearSucursalSchema>;
+export type EditarSucursalInput = z.infer<typeof editarSucursalSchema>;
+export type EditarConfiguracionCotizacionInput = z.infer<
+  typeof editarConfiguracionCotizacionSchema
+>;

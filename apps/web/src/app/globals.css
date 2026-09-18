@@ -4,51 +4,74 @@
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
 
-  --color-ink: #14212b;
-  --color-slate: #3d4f5f;
-  --color-paper: #eef1f4;
+  /* Luz de taller — teal de marca, papel frío, ámbar solo en CTA */
+  --color-ink: #12201e;
+  --color-slate: #3d524e;
+  --color-paper: #eef3f1;
   --color-surface: #ffffff;
-  --color-brass: #a67c2d;
-  --color-brass-dark: #7a5a1c;
-  --color-teal: #0e6b66;
-  --color-muted: #6b7c8a;
-  --color-borde: #d5dde5;
-  --color-exito: #2f7d4a;
-  --color-ambar: #c9892e;
-  --color-peligro: #b33a3a;
+  --color-brass: #f0a202;
+  --color-brass-dark: #d48c00;
+  --color-teal: #0b5f56;
+  --color-teal-deep: #084740;
+  --color-muted: #6a7f7a;
+  --color-borde: #cfd9d5;
+  --color-exito: #1f8a4c;
+  --color-ambar: #d9920b;
+  --color-peligro: #c43c3c;
 
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 1rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
 
-  --animate-ticket-in: ticket-in 700ms ease-out;
+  --animate-rise: rise-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-rise-delay: rise-in 700ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+  --animate-rise-late: rise-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 220ms both;
+  --animate-float: float-y 5.5s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 2.8s ease-in-out infinite;
 }
 
-@keyframes ticket-in {
+@keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(12px) rotate(-0.6deg);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) rotate(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.04);
   }
 }
 
 @layer base {
   body {
     background-color: var(--color-paper);
-    background-image:
-      radial-gradient(ellipse 70% 45% at 0% 0%, rgba(166, 124, 45, 0.08), transparent 55%),
-      radial-gradient(ellipse 55% 40% at 100% 10%, rgba(14, 107, 102, 0.06), transparent 50%),
-      linear-gradient(180deg, #e8ecf1 0%, #eef1f4 40%, #e6eaef 100%);
-    background-attachment: fixed;
     color: var(--color-ink);
     min-height: 100dvh;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-brass) 40%, white);
+    background: color-mix(in srgb, var(--color-teal) 35%, white);
     color: var(--color-ink);
   }
 
@@ -60,14 +83,50 @@
 
 @layer utilities {
   .font-display {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Hero público: campo de marca a color (no negro genérico) */
+  .hero-counter {
+    background:
+      radial-gradient(ellipse 100% 80% at 85% 15%, rgba(125, 211, 192, 0.35), transparent 45%),
+      radial-gradient(ellipse 70% 55% at -5% 80%, rgba(240, 162, 2, 0.18), transparent 50%),
+      linear-gradient(155deg, #0b5f56 0%, #0a4a44 48%, #083d38 100%);
+  }
+
+  .app-shell-bg {
+    background-color: var(--color-paper);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 0% -5%, rgba(11, 95, 86, 0.08), transparent 55%),
+      radial-gradient(ellipse 55% 40% at 100% 0%, rgba(240, 162, 2, 0.06), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  .animate-rise {
+    animation: var(--animate-rise);
+  }
+
+  .animate-rise-delay {
+    animation: var(--animate-rise-delay);
+  }
+
+  .animate-rise-late {
+    animation: var(--animate-rise-late);
+  }
+
+  .animate-float {
+    animation: var(--animate-float);
+  }
+
+  .animate-pulse-soft {
+    animation: var(--animate-pulse-soft);
   }
 
   .ticket-perforation {
-    background-image: radial-gradient(circle, var(--color-paper) 3px, transparent 3.5px);
-    background-size: 14px 14px;
+    background-image: radial-gradient(circle, #0b5f56 3px, transparent 3.5px);
+    background-size: 12px 12px;
     background-position: center;
-    background-repeat: repeat-y;
+    background-repeat: repeat-x;
   }
 }
 

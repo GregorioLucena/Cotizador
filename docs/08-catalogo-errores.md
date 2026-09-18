@@ -81,6 +81,8 @@ van en `UPPER_SNAKE_CASE` **sin tildes**.
 | `ORGANIZACION_CAMBIO_MONEDA_BASE_NO_CONFIRMADO` | 422 | Confirme de forma explícita el cambio de moneda base. | Cambio de moneda base sin confirmación |
 | `ORGANIZACION_LOGO_FORMATO_NO_SOPORTADO` | 400 | El logo debe ser PNG, JPG o SVG. | Formato de archivo no admitido |
 | `ORGANIZACION_LOGO_DEMASIADO_GRANDE` | 400 | El logo no puede superar 2 MB. | Archivo demasiado grande |
+| `ORGANIZACION_LOGO_DIMENSIONES_INSUFICIENTES` | 400 | El logo debe medir al menos 200 por 200 píxeles. | PNG/JPG por debajo del mínimo |
+| `IMPUESTO_PORCENTAJE_REQUERIDO` | 422 | Indique el porcentaje de impuesto o desactive su aplicación. | `aplicaImpuesto` verdadero sin porcentaje válido |
 | `ORGANIZACION_SUCURSAL_NO_ENCONTRADA` | 404 | No se encontró la sucursal indicada. | Sucursal inexistente o de otra organización |
 | `ORGANIZACION_SUCURSAL_NOMBRE_DUPLICADO` | 409 | Ya existe una sucursal con ese nombre. | Unicidad (`organizacionId`, `nombre`) |
 | `ORGANIZACION_SUCURSAL_CODIGO_DUPLICADO` | 409 | Ya existe una sucursal con ese código. | Unicidad de código por organización |

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Plus, Search } from 'lucide-react';
 import {
   ApiClientError,
   apiFetch,
@@ -10,6 +11,16 @@ import {
   getAccessToken,
   setAccessToken,
 } from '@/lib/api';
+import {
+  AppShell,
+  BackLink,
+  PageHeader,
+  StatusBanner,
+} from '@/components/shell/app-shell';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardBody } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 type OrganizacionItem = {
   id: string;
@@ -73,9 +84,7 @@ export default function OrganizacionesListPage() {
           limit: '50',
         });
         if (q?.trim()) params.set('search', q.trim());
-        const result = await apiFetch<ListadoData>(
-          `/organizaciones?${params.toString()}`,
-        );
+        const result = await apiFetch<ListadoData>(`/organizaciones?${params.toString()}`);
         if (!cancelled) setData(result);
       } catch (err) {
         if (cancelled) return;
@@ -89,9 +98,7 @@ export default function OrganizacionesListPage() {
           return;
         }
         setError(
-          err instanceof ApiClientError
-            ? err.message
-            : 'No se pudo cargar el listado.',
+          err instanceof ApiClientError ? err.message : 'No se pudo cargar el listado.',
         );
       } finally {
         if (!cancelled) setLoading(false);
@@ -114,15 +121,11 @@ export default function OrganizacionesListPage() {
         limit: '50',
       });
       if (search.trim()) params.set('search', search.trim());
-      const result = await apiFetch<ListadoData>(
-        `/organizaciones?${params.toString()}`,
-      );
+      const result = await apiFetch<ListadoData>(`/organizaciones?${params.toString()}`);
       setData(result);
     } catch (err) {
       setError(
-        err instanceof ApiClientError
-          ? err.message
-          : 'No se pudo cargar el listado.',
+        err instanceof ApiClientError ? err.message : 'No se pudo cargar el listado.',
       );
     } finally {
       setLoading(false);
@@ -130,99 +133,91 @@ export default function OrganizacionesListPage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-5xl px-5 py-10">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Link href="/panel" className="text-sm text-muted hover:text-ink">
-            ← Panel
+    <AppShell nav="plataforma" maxWidth="lg">
+      <PageHeader
+        eyebrow={<BackLink href="/panel">← Panel</BackLink>}
+        title="Organizaciones"
+        description="Ámbito plataforma: alta, estado y provisionamiento."
+        action={
+          <Link
+            href="/plataforma/organizaciones/nueva"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brass px-4 text-sm font-bold text-ink shadow-[0_10px_28px_-12px_rgba(240,162,2,0.55)] transition hover:bg-brass-dark hover:text-white"
+          >
+            <Plus className="size-4" />
+            Nueva
           </Link>
-          <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
-            Organizaciones
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            Ámbito plataforma: alta, estado y provisionamiento
-          </p>
-        </div>
-        <Link
-          href="/plataforma/organizaciones/nueva"
-          className="inline-flex min-h-11 items-center rounded-md bg-teal px-4 text-sm font-semibold text-white hover:bg-teal/90"
-        >
-          Nueva organización
-        </Link>
-      </header>
+        }
+      />
 
-      <form onSubmit={buscar} className="mb-6 flex flex-wrap gap-3">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o identificación fiscal"
-          className="min-h-11 min-w-[16rem] flex-1 rounded-md border border-borde bg-surface px-3 text-sm text-ink"
-        />
-        <button
-          type="submit"
-          className="min-h-11 rounded-md border border-borde bg-surface px-4 text-sm font-semibold text-ink hover:border-slate"
-        >
+      <form onSubmit={buscar} className="mb-5 flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
+          <Input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre o identificación fiscal"
+            className="pl-10"
+          />
+        </div>
+        <Button type="submit" variant="secondary">
           Buscar
-        </button>
+        </Button>
       </form>
 
-      {loading && (
-        <p className="text-sm text-muted">Cargando organizaciones…</p>
-      )}
-      {error && <p className="text-sm text-peligro">{error}</p>}
+      {loading ? <p className="text-sm text-muted">Cargando organizaciones…</p> : null}
+      {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
-      {!loading && !error && data && (
-        <div className="overflow-x-auto rounded-lg border border-borde bg-surface">
-          <table className="w-full min-w-[40rem] text-left text-sm">
-            <thead className="border-b border-borde bg-paper text-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">Nombre</th>
-                <th className="px-4 py-3 font-medium">Vertical</th>
-                <th className="px-4 py-3 font-medium">Moneda</th>
-                <th className="px-4 py-3 font-medium">Estado</th>
-                <th className="px-4 py-3 font-medium">Alta</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.length === 0 ? (
+      {!loading && !error && data ? (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[40rem] text-left text-sm">
+              <thead className="border-b border-borde bg-paper/80 text-xs uppercase tracking-wide text-muted">
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted">
-                    No hay organizaciones registradas.
-                  </td>
+                  <th className="px-4 py-3 font-semibold">Nombre</th>
+                  <th className="px-4 py-3 font-semibold">Vertical</th>
+                  <th className="px-4 py-3 font-semibold">Moneda</th>
+                  <th className="px-4 py-3 font-semibold">Estado</th>
+                  <th className="px-4 py-3 font-semibold">Alta</th>
                 </tr>
-              ) : (
-                data.items.map((org) => (
-                  <tr key={org.id} className="border-b border-borde last:border-0">
-                    <td className="px-4 py-3 font-medium text-ink">{org.nombre}</td>
-                    <td className="px-4 py-3 text-slate">{org.vertical.nombre}</td>
-                    <td className="px-4 py-3 text-slate">
-                      {org.monedaBase.codigoIso}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={
-                          org.estadoRegistro === 'ACTIVO'
-                            ? 'text-exito'
-                            : 'text-muted'
-                        }
-                      >
-                        {org.estadoRegistro}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {new Date(org.createdAt).toLocaleDateString('es-VE')}
+              </thead>
+              <tbody>
+                {data.items.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-muted">
+                      No hay organizaciones registradas.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-          <p className="border-t border-borde px-4 py-2 text-xs text-muted">
-            {data.meta.total} resultado{data.meta.total === 1 ? '' : 's'}
-          </p>
-        </div>
-      )}
-    </main>
+                ) : (
+                  data.items.map((org) => (
+                    <tr
+                      key={org.id}
+                      className="border-b border-borde/70 transition hover:bg-paper/50 last:border-0"
+                    >
+                      <td className="px-4 py-3.5 font-semibold text-ink">{org.nombre}</td>
+                      <td className="px-4 py-3.5 text-slate">{org.vertical.nombre}</td>
+                      <td className="px-4 py-3.5 text-slate">{org.monedaBase.codigoIso}</td>
+                      <td className="px-4 py-3.5">
+                        <Badge tone={org.estadoRegistro === 'ACTIVO' ? 'success' : 'neutral'}>
+                          {org.estadoRegistro}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3.5 text-muted">
+                        {new Date(org.createdAt).toLocaleDateString('es-VE')}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <CardBody className="border-t border-borde/70 py-3">
+            <p className="text-xs text-muted">
+              {data.meta.total} resultado{data.meta.total === 1 ? '' : 's'}
+            </p>
+          </CardBody>
+        </Card>
+      ) : null}
+    </AppShell>
   );
 }

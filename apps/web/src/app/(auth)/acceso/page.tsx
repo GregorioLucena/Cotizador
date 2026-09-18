@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import type { OrgContext } from '@cotizador/shared';
 import { ApiClientError, apiFetch, setAccessToken } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 
 type LoginData = {
   accessToken: string;
@@ -48,23 +51,20 @@ export default function AccesoPage() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-5 py-10">
-      <div className="mb-8 text-center">
-        <Link href="/" className="font-display text-3xl font-semibold text-ink">
+    <main className="hero-counter flex min-h-dvh flex-col items-center justify-center px-5 py-10">
+      <div className="mb-8 animate-rise text-center">
+        <Link href="/" className="font-display text-3xl font-semibold tracking-tight text-white">
           Cotizador
         </Link>
-        <p className="mt-2 text-sm text-muted">Ingresá al panel de tu organización</p>
+        <p className="mt-2 text-sm text-white/60">Ingresá al panel de tu organización</p>
       </div>
 
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-borde bg-surface p-6 shadow-[0_20px_50px_-30px_rgba(20,33,43,0.5)]"
+        className="animate-rise-delay w-full max-w-sm space-y-4 rounded-2xl border border-white/15 bg-white/95 p-6 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm"
       >
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium text-ink">
-            Correo
-          </label>
-          <input
+        <Field label="Correo" htmlFor="email">
+          <Input
             id="email"
             name="email"
             type="email"
@@ -73,14 +73,10 @@ export default function AccesoPage() {
             value={email}
             onChange={(ev) => setEmail(ev.target.value)}
             placeholder="vos@negocio.com"
-            className="min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink outline-none placeholder:text-muted focus:border-brass"
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="password" className="text-sm font-medium text-ink">
-            Contraseña
-          </label>
-          <input
+        </Field>
+        <Field label="Contraseña" htmlFor="password">
+          <Input
             id="password"
             name="password"
             type="password"
@@ -89,21 +85,16 @@ export default function AccesoPage() {
             value={password}
             onChange={(ev) => setPassword(ev.target.value)}
             placeholder="••••••••"
-            className="min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink outline-none placeholder:text-muted focus:border-brass"
           />
-        </div>
+        </Field>
         {error ? (
           <p className="text-sm text-peligro" role="alert">
             {error}
           </p>
         ) : null}
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex min-h-11 w-full items-center justify-center rounded-md bg-ink text-sm font-semibold text-paper transition hover:bg-slate disabled:opacity-60"
-        >
+        <Button type="submit" disabled={pending} className="w-full min-h-12">
           {pending ? 'Ingresando…' : 'Entrar'}
-        </button>
+        </Button>
       </form>
     </main>
   );

@@ -10,6 +10,16 @@ import {
   getAccessToken,
   setAccessToken,
 } from '@/lib/api';
+import {
+  AppShell,
+  BackLink,
+  PageHeader,
+  StatusBanner,
+} from '@/components/shell/app-shell';
+import { Button } from '@/components/ui/button';
+import { Card, CardBody, CardHeader } from '@/components/ui/card';
+import { CheckField, Field, SelectField, TextField } from '@/components/ui/field';
+import { Select } from '@/components/ui/input';
 
 type Vertical = {
   id: string;
@@ -193,184 +203,164 @@ export default function NuevaOrganizacionPage() {
 
   if (cargando) {
     return (
-      <main className="flex min-h-dvh items-center justify-center px-5">
-        <p className="text-sm text-muted">Cargando formulario…</p>
-      </main>
+      <AppShell nav="plataforma">
+        <p className="py-16 text-center text-sm text-muted">Cargando formulario…</p>
+      </AppShell>
     );
   }
 
   if (exito) {
     return (
-      <main className="mx-auto min-h-dvh w-full max-w-2xl px-5 py-10">
-        <h1 className="font-display text-3xl font-semibold text-ink">
-          Organización creada
-        </h1>
-        <p className="mt-2 text-sm text-exito">
+      <AppShell nav="plataforma" maxWidth="sm">
+        <PageHeader title="Organización creada" />
+        <StatusBanner tone="success">
           Organización creada y provisionada correctamente
-        </p>
-        <ul className="mt-6 space-y-2 rounded-lg border border-borde bg-surface p-5 text-sm text-slate">
-          <li>
-            <strong className="text-ink">{exito.organizacion.nombre}</strong>
-          </li>
-          <li>
-            Vertical {exito.provisionamiento.verticalCodigo} · pack{' '}
-            {exito.provisionamiento.packVersion}
-          </li>
-          <li>
-            Unidades: {exito.provisionamiento.unidadesMedidaCreadas}
-          </li>
-          <li>
-            Definiciones de atributo:{' '}
-            {exito.provisionamiento.definicionesAtributoCreadas}
-          </li>
-          <li>Categorías: {exito.provisionamiento.categoriasCreadas}</li>
-        </ul>
-        <div className="mt-8 flex flex-wrap gap-3">
+        </StatusBanner>
+        <Card className="mt-5" accent>
+          <CardBody className="space-y-2 text-sm text-slate">
+            <p className="font-display text-xl font-bold text-ink">
+              {exito.organizacion.nombre}
+            </p>
+            <p>
+              Vertical {exito.provisionamiento.verticalCodigo} · pack{' '}
+              {exito.provisionamiento.packVersion}
+            </p>
+            <p>Unidades: {exito.provisionamiento.unidadesMedidaCreadas}</p>
+            <p>
+              Definiciones de atributo:{' '}
+              {exito.provisionamiento.definicionesAtributoCreadas}
+            </p>
+            <p>Categorías: {exito.provisionamiento.categoriasCreadas}</p>
+          </CardBody>
+        </Card>
+        <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/plataforma/organizaciones"
-            className="inline-flex min-h-11 items-center rounded-md bg-teal px-4 text-sm font-semibold text-white"
+            className="inline-flex min-h-11 items-center rounded-xl bg-brass px-4 text-sm font-bold text-ink"
           >
             Volver al listado
           </Link>
-          <Link
-            href="/plataforma/organizaciones/nueva"
-            className="inline-flex min-h-11 items-center rounded-md border border-borde bg-surface px-4 text-sm font-semibold text-ink"
+          <Button
+            variant="secondary"
             onClick={() => {
               setExito(null);
               setForm({
                 ...CAMPOS_INICIALES,
                 verticalId: verticales[0]?.id ?? '',
                 monedaBaseId:
-                  monedas.find((m) => m.codigoIso === 'USD')?.id ??
-                  monedas[0]?.id ??
-                  '',
+                  monedas.find((m) => m.codigoIso === 'USD')?.id ?? monedas[0]?.id ?? '',
               });
             }}
           >
             Crear otra
-          </Link>
+          </Button>
         </div>
-      </main>
+      </AppShell>
     );
   }
 
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-3xl px-5 py-10">
-      <Link
-        href="/plataforma/organizaciones"
-        className="text-sm text-muted hover:text-ink"
-      >
-        ← Organizaciones
-      </Link>
-      <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
-        Nueva organización
-      </h1>
-      <p className="mt-1 text-sm text-muted">
-        Identidad y configuración inicial. El vertical no se podrá cambiar después.
-      </p>
+    <AppShell nav="plataforma">
+      <PageHeader
+        eyebrow={<BackLink href="/plataforma/organizaciones">← Organizaciones</BackLink>}
+        title="Nueva organización"
+        description="Identidad y configuración inicial. El vertical no se podrá cambiar después."
+      />
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-8">
-        <section className="space-y-4 rounded-lg border border-borde bg-surface p-5">
-          <h2 className="font-display text-lg font-semibold text-ink">Identidad</h2>
-          <Campo
-            label="Nombre comercial *"
-            value={form.nombre}
-            onChange={(v) => setField('nombre', v)}
-            required
-          />
-          <Campo
-            label="Razón social"
-            value={form.razonSocial}
-            onChange={(v) => setField('razonSocial', v)}
-          />
-          <Campo
-            label="Identificación fiscal"
-            value={form.identificacionFiscal}
-            onChange={(v) => setField('identificacionFiscal', v)}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo
-              label="Teléfono"
-              value={form.telefono}
-              onChange={(v) => setField('telefono', v)}
-            />
-            <Campo
-              label="Correo"
-              type="email"
-              value={form.email}
-              onChange={(v) => setField('email', v)}
-            />
-          </div>
-          <Campo
-            label="Dirección"
-            value={form.direccion}
-            onChange={(v) => setField('direccion', v)}
-          />
-          <Campo
-            label="Notas internas (solo plataforma)"
-            value={form.notasInternas}
-            onChange={(v) => setField('notasInternas', v)}
-          />
-        </section>
-
-        <section className="space-y-4 rounded-lg border border-borde bg-surface p-5">
-          <h2 className="font-display text-lg font-semibold text-ink">
-            Configuración inicial
-          </h2>
-
-          <label className="block text-sm">
-            <span className="text-muted">Vertical *</span>
-            <select
+      <form onSubmit={onSubmit} className="space-y-5">
+        <Card accent>
+          <CardHeader title="Identidad" />
+          <CardBody className="space-y-4">
+            <TextField
+              label="Nombre comercial *"
+              value={form.nombre}
+              onChange={(e) => setField('nombre', e.target.value)}
               required
-              value={form.verticalId}
-              onChange={(e) => setField('verticalId', e.target.value)}
-              className="mt-1 min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink"
-            >
-              {verticales.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.nombre}
-                  {v.pack
-                    ? ` (${v.pack.conteos.categorias} cat., ${v.pack.conteos.unidadesMedida} und., ${v.pack.conteos.definicionesAtributo} atr.)`
-                    : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          {verticalSeleccionado?.pack && (
-            <p className="text-xs text-muted">
-              El pack aportará {verticalSeleccionado.pack.conteos.categorias}{' '}
-              categorías
-              {verticalSeleccionado.pack.conteos.subcategorias > 0
-                ? ` (+${verticalSeleccionado.pack.conteos.subcategorias} sub)`
-                : ''}
-              , {verticalSeleccionado.pack.conteos.unidadesMedida} unidades y{' '}
-              {verticalSeleccionado.pack.conteos.definicionesAtributo} definiciones
-              de atributo. El vertical no se podrá cambiar después.
-            </p>
-          )}
+            />
+            <TextField
+              label="Razón social"
+              value={form.razonSocial}
+              onChange={(e) => setField('razonSocial', e.target.value)}
+            />
+            <TextField
+              label="Identificación fiscal"
+              value={form.identificacionFiscal}
+              onChange={(e) => setField('identificacionFiscal', e.target.value)}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Teléfono"
+                value={form.telefono}
+                onChange={(e) => setField('telefono', e.target.value)}
+              />
+              <TextField
+                label="Correo"
+                type="email"
+                value={form.email}
+                onChange={(e) => setField('email', e.target.value)}
+              />
+            </div>
+            <TextField
+              label="Dirección"
+              value={form.direccion}
+              onChange={(e) => setField('direccion', e.target.value)}
+            />
+            <TextField
+              label="Notas internas (solo plataforma)"
+              value={form.notasInternas}
+              onChange={(e) => setField('notasInternas', e.target.value)}
+            />
+          </CardBody>
+        </Card>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
-              <span className="text-muted">Moneda base *</span>
-              <select
+        <Card>
+          <CardHeader title="Configuración inicial" />
+          <CardBody className="space-y-4">
+            <Field label="Vertical *">
+              <Select
+                required
+                value={form.verticalId}
+                onChange={(e) => setField('verticalId', e.target.value)}
+              >
+                {verticales.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.nombre}
+                    {v.pack
+                      ? ` (${v.pack.conteos.categorias} cat., ${v.pack.conteos.unidadesMedida} und., ${v.pack.conteos.definicionesAtributo} atr.)`
+                      : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {verticalSeleccionado?.pack ? (
+              <p className="text-xs text-muted">
+                El pack aportará {verticalSeleccionado.pack.conteos.categorias} categorías
+                {verticalSeleccionado.pack.conteos.subcategorias > 0
+                  ? ` (+${verticalSeleccionado.pack.conteos.subcategorias} sub)`
+                  : ''}
+                , {verticalSeleccionado.pack.conteos.unidadesMedida} unidades y{' '}
+                {verticalSeleccionado.pack.conteos.definicionesAtributo} definiciones de
+                atributo.
+              </p>
+            ) : null}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                label="Moneda base *"
                 required
                 value={form.monedaBaseId}
                 onChange={(e) => setField('monedaBaseId', e.target.value)}
-                className="mt-1 min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink"
               >
                 {monedas.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.codigoIso} — {m.nombre}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="text-muted">Moneda de presentación</span>
-              <select
+              </SelectField>
+              <SelectField
+                label="Moneda de presentación"
                 value={form.monedaPresentacionId}
                 onChange={(e) => setField('monedaPresentacionId', e.target.value)}
-                className="mt-1 min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink"
               >
                 <option value="">Ninguna</option>
                 {monedas
@@ -380,103 +370,68 @@ export default function NuevaOrganizacionPage() {
                       {m.codigoIso} — {m.nombre}
                     </option>
                   ))}
-              </select>
-            </label>
-          </div>
+              </SelectField>
+            </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo
-              label="Zona horaria *"
-              value={form.zonaHoraria}
-              onChange={(v) => setField('zonaHoraria', v)}
-              required
-            />
-            <Campo
-              label="Locale *"
-              value={form.locale}
-              onChange={(v) => setField('locale', v)}
-              required
-            />
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Zona horaria *"
+                value={form.zonaHoraria}
+                onChange={(e) => setField('zonaHoraria', e.target.value)}
+                required
+              />
+              <TextField
+                label="Locale *"
+                value={form.locale}
+                onChange={(e) => setField('locale', e.target.value)}
+                required
+              />
+            </div>
 
-          <label className="flex items-center gap-2 text-sm text-ink">
-            <input
-              type="checkbox"
+            <CheckField
+              label="Usar IA para precotización"
               checked={form.usaIa}
               onChange={(e) => setField('usaIa', e.target.checked)}
-              className="size-4"
             />
-            Usar IA para precotización
-          </label>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo
-              label="Umbral automático"
-              value={form.umbralAutomatico}
-              onChange={(v) => setField('umbralAutomatico', v)}
-            />
-            <Campo
-              label="Umbral de descarte"
-              value={form.umbralDescarte}
-              onChange={(v) => setField('umbralDescarte', v)}
-            />
-          </div>
-          <p className="text-xs text-muted">
-            Por encima del umbral automático la línea sale en verde; por debajo del
-            de descarte, en rojo; entre ambos, en ámbar.
-          </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Umbral automático"
+                value={form.umbralAutomatico}
+                onChange={(e) => setField('umbralAutomatico', e.target.value)}
+              />
+              <TextField
+                label="Umbral de descarte"
+                value={form.umbralDescarte}
+                onChange={(e) => setField('umbralDescarte', e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted">
+              Por encima del umbral automático la línea sale en verde; por debajo del de
+              descarte, en rojo; entre ambos, en ámbar.
+            </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo
-              label="Sucursal principal — nombre"
-              value={form.sucursalNombre}
-              onChange={(v) => setField('sucursalNombre', v)}
-            />
-            <Campo
-              label="Sucursal principal — código"
-              value={form.sucursalCodigo}
-              onChange={(v) => setField('sucursalCodigo', v)}
-            />
-          </div>
-        </section>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Sucursal principal — nombre"
+                value={form.sucursalNombre}
+                onChange={(e) => setField('sucursalNombre', e.target.value)}
+              />
+              <TextField
+                label="Sucursal principal — código"
+                value={form.sucursalCodigo}
+                onChange={(e) => setField('sucursalCodigo', e.target.value)}
+              />
+            </div>
+          </CardBody>
+        </Card>
 
-        {error && <p className="text-sm text-peligro">{error}</p>}
+        {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
-        <button
-          type="submit"
-          disabled={enviando}
-          className="min-h-11 rounded-md bg-teal px-5 text-sm font-semibold text-white hover:bg-teal/90 disabled:opacity-60"
-        >
+        <Button type="submit" disabled={enviando} className="w-full sm:w-auto">
           {enviando ? 'Creando…' : 'Crear y provisionar'}
-        </button>
+        </Button>
       </form>
-    </main>
-  );
-}
-
-function Campo({
-  label,
-  value,
-  onChange,
-  required,
-  type = 'text',
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  type?: string;
-}) {
-  return (
-    <label className="block text-sm">
-      <span className="text-muted">{label}</span>
-      <input
-        type={type}
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 min-h-11 w-full rounded-md border border-borde bg-paper px-3 text-ink"
-      />
-    </label>
+    </AppShell>
   );
 }

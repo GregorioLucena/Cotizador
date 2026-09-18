@@ -13,6 +13,8 @@ export { Sesion } from './sesion.entity';
 export { UnidadMedida } from './unidad-medida.entity';
 export { DefinicionAtributo } from './definicion-atributo.entity';
 export { Categoria } from './categoria.entity';
+export { Marca } from './marca.entity';
+export { Item } from './item.entity';
 export { ListaPrecio } from './lista-precio.entity';
 export { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 export { PlantillaDocumento } from './plantilla-documento.entity';
@@ -31,6 +33,8 @@ import { Sesion } from './sesion.entity';
 import { UnidadMedida } from './unidad-medida.entity';
 import { DefinicionAtributo } from './definicion-atributo.entity';
 import { Categoria } from './categoria.entity';
+import { Marca } from './marca.entity';
+import { Item } from './item.entity';
 import { ListaPrecio } from './lista-precio.entity';
 import { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 import { PlantillaDocumento } from './plantilla-documento.entity';
@@ -50,6 +54,8 @@ export const entities = [
   UnidadMedida,
   DefinicionAtributo,
   Categoria,
+  Marca,
+  Item,
   ListaPrecio,
   ConfiguracionCotizacion,
   PlantillaDocumento,

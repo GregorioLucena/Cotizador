@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Building2, ChevronRight, Home, LogOut, Menu, Settings2, X } from 'lucide-react';
+import { Building2, ChevronRight, Home, LogOut, Menu, Package, Settings2, X } from 'lucide-react';
 import { apiFetch, clearSession } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
@@ -17,6 +17,12 @@ export type ShellNav = 'organizacion' | 'plataforma' | 'none';
 const NAV = {
   organizacion: [
     { href: '/panel', label: 'Inicio', desc: 'Tu panel y accesos', icon: Home },
+    {
+      href: '/catalogo/maestras',
+      label: 'Catálogo',
+      desc: 'Maestras del catálogo',
+      icon: Package,
+    },
     {
       href: '/configuracion',
       label: 'Configuración',

@@ -2,7 +2,7 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+En implementación (2026-09-18)
 
 ## Objetivo
 

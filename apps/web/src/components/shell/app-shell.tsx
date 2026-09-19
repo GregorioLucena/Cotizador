@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Building2, ChevronRight, Home, LogOut, Menu, Package, Settings2, Tags, X } from 'lucide-react';
+import { Building2, ChevronRight, Home, LogOut, Menu, Package, Settings2, Tags, Users, X } from 'lucide-react';
 import { apiFetch, clearSession } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
@@ -28,6 +28,12 @@ const NAV = {
       label: 'Precios',
       desc: 'Listas, reglas y tasas',
       icon: Tags,
+    },
+    {
+      href: '/clientes',
+      label: 'Clientes',
+      desc: 'Fichas y WhatsApp',
+      icon: Users,
     },
     {
       href: '/configuracion',

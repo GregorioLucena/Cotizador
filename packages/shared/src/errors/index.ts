@@ -15,3 +15,4 @@ export * from './maestras.errors';
 export * from './item.errors';
 export * from './importacion.errors';
 export * from './precios.errors';
+export * from './cliente.errors';

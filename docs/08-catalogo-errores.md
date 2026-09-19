@@ -255,6 +255,9 @@ Códigos adicionales de aplicaciones y términos (mismo módulo de catálogo):
 | `CLIENTE_YA_INACTIVO` | 422 | El cliente ya está inactivo. | Inactivar un cliente que ya lo está |
 | `CLIENTE_LISTA_INACTIVA` | 422 | La lista de precios asignada al cliente no está activa. | Asignar lista inactiva |
 | `CLIENTE_NOMBRE_REQUERIDO` | 400 | El nombre del cliente es obligatorio. | Nombre vacío tras validación |
+| `WHATSAPP_FORMATO_INVALIDO` | 400 | El número de WhatsApp no tiene un formato válido. | No cumple E.164 tras normalizar |
+| `WHATSAPP_SIN_CODIGO_PAIS` | 400 | Indique el número con código de país (por ejemplo +58…). | Dígitos locales sin `+` / código país |
+| `CLIENTE_REUTILIZADO_POR_WHATSAPP` | — | Se usó el cliente existente con ese WhatsApp. | Advertencia en respuesta de alta ocasional (no es error HTTP) |
 
 ---
 

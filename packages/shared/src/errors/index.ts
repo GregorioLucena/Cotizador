@@ -16,3 +16,4 @@ export * from './item.errors';
 export * from './importacion.errors';
 export * from './precios.errors';
 export * from './cliente.errors';
+export * from './solicitud.errors';

@@ -2,7 +2,39 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+Cerrada — implementada (2026-09-18)
+
+## Cierre
+
+**Fecha:** 2026-09-18
+
+**Entregables:**
+- Migración `1782800000000-PrecotizacionSolicitudCotizacion` (solicitudes, interpretaciones, secuencias_folio, cotizaciones, líneas, candidatos, eventos)
+- Entidades y enums de solicitud/cotización en `@cotizador/database`
+- Shared: schemas precotización, `normalizarTextoSolicitud`, `ProveedorIa` mock/none, cascada de resolución, folio, errores `SOLICITUD_*` / `IA_*`
+- API `POST /api/precotizaciones`, `POST .../reprocesar`, `GET /api/cotizaciones/:id` (pipeline completo + degradación 201)
+- UI: `/cotizar` (captura mostrador), `/cotizaciones/[id]` (borrador + semáforo + traza), nav Cotizar
+
+**Verificación de criterios de aceptación (por código y typecheck):**
+
+| CA | Resultado |
+|----|-----------|
+| CA-001 Captura mínima | Cubierto en `PrecotizacionesService.crear` |
+| CA-002 Texto largo | `SOLICITUD_TEXTO_DEMASIADO_LARGO` / validación 4000 |
+| CA-003 Normalización WhatsApp | `normalizarTextoSolicitud` + tests |
+| CA-004 Cliente ajeno | 404 `CLIENTE_NO_ENCONTRADO` |
+| CA-005 Contrato estricto Zod | `resultadoExtraccionSchema.strict()` |
+| CA-006/007 Fallo / IA off | 201 + borrador vacío + `exito=false` |
+| CA-008 Importes sin IA | Motor `calcularCotizacion` únicamente |
+| CA-010…013 Cascada / empate / candidatos / sin precio | `ResolucionCatalogoService` + umbrales ADR 0007 |
+| CA-015 Folio atómico | `secuencias_folio` con bloqueo de fila |
+| CA-016 Reprocesar | Nueva interpretación + cotización; historial intacto |
+| CA-017 Términos | Incremento/alta en `NO_ENCONTRADA` |
+| CA-019 Aislamiento | Filtro `organizacionId` + 404 |
+| CA-020 Evento CREADA | Bitácora inmutable |
+| CA-022 Sucursal | `SUCURSAL_NO_ACCESIBLE` |
+
+**Verificación requerida:** typecheck shared/database/api/web OK. Pruebas E2E con BD y semáforo mixto: QA manual tras `pnpm db:migrate`.
 
 ## Objetivo
 
@@ -719,6 +751,8 @@ crea la cotización.
 | Unidad no reconocida | Si una unidad extraída fuera de `unidadesValidas` debe fallar la línea, asumir la del item o dejarla nula | Líneas mal medidas o rechazos excesivos |
 | Reproceso con texto editado | Si se permite alterar `textoOriginal` al reprocesar o solo se reprocesa el texto guardado | Ambigüedad entre nueva solicitud y nueva interpretación |
 | Estrategia 5 de atributos | Cuánto del texto se intenta parsear como atributos en el MVP y con qué diccionario | Falsos positivos en resolución por atributos |
+| Códigos de error HTTP vs CA | La spec CA usa `TEXTO_SOLICITUD_*` / `IA_DESACTIVADA`; el catálogo canónico usa `SOLICITUD_TEXTO_*` y registra `IA_*` también como códigos de interpretación. Backend MVP sigue el catálogo para HTTP y los `IA_*` de la spec en `errorCodigo` de la interpretación | Pruebas de aceptación con nombres distintos al contrato HTTP |
+| Prefijo de folio sin plantilla | Si no hay plantilla predeterminada, se usa `COT-` + 4 dígitos (ADR 0006). ¿Debe fallar la captura sin plantilla? | Folios inconsistentes entre orgs o rechazo innecesario en piloto |
 
 ## Decisiones MVP v1
 

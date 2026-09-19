@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ChevronRight, Settings2, Building2 } from 'lucide-react';
+import { ChevronRight, Settings2, Building2, MessageSquareText } from 'lucide-react';
 import type { OrgContext } from '@cotizador/shared';
+import { PERMISOS, hasPermission } from '@cotizador/shared';
 import {
   ApiClientError,
   apiFetch,
@@ -216,23 +217,46 @@ export default function PanelPage() {
         ) : null}
 
         {contexto.ambito === 'ORGANIZACION' ? (
-          <Link
-            href="/configuracion"
-            className="group flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-borde/80 bg-surface px-5 shadow-[0_14px_40px_-24px_rgba(18,32,30,0.4)] transition hover:border-teal/40 hover:shadow-[0_18px_44px_-20px_rgba(11,95,86,0.35)]"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex size-11 items-center justify-center rounded-xl bg-brass/15 text-brass-dark">
-                <Settings2 className="size-5" />
-              </span>
-              <span>
-                <span className="block font-display text-lg font-bold text-ink">
-                  Configuración
+          <>
+            {hasPermission(contexto, PERMISOS.COTIZACIONES_CREAR) ? (
+              <Link
+                href="/cotizar"
+                className="group flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-teal/25 bg-teal px-5 text-white shadow-[0_18px_44px_-18px_rgba(11,95,86,0.55)] transition hover:bg-teal-deep"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="flex size-11 items-center justify-center rounded-xl bg-white/15">
+                    <MessageSquareText className="size-5" />
+                  </span>
+                  <span>
+                    <span className="block font-display text-lg font-bold">
+                      Cotizar
+                    </span>
+                    <span className="text-sm text-white/75">
+                      Pegá el WhatsApp y generá el borrador
+                    </span>
+                  </span>
                 </span>
-                <span className="text-sm text-muted">Identidad, sucursales y cotización</span>
+                <ChevronRight className="size-5 text-white/70 transition group-hover:translate-x-0.5" />
+              </Link>
+            ) : null}
+            <Link
+              href="/configuracion"
+              className="group flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-borde/80 bg-surface px-5 shadow-[0_14px_40px_-24px_rgba(18,32,30,0.4)] transition hover:border-teal/40 hover:shadow-[0_18px_44px_-20px_rgba(11,95,86,0.35)]"
+            >
+              <span className="flex items-center gap-3">
+                <span className="flex size-11 items-center justify-center rounded-xl bg-brass/15 text-brass-dark">
+                  <Settings2 className="size-5" />
+                </span>
+                <span>
+                  <span className="block font-display text-lg font-bold text-ink">
+                    Configuración
+                  </span>
+                  <span className="text-sm text-muted">Identidad, sucursales y cotización</span>
+                </span>
               </span>
-            </span>
-            <ChevronRight className="size-5 text-muted transition group-hover:text-teal" />
-          </Link>
+              <ChevronRight className="size-5 text-muted transition group-hover:text-teal" />
+            </Link>
+          </>
         ) : null}
       </div>
     </AppShell>

@@ -268,17 +268,30 @@ Códigos adicionales de aplicaciones y términos (mismo módulo de catálogo):
 | `SOLICITUD_NO_ENCONTRADA` | 404 | No se encontró la solicitud indicada. | Id inexistente o de otra organización |
 | `SOLICITUD_TEXTO_VACIO` | 400 | El texto de la solicitud no puede estar vacío. | `textoOriginal` vacío o solo espacios |
 | `SOLICITUD_TEXTO_DEMASIADO_LARGO` | 400 | El texto supera el máximo permitido. | Más de 4000 caracteres |
+| `SOLICITUD_TEXTO_SIN_CONTENIDO` | 400 | Tras normalizar el texto no queda contenido útil de pedido. | Normalización deja el texto vacío |
 | `SOLICITUD_YA_INTERPRETADA` | 422 | La solicitud ya fue interpretada; use reprocesar si necesita otra pasada. | Conflicto de flujo cuando aplica |
-| `IA_NO_DISPONIBLE` | 502 | El servicio de interpretación no está disponible. | Proveedor caído, timeout o error de red |
-| `IA_RESPUESTA_INVALIDA` | 502 | La interpretación devolvió un resultado que no se puede usar. | Fallo del esquema estricto (p. ej. campos de importe) |
-| `IA_DESHABILITADA` | 422 | La interpretación automática está deshabilitada en esta organización. | `usaIa` falso o proveedor `none` cuando se exige IA |
+| `CLIENTE_O_NOMBRE_REQUERIDO` | 400 | Indique un cliente registrado o un nombre libre. | Sin `clienteId` ni `nombreClienteLibre` |
+| `CLIENTE_INACTIVO` | 422 | El cliente indicado está inactivo. | Cliente existente con `estadoRegistro` INACTIVO |
+| `LISTA_PRECIO_NO_ENCONTRADA` | 404 | No se encontró la lista de precios indicada. | `listaPrecioId` inexistente o de otra organización |
+| `LISTA_PRECIO_INACTIVA` | 422 | La lista de precios está inactiva. | Lista informada inactiva |
+| `LISTA_PRECIO_NO_RESOLUBLE` | 422 | No hay lista de precios informada, del cliente ni predeterminada. | Sin lista resoluble al armar el borrador |
+| `SUCURSAL_NO_ACCESIBLE` | 422 | No tiene acceso a la sucursal indicada. | Sucursal fuera de `ctx.sucursalIds` |
+| `IA_NO_DISPONIBLE` | 502 | El servicio de interpretación no está disponible. | Proveedor caído, timeout o error de red (modo diagnóstico) |
+| `IA_RESPUESTA_INVALIDA` | 502 | La interpretación devolvió un resultado que no se puede usar. | Fallo del esquema estricto (modo diagnóstico) |
+| `IA_DESHABILITADA` | 422 | La interpretación automática está deshabilitada en esta organización. | `usaIa` falso cuando se exige IA (modo diagnóstico) |
+| `IA_DESACTIVADA` | — | Registrado en `interpretaciones_solicitud.errorCodigo` | `usaIa` falso o proveedor `none` en el pipeline (HTTP 201) |
+| `IA_TIMEOUT` | — | Idem | Timeout tras reintento permitido (HTTP 201) |
+| `IA_PROVEEDOR_NO_DISPONIBLE` | — | Idem | Error de red / 5xx / 429 tras reintento (HTTP 201) |
+| `IA_SALIDA_INVALIDA` | — | Idem | Respuesta que no valida Zod o con campos prohibidos (HTTP 201) |
+| `IA_ERROR_INTERNO` | — | Idem | Excepción no controlada del adaptador (HTTP 201) |
+| `IA_SIN_LINEAS` | — | Advertencia | Extracción exitosa con cero líneas |
 | `CATALOGO_VACIO` | 422 | La organización no tiene items activos para resolver el pedido. | Resolución sin catálogo cotizable |
 | `RESOLUCION_SIN_CANDIDATOS` | 422 | No se encontraron candidatos en el catálogo para esa línea. | Cascada sin coincidencias por encima del umbral de descarte |
 
 Nota: si la interpretación falla durante `POST /api/precotizaciones`, la API responde **201** con
 `interpretacion.exito` en falso y borrador vacío (`docs/06-diseno-tecnico.md`). Los códigos `IA_*`
-aplican a operaciones que sí fallan la petición (reproceso forzado, diagnóstico) o se registran en
-la interpretación sin abortar el alta del borrador.
+con HTTP 502/422 aplican a operaciones que sí fallan la petición (diagnóstico); en el pipeline MVP
+se registran en la interpretación sin abortar el alta del borrador.
 
 ---
 

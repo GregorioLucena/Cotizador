@@ -6,6 +6,7 @@ export * from './schemas/auth.schemas';
 export * from './schemas/organizacion.schemas';
 export * from './schemas/maestras.schemas';
 export * from './schemas/item.schemas';
+export * from './schemas/importacion.schemas';
 export * from './catalogo/validar-atributos';
 export * from './catalogo/texto-aplicacion';
 export * from './auth/password';

@@ -147,6 +147,7 @@ export class ProvisionamientoService {
       manager.create(ListaPrecio, {
         organizacionId: org.id,
         nombre: 'General',
+        codigo: 'GENERAL',
         monedaId: org.monedaBaseId,
         esPredeterminada: true,
         estadoRegistro: EstadoRegistro.ACTIVO,

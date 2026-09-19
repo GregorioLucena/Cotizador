@@ -34,3 +34,17 @@ export enum OrigenAlias {
   IMPORTADO = 'IMPORTADO',
   APRENDIDO = 'APRENDIDO',
 }
+
+export enum TipoImportacion {
+  ITEMS = 'ITEMS',
+  PRECIOS = 'PRECIOS',
+  ALIAS = 'ALIAS',
+}
+
+export enum EstadoImportacion {
+  CARGADA = 'CARGADA',
+  VALIDADA = 'VALIDADA',
+  CONFIRMADA = 'CONFIRMADA',
+  FALLIDA = 'FALLIDA',
+  CANCELADA = 'CANCELADA',
+}

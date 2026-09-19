@@ -40,5 +40,6 @@ import { SucursalesService } from './sucursales.service';
     SucursalesService,
     ConfiguracionCotizacionService,
   ],
+  exports: [AlmacenamientoLocalService],
 })
 export class ConfiguracionModule {}

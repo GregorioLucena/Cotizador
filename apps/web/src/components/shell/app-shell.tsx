@@ -8,7 +8,19 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Building2, ChevronRight, Home, LogOut, Menu, Package, Settings2, Tags, Users, X } from 'lucide-react';
+import {
+  Building2,
+  ChevronRight,
+  Home,
+  LogOut,
+  Menu,
+  MessageSquareText,
+  Package,
+  Settings2,
+  Tags,
+  Users,
+  X,
+} from 'lucide-react';
 import { apiFetch, clearSession } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
@@ -17,6 +29,12 @@ export type ShellNav = 'organizacion' | 'plataforma' | 'none';
 const NAV = {
   organizacion: [
     { href: '/panel', label: 'Inicio', desc: 'Tu panel y accesos', icon: Home },
+    {
+      href: '/cotizar',
+      label: 'Cotizar',
+      desc: 'Pegar WhatsApp y generar borrador',
+      icon: MessageSquareText,
+    },
     {
       href: '/catalogo',
       label: 'Catálogo',
@@ -55,6 +73,9 @@ const NAV = {
 
 function isActive(pathname: string, href: string) {
   if (href === '/panel') return pathname === '/panel';
+  if (href === '/cotizar') {
+    return pathname === '/cotizar' || pathname.startsWith('/cotizaciones');
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -300,13 +321,14 @@ export function StatusBanner({
   tone,
   children,
 }: {
-  tone: 'error' | 'success' | 'info';
+  tone: 'error' | 'success' | 'info' | 'warn';
   children: ReactNode;
 }) {
   const tones = {
     error: 'border-peligro/25 bg-peligro/8 text-peligro',
     success: 'border-exito/25 bg-exito/8 text-exito',
     info: 'border-teal/20 bg-teal/8 text-teal-deep',
+    warn: 'border-ambar/30 bg-ambar/12 text-[#8a5a00]',
   };
   return (
     <p

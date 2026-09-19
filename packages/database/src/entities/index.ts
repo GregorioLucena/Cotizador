@@ -26,6 +26,13 @@ export { ImportacionCatalogo } from './importacion-catalogo.entity';
 export { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 export { PlantillaDocumento } from './plantilla-documento.entity';
 export { Cliente } from './cliente.entity';
+export { Solicitud } from './solicitud.entity';
+export { InterpretacionSolicitud } from './interpretacion-solicitud.entity';
+export { SecuenciaFolio } from './secuencia-folio.entity';
+export { Cotizacion } from './cotizacion.entity';
+export { CotizacionLinea } from './cotizacion-linea.entity';
+export { CotizacionLineaCandidato } from './cotizacion-linea-candidato.entity';
+export { CotizacionEvento } from './cotizacion-evento.entity';
 
 import { Vertical } from './vertical.entity';
 import { Moneda } from './moneda.entity';
@@ -54,6 +61,13 @@ import { ImportacionCatalogo } from './importacion-catalogo.entity';
 import { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 import { PlantillaDocumento } from './plantilla-documento.entity';
 import { Cliente } from './cliente.entity';
+import { Solicitud } from './solicitud.entity';
+import { InterpretacionSolicitud } from './interpretacion-solicitud.entity';
+import { SecuenciaFolio } from './secuencia-folio.entity';
+import { Cotizacion } from './cotizacion.entity';
+import { CotizacionLinea } from './cotizacion-linea.entity';
+import { CotizacionLineaCandidato } from './cotizacion-linea-candidato.entity';
+import { CotizacionEvento } from './cotizacion-evento.entity';
 
 export const entities = [
   Vertical,
@@ -83,4 +97,11 @@ export const entities = [
   ConfiguracionCotizacion,
   PlantillaDocumento,
   Cliente,
+  Solicitud,
+  InterpretacionSolicitud,
+  SecuenciaFolio,
+  Cotizacion,
+  CotizacionLinea,
+  CotizacionLineaCandidato,
+  CotizacionEvento,
 ];

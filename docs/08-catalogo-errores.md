@@ -203,6 +203,7 @@ Códigos adicionales de aplicaciones y términos (mismo módulo de catálogo):
 | `LISTA_PREDETERMINADA_REQUERIDA` | 422 | La organización debe tener una lista de precios predeterminada. | Quitar la única predeterminada sin reemplazo |
 | `LISTA_VIGENCIA_INVALIDA` | 400 | El rango de vigencia de la lista no es válido. | `vigenciaHasta` anterior a `vigenciaDesde` |
 | `LISTA_MONEDA_INACTIVA` | 422 | La moneda de la lista no está activa. | Moneda inexistente o inactiva |
+| `LISTA_MONEDA_DISTINTA_DE_BASE` | 422 | La moneda de la lista debe coincidir con la moneda base. | MVP: listas solo en moneda base |
 
 ---
 
@@ -215,6 +216,7 @@ Códigos adicionales de aplicaciones y términos (mismo módulo de catálogo):
 | `PRECIO_FORMATO_INVALIDO` | 400 | El precio debe ser una cantidad decimal válida. | Cadena no parseable como decimal |
 | `PRECIO_ITEM_INACTIVO` | 422 | No se puede asignar precio a un item inactivo. | Item con `estadoRegistro` `INACTIVO` |
 | `PRECIO_AUSENTE_EN_LISTA` | 422 | El item no tiene precio en la lista aplicada. | Línea no cotizable; bloquea aprobación |
+| `PRECIO_INVALIDO` | 400 | El precio debe ser mayor que cero y con formato válido. | Precio ≤ 0 o mal formado |
 
 ---
 
@@ -224,6 +226,7 @@ Códigos adicionales de aplicaciones y términos (mismo módulo de catálogo):
 |--------|------|--------------------|---------------|
 | `REGLA_NO_ENCONTRADA` | 404 | No se encontró la regla de descuento indicada. | Id inexistente o de otra organización |
 | `REGLA_AMBITO_INVALIDO` | 400 | El ámbito o la referencia de la regla no son válidos. | `referenciaId` incompatible con `ambito` |
+| `REGLA_REFERENCIA_REQUERIDA` | 400 | Indique la referencia según el ámbito de la regla. | Ámbito no GLOBAL sin `referenciaId` |
 | `REGLA_VALOR_INVALIDO` | 400 | El valor del descuento no es válido. | Porcentaje fuera de rango, monto negativo, etc. |
 | `REGLA_VIGENCIA_INVALIDA` | 400 | El rango de vigencia de la regla no es válido. | Fechas incoherentes |
 | `REGLA_CANTIDAD_INVALIDA` | 400 | El rango de cantidades de la regla no es válido. | Mínimo/máximo incoherentes |

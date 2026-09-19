@@ -25,8 +25,8 @@ export class ListaPrecio extends BaseEntity {
   @Column()
   nombre!: string;
 
-  /** Código único por organización (p. ej. GENERAL). Usado en importación y API de precios. */
-  @Column({ type: 'varchar', length: 40 })
+  /** Código único por organización (2–20, mayúsculas). */
+  @Column({ type: 'varchar', length: 20 })
   codigo!: string;
 
   @Column('uuid')
@@ -38,6 +38,12 @@ export class ListaPrecio extends BaseEntity {
 
   @Column({ type: 'boolean', default: false })
   esPredeterminada!: boolean;
+
+  @Column({ type: 'date', nullable: true })
+  vigenciaDesde?: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  vigenciaHasta?: string | null;
 
   @Column({ type: 'enum', enum: EstadoRegistro, default: EstadoRegistro.ACTIVO })
   estadoRegistro!: EstadoRegistro;

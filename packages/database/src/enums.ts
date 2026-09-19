@@ -48,3 +48,21 @@ export enum EstadoImportacion {
   FALLIDA = 'FALLIDA',
   CANCELADA = 'CANCELADA',
 }
+
+export enum AmbitoReglaDescuento {
+  ITEM = 'ITEM',
+  CATEGORIA = 'CATEGORIA',
+  MARCA = 'MARCA',
+  GLOBAL = 'GLOBAL',
+}
+
+export enum TipoDescuento {
+  PORCENTAJE = 'PORCENTAJE',
+  MONTO_FIJO = 'MONTO_FIJO',
+  PRECIO_FIJO = 'PRECIO_FIJO',
+}
+
+export enum FuenteTasaCambio {
+  MANUAL = 'MANUAL',
+  AUTOMATICA = 'AUTOMATICA',
+}

@@ -4,14 +4,17 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { EstadoRegistro } from '../enums';
 import { BaseEntity } from './base.entity';
-import { Moneda } from './moneda.entity';
+import { Item } from './item.entity';
+import { ListaPrecio } from './lista-precio.entity';
 import { Organizacion } from './organizacion.entity';
 
-@Entity('listas_precio')
-export class ListaPrecio extends BaseEntity {
+@Entity('precios_item')
+@Unique(['listaPrecioId', 'itemId'])
+export class PrecioItem extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -22,22 +25,22 @@ export class ListaPrecio extends BaseEntity {
   @JoinColumn({ name: 'organizacionId' })
   organizacion!: Organizacion;
 
-  @Column()
-  nombre!: string;
+  @Column('uuid')
+  listaPrecioId!: string;
 
-  /** Código único por organización (p. ej. GENERAL). Usado en importación y API de precios. */
-  @Column({ type: 'varchar', length: 40 })
-  codigo!: string;
+  @ManyToOne(() => ListaPrecio)
+  @JoinColumn({ name: 'listaPrecioId' })
+  listaPrecio!: ListaPrecio;
 
   @Column('uuid')
-  monedaId!: string;
+  itemId!: string;
 
-  @ManyToOne(() => Moneda)
-  @JoinColumn({ name: 'monedaId' })
-  moneda!: Moneda;
+  @ManyToOne(() => Item)
+  @JoinColumn({ name: 'itemId' })
+  item!: Item;
 
-  @Column({ type: 'boolean', default: false })
-  esPredeterminada!: boolean;
+  @Column({ type: 'numeric', precision: 18, scale: 4 })
+  precio!: string;
 
   @Column({ type: 'enum', enum: EstadoRegistro, default: EstadoRegistro.ACTIVO })
   estadoRegistro!: EstadoRegistro;

@@ -209,6 +209,12 @@ export default function CatalogoItemsPage() {
         action={
           <div className="flex flex-wrap gap-2">
             <Link
+              href="/catalogo/importar"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-ink hover:bg-teal/8"
+            >
+              Importar
+            </Link>
+            <Link
               href="/catalogo/terminos"
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-ink hover:bg-teal/8"
             >

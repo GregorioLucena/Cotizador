@@ -49,7 +49,9 @@ type ApiFetchInit = RequestInit & {
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
   const { token, ...rest } = init;
   const headers = new Headers(rest.headers);
-  if (!headers.has('Content-Type') && rest.body) {
+  const isFormData =
+    typeof FormData !== 'undefined' && rest.body instanceof FormData;
+  if (!headers.has('Content-Type') && rest.body && !isFormData) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -65,6 +67,13 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     headers,
     credentials: 'include',
   });
+
+  // Descarga binaria (plantilla CSV)
+  const contentType = response.headers.get('content-type') ?? '';
+  if (response.ok && contentType.includes('text/csv')) {
+    const text = await response.text();
+    return text as T;
+  }
 
   const json = (await response.json().catch(() => null)) as
     | { data: T }

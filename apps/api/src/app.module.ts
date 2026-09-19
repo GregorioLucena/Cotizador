@@ -7,6 +7,7 @@ import { ImportacionesModule } from './importaciones/importaciones.module';
 import { ItemsModule } from './items/items.module';
 import { MaestrasModule } from './maestras/maestras.module';
 import { OrganizacionesModule } from './organizaciones/organizaciones.module';
+import { PreciosModule } from './precios/precios.module';
 import { SaludModule } from './salud/salud.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
@@ -35,6 +36,7 @@ function postgresSslOption(): boolean | { rejectUnauthorized: boolean } {
     MaestrasModule,
     ItemsModule,
     ImportacionesModule,
+    PreciosModule,
   ],
 })
 export class AppModule {}

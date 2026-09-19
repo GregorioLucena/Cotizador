@@ -20,6 +20,8 @@ export { ItemAplicacion } from './item-aplicacion.entity';
 export { TerminoNoResuelto } from './termino-no-resuelto.entity';
 export { ListaPrecio } from './lista-precio.entity';
 export { PrecioItem } from './precio-item.entity';
+export { ReglaDescuento } from './regla-descuento.entity';
+export { TasaCambio } from './tasa-cambio.entity';
 export { ImportacionCatalogo } from './importacion-catalogo.entity';
 export { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 export { PlantillaDocumento } from './plantilla-documento.entity';
@@ -45,6 +47,8 @@ import { ItemAplicacion } from './item-aplicacion.entity';
 import { TerminoNoResuelto } from './termino-no-resuelto.entity';
 import { ListaPrecio } from './lista-precio.entity';
 import { PrecioItem } from './precio-item.entity';
+import { ReglaDescuento } from './regla-descuento.entity';
+import { TasaCambio } from './tasa-cambio.entity';
 import { ImportacionCatalogo } from './importacion-catalogo.entity';
 import { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 import { PlantillaDocumento } from './plantilla-documento.entity';
@@ -71,6 +75,8 @@ export const entities = [
   TerminoNoResuelto,
   ListaPrecio,
   PrecioItem,
+  ReglaDescuento,
+  TasaCambio,
   ImportacionCatalogo,
   ConfiguracionCotizacion,
   PlantillaDocumento,

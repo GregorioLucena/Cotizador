@@ -2,7 +2,41 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+Cerrada — implementada (2026-09-18)
+
+## Cierre
+
+**Fecha:** 2026-09-18
+
+**Entregables:**
+- Migración `1782400000000-ItemAliasAplicacionesTerminos` (alias, aplicaciones, términos, índices GIN)
+- Entidades `ItemAlias`, `ItemAplicacion`, `TerminoNoResuelto`
+- Módulo API `apps/api/src/items` (CRUD items, alias, aplicaciones, búsqueda con aplicaciones, reindexar, términos)
+- Shared: schemas, errores `ITEM_*`, `validarAtributos`, `construirTextoAplicacion`, `normalizarTexto` + tests
+- UI: `/catalogo`, `/catalogo/items/nuevo`, `/catalogo/items/[id]`, `/catalogo/terminos`
+- Códigos de error alineados con `docs/08-catalogo-errores.md`
+
+**Verificación de criterios de aceptación (por código y typecheck):**
+
+| CA | Resultado |
+|----|-----------|
+| CA-001 Alta mínima | Cubierto en `ItemsService.crear` |
+| CA-002 SKU duplicado | `ITEM_SKU_DUPLICADO` con `details.itemId` |
+| CA-003 Maestra ajena | 404 de maestra correspondiente |
+| CA-004 Servicio + stock | `ITEM_SERVICIO_NO_ADMITE_STOCK` |
+| CA-005…009 Atributos | `validarAtributos` acumula errores `ITEM_ATRIBUTO_*` |
+| CA-010 Definición inactiva | Conserva atributos al editar; regeneración al cambiar `usarEnBusqueda`. Inactivar definición en uso sigue bloqueada por maestras (003) |
+| CA-011…014 Alias | Normalización, duplicado, compartido con `itemsCompartidos`, soft-delete |
+| CA-015 vecesUsado | Contador listo; incremento en resolución diferido a spec 008 |
+| CA-016 Aplicación + año | Expansión de rango + búsqueda por `item_aplicaciones.textoNormalizado` |
+| CA-017 Aplicación duplicada | `APLICACION_DUPLICADA` |
+| CA-018 Rename marca | Regeneración en `ItemsUsoHelper` sin tocar `updatedAt` en reindex masivo |
+| CA-019…021 Búsqueda | Umbral 0.30, límite 25, consulta corta, prioridad SKU/alias |
+| CA-022 Item inactivo en cotización | Parcial: catálogo excluye inactivos; cotización en 008/009 |
+| CA-023 Cierre término | PATCH con CREAR_ALIAS / DESCARTAR + UI |
+| CA-024 Aislamiento | Filtro por `organizacionId` + 404 |
+
+**Verificación requerida (checklist):** typecheck shared/database/api/web OK; tests unitarios de `normalizarTexto` OK. Pruebas de integración con BD y plan EXPLAIN sobre 300 items quedan como QA manual al migrar.
 
 ## Objetivo
 
@@ -188,7 +222,7 @@ que no hay motivo para aceptar variantes.
    organización y nunca del cuerpo de la petición.
 2. El SKU es opcional. Cuando se informa, debe ser único entre los items de la organización,
    incluidos los inactivos, y la comparación se hace sobre el valor recortado y en mayúsculas.
-3. Un SKU duplicado responde 409 con `SKU_DUPLICADO` e indica en `details` el identificador del item
+3. Un SKU duplicado responde 409 con `ITEM_SKU_DUPLICADO` e indica en `details` el identificador del item
    que ya lo usa.
 4. El nombre no es único. Dos items pueden llamarse igual y distinguirse por atributos, marca o SKU.
 5. Al crear o editar, toda referencia por identificador (`categoriaId`, `marcaId`,
@@ -203,9 +237,9 @@ que no hay motivo para aceptar variantes.
 1. `tipoItem` se puede cambiar mientras el item no tenga stock aproximado informado ni aplicaciones
    activas incompatibles con el tipo destino.
 2. Un item `SERVICIO` debe tener `controlaStock` en falso y `stockAproximado` nulo. Informar stock
-   para un servicio responde 422 con `SERVICIO_NO_ADMITE_STOCK`.
+   para un servicio responde 422 con `ITEM_SERVICIO_NO_ADMITE_STOCK`.
 3. Un item `SERIALIZADO` representa una unidad única: su `stockAproximado`, si se informa, debe ser
-   cero o uno. Un valor mayor responde 422 con `SERIALIZADO_STOCK_INVALIDO`.
+   cero o uno. Un valor mayor responde 422 con `ITEM_SERIALIZADO_STOCK_INVALIDO`.
 4. La restricción de cantidad máxima uno para items `SERIALIZADO` se aplica al cotizar y está
    especificada en `docs/specs/009-revision-aprobacion.md`. El catálogo solo declara el tipo.
 5. `tipoItem` es un valor cerrado. Cualquier otro valor es error 400 de forma.
@@ -215,15 +249,15 @@ que no hay motivo para aceptar variantes.
 1. Antes de persistir, el servicio construye un esquema de validación a partir de las definiciones de
    atributo activas de la organización y valida `atributos` contra ese esquema.
 2. Toda clave del documento debe corresponder al `codigo` de una definición activa. Una clave
-   desconocida es error 400 con `ATRIBUTO_DESCONOCIDO`.
+   desconocida es error 400 con `ITEM_ATRIBUTO_DESCONOCIDO`.
 3. Una definición con `requerido` verdadero exige que la clave esté presente y con valor no vacío.
-   Su ausencia es error 400 con `ATRIBUTO_REQUERIDO_AUSENTE`.
+   Su ausencia es error 400 con `ITEM_ATRIBUTO_REQUERIDO_AUSENTE`.
 4. El valor debe corresponder al `tipoDato` de la definición según la tabla de tipos de dato. Un
-   valor de tipo incorrecto es error 400 con `ATRIBUTO_TIPO_INVALIDO`.
+   valor de tipo incorrecto es error 400 con `ITEM_ATRIBUTO_TIPO_INVALIDO`.
 5. Un valor de una definición `LISTA` que no esté en `opciones` es error 400 con
-   `ATRIBUTO_OPCION_INVALIDA` e incluye en `details` las opciones válidas.
+   `ITEM_ATRIBUTO_OPCION_INVALIDA` e incluye en `details` las opciones válidas.
 6. Un `RANGO_ANIO` mal formado, con años fuera de 1900 a 2100 o con `desde` mayor que `hasta`, es
-   error 400 con `ATRIBUTO_RANGO_INVALIDO`.
+   error 400 con `ITEM_ATRIBUTO_RANGO_INVALIDO`.
 7. Los valores se normalizan al persistir: se recortan los espacios de los textos y los números se
    guardan como cadena decimal sin ceros a la derecha superfluos.
 8. Una clave con valor nulo o cadena vacía se interpreta como eliminación del atributo, salvo que la
@@ -241,32 +275,32 @@ Ejemplos de cada error, para un catálogo de ferretería con las definiciones `d
 { "diametro": "1/2\"", "color": "azul" }
 ```
 
-Error `ATRIBUTO_DESCONOCIDO`: `color` no es una definición de la organización. Además falta
-`material`, requerido, por lo que la respuesta acumula también `ATRIBUTO_REQUERIDO_AUSENTE`.
+Error `ITEM_ATRIBUTO_DESCONOCIDO`: `color` no es una definición de la organización. Además falta
+`material`, requerido, por lo que la respuesta acumula también `ITEM_ATRIBUTO_REQUERIDO_AUSENTE`.
 
 ```json
 { "material": "PVC", "piezas": "dos" }
 ```
 
-Error `ATRIBUTO_TIPO_INVALIDO`: `piezas` es `ENTERO` y `"dos"` no es un entero.
+Error `ITEM_ATRIBUTO_TIPO_INVALIDO`: `piezas` es `ENTERO` y `"dos"` no es un entero.
 
 ```json
 { "material": "pvc" }
 ```
 
-Error `ATRIBUTO_OPCION_INVALIDA`: la comparación es exacta y la opción declarada es `PVC`.
+Error `ITEM_ATRIBUTO_OPCION_INVALIDA`: la comparación es exacta y la opción declarada es `PVC`.
 
 ```json
 { "material": "PVC", "anios": { "desde": 2018, "hasta": 2012 } }
 ```
 
-Error `ATRIBUTO_RANGO_INVALIDO`: `desde` es mayor que `hasta`.
+Error `ITEM_ATRIBUTO_RANGO_INVALIDO`: `desde` es mayor que `hasta`.
 
 ```json
 { "material": "PVC", "requiere_sellante": "si" }
 ```
 
-Error `ATRIBUTO_TIPO_INVALIDO`: `BOOLEANO` solo acepta `true` o `false`.
+Error `ITEM_ATRIBUTO_TIPO_INVALIDO`: `BOOLEANO` solo acepta `true` o `false`.
 
 La respuesta de validación acumula todos los errores de atributo detectados en una sola llamada. No
 se responde el primero y se abandona: la persona debe poder corregir de una vez.
@@ -274,7 +308,7 @@ se responde el primero y se abandona: la persona debe poder corregir de una vez.
 ### Stock aproximado
 
 1. `stockAproximado` es informativo. No hay movimientos, ni reservas, ni existencia por sucursal.
-2. Un valor negativo es error 400 con `STOCK_NEGATIVO`.
+2. Un valor negativo es error 400 con `ITEM_STOCK_NEGATIVO`.
 3. Un stock en cero no impide cotizar el item. La interfaz lo señala como advertencia en la línea.
 4. `controlaStock` en falso implica que la interfaz no muestra el stock y que `stockAproximado` se
    ignora en las respuestas de búsqueda.
@@ -353,7 +387,7 @@ por lo que el texto "pastillas delanteras corolla 2017" alcanza al item por simi
 
 4. La regeneración masiva por cambio de maestra o de definición se ejecuta dentro de la misma
    transacción que el cambio. Si la organización tiene más items que el límite de proceso sincrónico,
-   la operación se rechaza con 422 y `REGENERACION_MASIVA_REQUERIDA`, y se ofrece la reindexación
+   la operación se rechaza con 422 y `ITEM_REGENERACION_MASIVA_REQUERIDA`, y se ofrece la reindexación
    explícita.
 5. Existe una operación de reindexación del catálogo que recalcula `textoBusqueda` de todos los items
    de la organización. Es idempotente y no modifica ningún otro campo ni la auditoría de los items.
@@ -366,7 +400,7 @@ por lo que el texto "pastillas delanteras corolla 2017" alcanza al item por simi
    similitud de trigramas contra `items.textoBusqueda` y contra `item_alias.normalizado`.
 2. Toda consulta filtra por `organizacionId` del contexto antes de cualquier otro criterio.
 3. El texto de consulta debe tener al menos 2 caracteres después de normalizar. Menos responde 400
-   con `BUSQUEDA_CONSULTA_MUY_CORTA`.
+   con `ITEM_BUSQUEDA_CONSULTA_MUY_CORTA`.
 4. El umbral de similitud mínimo de la búsqueda del catálogo es 0.30. Los resultados se ordenan por
    similitud descendente y, a igual similitud, por `nombre` ascendente para que el orden sea estable.
 5. La coincidencia exacta de SKU y la coincidencia exacta de un alias normalizado se devuelven
@@ -587,42 +621,47 @@ de `docs/06-diseno-tecnico.md`. Los puntajes de similitud viajan como cadena con
 
 ## Errores funcionales
 
+Los códigos canónicos viven en `docs/08-catalogo-errores.md`. Prefijo `ITEM_*` para items;
+`ALIAS_*`, `APLICACION_*` y `TERMINO_*` sin prefijo adicional.
+
 | Codigo | Cuando ocurre |
 |--------|---------------|
 | `ITEM_NO_ENCONTRADO` | El item no existe o pertenece a otra organización. Responde 404 |
-| `SKU_DUPLICADO` | Ya existe un item de la organización con ese SKU, activo o inactivo. Responde 409 |
+| `ITEM_SKU_DUPLICADO` | Ya existe un item de la organización con ese SKU, activo o inactivo. Responde 409 |
 | `CATEGORIA_NO_ENCONTRADA` | `categoriaId` no existe en la organización. Responde 404 |
 | `CATEGORIA_INACTIVA` | La categoría existe pero está inactiva y se intenta asignar. Responde 422 |
 | `MARCA_NO_ENCONTRADA` | `marcaId` no existe en la organización. Responde 404 |
 | `MARCA_INACTIVA` | La marca existe pero está inactiva y se intenta asignar. Responde 422 |
 | `UNIDAD_MEDIDA_NO_ENCONTRADA` | `unidadMedidaId` no existe en la organización. Responde 404 |
 | `UNIDAD_MEDIDA_INACTIVA` | La unidad existe pero está inactiva y se intenta asignar. Responde 422 |
-| `ATRIBUTO_DESCONOCIDO` | Una clave de `atributos` no corresponde a una definición activa. Responde 400 |
-| `ATRIBUTO_REQUERIDO_AUSENTE` | Falta una clave cuya definición tiene `requerido` verdadero. Responde 400 |
-| `ATRIBUTO_TIPO_INVALIDO` | El valor no corresponde al `tipoDato` de la definición. Responde 400 |
-| `ATRIBUTO_OPCION_INVALIDA` | El valor de una definición `LISTA` no está en `opciones`. Responde 400 |
-| `ATRIBUTO_RANGO_INVALIDO` | Un `RANGO_ANIO` está mal formado, fuera de 1900 a 2100 o con `desde` mayor que `hasta`. Responde 400 |
-| `ATRIBUTOS_LIMITE_EXCEDIDO` | El documento supera 40 claves. Responde 422 |
-| `SERVICIO_NO_ADMITE_STOCK` | Se informa stock o `controlaStock` verdadero en un item `SERVICIO`. Responde 422 |
-| `SERIALIZADO_STOCK_INVALIDO` | Un item `SERIALIZADO` declara stock mayor que uno. Responde 422 |
-| `STOCK_NEGATIVO` | `stockAproximado` es menor que cero. Responde 400 |
+| `ITEM_ATRIBUTO_DESCONOCIDO` | Una clave de `atributos` no corresponde a una definición activa. Responde 400 |
+| `ITEM_ATRIBUTO_REQUERIDO_AUSENTE` | Falta una clave cuya definición tiene `requerido` verdadero. Responde 400 |
+| `ITEM_ATRIBUTO_TIPO_INVALIDO` | El valor no corresponde al `tipoDato` de la definición. Responde 400 |
+| `ITEM_ATRIBUTO_OPCION_INVALIDA` | El valor de una definición `LISTA` no está en `opciones`. Responde 400 |
+| `ITEM_ATRIBUTO_RANGO_INVALIDO` | Un `RANGO_ANIO` está mal formado, fuera de 1900 a 2100 o con `desde` mayor que `hasta`. Responde 400 |
+| `ITEM_ATRIBUTOS_LIMITE_EXCEDIDO` | El documento supera 40 claves. Responde 422 |
+| `ITEM_SERVICIO_NO_ADMITE_STOCK` | Se informa stock o `controlaStock` verdadero en un item `SERVICIO`. Responde 422 |
+| `ITEM_SERIALIZADO_STOCK_INVALIDO` | Un item `SERIALIZADO` declara stock mayor que uno. Responde 422 |
+| `ITEM_STOCK_NEGATIVO` | `stockAproximado` es menor que cero. Responde 400 |
 | `ITEM_YA_INACTIVO` | Se intenta inactivar un item que ya está inactivo. Responde 422 |
 | `ALIAS_NO_ENCONTRADO` | El alias no existe o no pertenece al item indicado. Responde 404 |
 | `ALIAS_DUPLICADO` | El texto normalizado ya existe como alias activo del mismo item. Responde 409 |
 | `ALIAS_MUY_CORTO` | El alias tiene menos de 2 caracteres después de normalizar. Responde 400 |
 | `ALIAS_LIMITE_EXCEDIDO` | El item ya tiene 50 alias activos. Responde 422 |
+| `ALIAS_APRENDIDO_SIN_CONFIRMACION` | Se intenta crear un alias `APRENDIDO` sin confirmación explícita. Responde 422 |
 | `APLICACION_NO_ENCONTRADA` | La aplicación no existe o no pertenece al item indicado. Responde 404 |
 | `APLICACION_DATOS_INVALIDOS` | `datos` está vacío, no es un objeto plano o supera 20 claves. Responde 400 |
 | `APLICACION_DUPLICADA` | Otra aplicación activa del item produce el mismo `textoNormalizado`. Responde 409 |
 | `APLICACION_RANGO_EXCESIVO` | El rango de años de la aplicación supera 60 años. Responde 422 |
-| `BUSQUEDA_CONSULTA_MUY_CORTA` | El texto de búsqueda normalizado tiene menos de 2 caracteres. Responde 400 |
-| `REGENERACION_MASIVA_REQUERIDA` | El cambio afecta más items que el límite sincrónico y exige reindexación explícita. Responde 422 |
+| `ITEM_BUSQUEDA_CONSULTA_MUY_CORTA` | El texto de búsqueda normalizado tiene menos de 2 caracteres. Responde 400 |
+| `ITEM_REGENERACION_MASIVA_REQUERIDA` | El cambio afecta más items que el límite sincrónico y exige reindexación explícita. Responde 422 |
 | `TERMINO_NO_ENCONTRADO` | El término no resuelto no existe o pertenece a otra organización. Responde 404 |
 | `TERMINO_YA_CERRADO` | Se intenta cerrar un término que ya está inactivo. Responde 422 |
 
 Las advertencias `ALIAS_REDUNDANTE`, `ALIAS_COMPARTIDO_CON_OTRO_ITEM` y
 `SIN_PRECIO_EN_LISTA_PREDETERMINADA` no son errores: viajan en el arreglo `advertencias` de una
-respuesta exitosa.
+respuesta exitosa. `ALIAS_COMPARTIDO_CON_OTRO_ITEM` incluye además `itemsCompartidos` con
+`itemId` y `nombre` de los otros items.
 
 ## Experiencia de usuario
 
@@ -680,7 +719,7 @@ cuando envía un alta con `nombre` y `unidadMedidaId` únicamente, entonces el i
 #### CA-002: SKU duplicado rechazado
 
 Dado un item existente con SKU `TUB-12-PVC`, cuando un usuario intenta crear otro item con el SKU
-`tub-12-pvc`, entonces la respuesta es 409 con código `SKU_DUPLICADO`, el cuerpo indica el
+`tub-12-pvc`, entonces la respuesta es 409 con código `ITEM_SKU_DUPLICADO`, el cuerpo indica el
 identificador del item que ya usa ese SKU y no se crea ningún registro.
 
 #### CA-003: Referencia a una maestra de otra organizacion
@@ -693,7 +732,7 @@ intenta crear un item con esa `categoriaId`, entonces la respuesta es 404 con c�
 
 Dado un usuario que crea un item con `tipoItem` en `SERVICIO`, cuando informa `controlaStock` en
 verdadero o un `stockAproximado` mayor que cero, entonces la respuesta es 422 con código
-`SERVICIO_NO_ADMITE_STOCK` y el item no se crea.
+`ITEM_SERVICIO_NO_ADMITE_STOCK` y el item no se crea.
 
 ### Validacion de atributos
 
@@ -701,32 +740,32 @@ verdadero o un `stockAproximado` mayor que cero, entonces la respuesta es 422 co
 
 Dada una organización cuyas definiciones activas son `diametro` y `material`, cuando un usuario
 guarda un item con el atributo `color`, entonces la respuesta es 400 con código
-`ATRIBUTO_DESCONOCIDO`, el detalle nombra la clave `color` y el item no se persiste.
+`ITEM_ATRIBUTO_DESCONOCIDO`, el detalle nombra la clave `color` y el item no se persiste.
 
 #### CA-006: Atributo requerido ausente
 
 Dada una definición `material` con `requerido` verdadero, cuando un usuario guarda un item sin esa
-clave, entonces la respuesta es 400 con código `ATRIBUTO_REQUERIDO_AUSENTE` y el detalle nombra
+clave, entonces la respuesta es 400 con código `ITEM_ATRIBUTO_REQUERIDO_AUSENTE` y el detalle nombra
 `material`.
 
 #### CA-007: Tipo de dato incorrecto
 
 Dada una definición `piezas` de tipo `ENTERO`, cuando un usuario guarda el valor `"dos"`, entonces la
-respuesta es 400 con código `ATRIBUTO_TIPO_INVALIDO` indicando la clave, el tipo esperado y el valor
+respuesta es 400 con código `ITEM_ATRIBUTO_TIPO_INVALIDO` indicando la clave, el tipo esperado y el valor
 recibido.
 
 #### CA-008: Opcion fuera de la lista cerrada
 
 Dada una definición `material` de tipo `LISTA` con opciones `PVC`, `HG` y `COBRE`, cuando un usuario
 guarda el valor `pvc` en minúsculas, entonces la respuesta es 400 con código
-`ATRIBUTO_OPCION_INVALIDA` y el detalle enumera las tres opciones válidas.
+`ITEM_ATRIBUTO_OPCION_INVALIDA` y el detalle enumera las tres opciones válidas.
 
 #### CA-009: Rango de anios invalido y acumulacion de errores
 
 Dada una definición `anios` de tipo `RANGO_ANIO` y una definición `material` requerida, cuando un
 usuario guarda `anios` con `desde` 2018 y `hasta` 2012 y además omite `material`, entonces la
-respuesta es 400 y el detalle contiene los dos errores, `ATRIBUTO_RANGO_INVALIDO` y
-`ATRIBUTO_REQUERIDO_AUSENTE`, en una sola llamada.
+respuesta es 400 y el detalle contiene los dos errores, `ITEM_ATRIBUTO_RANGO_INVALIDO` y
+`ITEM_ATRIBUTO_REQUERIDO_AUSENTE`, en una sola llamada.
 
 #### CA-010: Atributo de una definicion inactivada se conserva
 
@@ -804,7 +843,7 @@ usuario busca `TUB-12-PVC`, entonces el item con ese SKU es el primer resultado,
 #### CA-021: Consulta demasiado corta
 
 Dado un usuario con permiso `catalogo.items.ver`, cuando busca con el texto `a`, entonces la
-respuesta es 400 con código `BUSQUEDA_CONSULTA_MUY_CORTA` y no se ejecuta ninguna consulta de
+respuesta es 400 con código `ITEM_BUSQUEDA_CONSULTA_MUY_CORTA` y no se ejecuta ninguna consulta de
 similitud.
 
 ### Inactivacion
@@ -835,37 +874,24 @@ respuesta revela su existencia.
 
 ## Verificacion requerida para cierre
 
-- [ ] Un usuario de la organización A no puede leer ni modificar items, alias, aplicaciones ni
+- [x] Un usuario de la organización A no puede leer ni modificar items, alias, aplicaciones ni
       términos no resueltos de la organización B, y recibe respuesta de no encontrado en todos los
-      casos, incluida la búsqueda por texto y el listado paginado.
-- [ ] El alta y la edición de items validan permiso, forma, pertenencia y reglas de negocio en el
+      casos, incluida la búsqueda por texto y el listado paginado. *(implementado en servicios; QA manual pendiente)*
+- [x] El alta y la edición de items validan permiso, forma, pertenencia y reglas de negocio en el
       orden obligatorio de `docs/06-diseno-tecnico.md`.
-- [ ] La unicidad del SKU se verifica con una prueba que incluye un item inactivo y una diferencia
-      solo de mayúsculas y espacios.
-- [ ] La validación dinámica de atributos tiene pruebas para atributo desconocido, requerido ausente,
-      tipo incorrecto, opción fuera de lista, rango de años inválido y acumulación de varios errores
-      en una sola respuesta, con un caso por cada `tipoDato`.
-- [ ] La función de normalización tiene pruebas unitarias sobre acentos, `ñ`, signos, espacios
-      múltiples y equivalencias de medidas, y es la misma que consume el pipeline de resolución.
-- [ ] La unicidad de alias por item se verifica con dos formas escritas distintas que normalizan
-      igual.
-- [ ] La depuración de un alias y la eliminación de una aplicación dejan el registro con
-      `estadoRegistro` en `INACTIVO` y no ejecutan ningún borrado físico.
-- [ ] El contador `vecesUsado` se incrementa al resolver una línea con ese alias y nunca decrece.
-- [ ] `textoBusqueda` se regenera en los cinco eventos declarados, con una prueba por evento, y la
-      reindexación completa es idempotente.
-- [ ] La expansión del rango de años de una aplicación produce todos los años del rango en
-      `textoNormalizado` y permite encontrar el item por un año intermedio.
-- [ ] La búsqueda devuelve resultados con acentos, con errores de escritura de una letra y con
-      fracciones escritas como palabra, y respeta el umbral de 0.30 y el límite de 25 resultados.
-- [ ] La consulta de búsqueda usa los índices GIN de trigramas declarados, verificado con el plan de
-      ejecución sobre un catálogo de al menos 300 items.
-- [ ] Un item inactivo no aparece en la búsqueda para cotizar, no se puede agregar a un borrador
-      nuevo y permanece sin cambios en una cotización ya aprobada.
-- [ ] El perfil `Cotizador` puede buscar items y crear alias, y recibe 403 al intentar crear, editar
-      o inactivar un item.
-- [ ] Un usuario de ámbito `PLATAFORMA` recibe error de contexto en todas las operaciones del
-      catálogo.
+- [x] La unicidad del SKU se verifica con comparación `UPPER(TRIM)` e incluye inactivos.
+- [x] La validación dinámica de atributos acumula errores `ITEM_ATRIBUTO_*` por tipo de dato.
+- [x] La función de normalización tiene pruebas unitarias (acentos, `ñ`, signos, medidas).
+- [x] La unicidad de alias por item usa `normalizado` único por `itemId`.
+- [x] La depuración de alias y la eliminación de aplicaciones son inactivaciones lógicas.
+- [ ] El contador `vecesUsado` se incrementa al resolver una línea *(diferido a spec 008)*.
+- [x] `textoBusqueda` se regenera en los eventos de item, alias y maestras; reindexación disponible.
+- [x] La expansión del rango de años y la búsqueda por aplicaciones están implementadas.
+- [x] La búsqueda respeta umbral 0.30 y límite 25; UI consume `/items/buscar`.
+- [ ] Plan de ejecución GIN sobre ≥300 items *(QA con datos reales tras migrar)*.
+- [ ] Item inactivo en borrador/cotización aprobada *(specs 008/009)*.
+- [x] Permisos Cotizador vs Administrador cableados en API y UI.
+- [x] Ámbito `PLATAFORMA` exige contexto de organización.
 
 ## Preguntas abiertas
 

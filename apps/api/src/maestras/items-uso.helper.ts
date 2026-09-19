@@ -5,10 +5,17 @@ import {
   DefinicionAtributo,
   EstadoRegistro,
   Item,
+  ItemAlias,
   Marca,
 } from '@cotizador/database';
-import { normalizarTextoBusqueda } from '@cotizador/shared';
+import {
+  itemRegeneracionMasivaRequerida,
+  normalizarTextoBusqueda,
+} from '@cotizador/shared';
 import { EntityManager, In, Repository } from 'typeorm';
+
+/** Límite de items regenerados en la misma transacción de un cambio de maestra. */
+export const LIMITE_REGENERACION_SINCRONICA = 500;
 
 function valorAtributoComoTexto(valor: unknown): string | null {
   if (valor === null || valor === undefined) return null;
@@ -17,6 +24,10 @@ function valorAtributoComoTexto(valor: unknown): string | null {
     return String(valor);
   }
   if (typeof valor === 'object') {
+    const obj = valor as Record<string, unknown>;
+    if ('desde' in obj && 'hasta' in obj) {
+      return `${obj.desde} ${obj.hasta}`;
+    }
     return JSON.stringify(valor);
   }
   return String(valor);
@@ -122,8 +133,76 @@ export class ItemsUsoHelper {
     return this.itemRepo
       .createQueryBuilder('i')
       .where('i.organizacionId = :organizacionId', { organizacionId })
-      .andWhere("i.atributos ->> :codigo = :opcion", { codigo, opcion })
+      .andWhere('i.atributos ->> :codigo = :opcion', { codigo, opcion })
       .getCount();
+  }
+
+  /**
+   * Construye `textoBusqueda` para un item:
+   * nombre, sku, marca, categoría, padre, alias activos, atributos con usarEnBusqueda.
+   */
+  async construirTextoBusqueda(
+    manager: EntityManager,
+    organizacionId: string,
+    item: Item,
+  ): Promise<string> {
+    const definiciones = await manager.find(DefinicionAtributo, {
+      where: {
+        organizacionId,
+        estadoRegistro: EstadoRegistro.ACTIVO,
+        usarEnBusqueda: true,
+      },
+    });
+    const codigosBusqueda = new Set(definiciones.map((d) => d.codigo));
+
+    let marcaNombre: string | undefined;
+    let categoriaNombre: string | undefined;
+    let padreNombre: string | undefined;
+
+    if (item.marcaId) {
+      const marca = await manager.findOne(Marca, {
+        where: { id: item.marcaId, organizacionId },
+      });
+      marcaNombre = marca?.nombre;
+    }
+
+    if (item.categoriaId) {
+      const categoria = await manager.findOne(Categoria, {
+        where: { id: item.categoriaId, organizacionId },
+      });
+      categoriaNombre = categoria?.nombre;
+      if (categoria?.categoriaPadreId) {
+        const padre = await manager.findOne(Categoria, {
+          where: { id: categoria.categoriaPadreId, organizacionId },
+        });
+        padreNombre = padre?.nombre;
+      }
+    }
+
+    const aliasActivos = await manager.find(ItemAlias, {
+      where: {
+        itemId: item.id,
+        organizacionId,
+        estadoRegistro: EstadoRegistro.ACTIVO,
+      },
+    });
+
+    const valoresAtributos: string[] = [];
+    for (const [clave, valor] of Object.entries(item.atributos ?? {})) {
+      if (!codigosBusqueda.has(clave)) continue;
+      const texto = valorAtributoComoTexto(valor);
+      if (texto) valoresAtributos.push(texto);
+    }
+
+    return normalizarTextoBusqueda(
+      item.nombre,
+      item.sku,
+      marcaNombre,
+      categoriaNombre,
+      padreNombre,
+      ...aliasActivos.map((a) => a.alias),
+      ...valoresAtributos,
+    );
   }
 
   async regenerarTextoPorCategoria(
@@ -131,6 +210,16 @@ export class ItemsUsoHelper {
     organizacionId: string,
     categoriaId: string,
   ): Promise<void> {
+    const count = await manager.count(Item, {
+      where: {
+        organizacionId,
+        categoriaId,
+        estadoRegistro: EstadoRegistro.ACTIVO,
+      },
+    });
+    if (count > LIMITE_REGENERACION_SINCRONICA) {
+      throw itemRegeneracionMasivaRequerida();
+    }
     const items = await manager.find(Item, {
       where: {
         organizacionId,
@@ -146,6 +235,16 @@ export class ItemsUsoHelper {
     organizacionId: string,
     marcaId: string,
   ): Promise<void> {
+    const count = await manager.count(Item, {
+      where: {
+        organizacionId,
+        marcaId,
+        estadoRegistro: EstadoRegistro.ACTIVO,
+      },
+    });
+    if (count > LIMITE_REGENERACION_SINCRONICA) {
+      throw itemRegeneracionMasivaRequerida();
+    }
     const items = await manager.find(Item, {
       where: {
         organizacionId,
@@ -161,6 +260,17 @@ export class ItemsUsoHelper {
     organizacionId: string,
     codigo: string,
   ): Promise<void> {
+    const count = await manager
+      .createQueryBuilder(Item, 'i')
+      .where('i.organizacionId = :organizacionId', { organizacionId })
+      .andWhere('i.estadoRegistro = :estado', {
+        estado: EstadoRegistro.ACTIVO,
+      })
+      .andWhere('i.atributos ? :codigo', { codigo })
+      .getCount();
+    if (count > LIMITE_REGENERACION_SINCRONICA) {
+      throw itemRegeneracionMasivaRequerida();
+    }
     const items = await manager
       .createQueryBuilder(Item, 'i')
       .where('i.organizacionId = :organizacionId', { organizacionId })
@@ -170,6 +280,16 @@ export class ItemsUsoHelper {
       .andWhere('i.atributos ? :codigo', { codigo })
       .getMany();
     await this.regenerarItems(manager, organizacionId, items);
+  }
+
+  /** Regenera textoBusqueda de todos los items de la organización (reindexación). */
+  async reindexarOrganizacion(
+    manager: EntityManager,
+    organizacionId: string,
+  ): Promise<{ regenerados: number }> {
+    const items = await manager.find(Item, { where: { organizacionId } });
+    await this.regenerarItems(manager, organizacionId, items);
+    return { regenerados: items.length };
   }
 
   private async regenerarItems(
@@ -200,6 +320,7 @@ export class ItemsUsoHelper {
         items.map((i) => i.marcaId).filter((id): id is string => Boolean(id)),
       ),
     ];
+    const itemIds = items.map((i) => i.id);
 
     const categorias =
       categoriaIds.length > 0
@@ -210,14 +331,49 @@ export class ItemsUsoHelper {
         ? await manager.find(Marca, { where: { id: In(marcaIds) } })
         : [];
 
+    const padreIds = [
+      ...new Set(
+        categorias
+          .map((c) => c.categoriaPadreId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const padres =
+      padreIds.length > 0
+        ? await manager.find(Categoria, { where: { id: In(padreIds) } })
+        : [];
+
+    const aliasActivos =
+      itemIds.length > 0
+        ? await manager.find(ItemAlias, {
+            where: {
+              itemId: In(itemIds),
+              organizacionId,
+              estadoRegistro: EstadoRegistro.ACTIVO,
+            },
+          })
+        : [];
+
     const categoriaPorId = new Map(categorias.map((c) => [c.id, c]));
+    const padrePorId = new Map(padres.map((c) => [c.id, c]));
     const marcaPorId = new Map(marcas.map((m) => [m.id, m]));
+    const aliasPorItem = new Map<string, ItemAlias[]>();
+    for (const a of aliasActivos) {
+      const list = aliasPorItem.get(a.itemId) ?? [];
+      list.push(a);
+      aliasPorItem.set(a.itemId, list);
+    }
 
     for (const item of items) {
       const categoria = item.categoriaId
         ? categoriaPorId.get(item.categoriaId)
         : undefined;
       const marca = item.marcaId ? marcaPorId.get(item.marcaId) : undefined;
+      const padre =
+        categoria?.categoriaPadreId
+          ? padrePorId.get(categoria.categoriaPadreId)
+          : undefined;
+      const aliases = aliasPorItem.get(item.id) ?? [];
 
       const valoresAtributos: string[] = [];
       for (const [clave, valor] of Object.entries(item.atributos ?? {})) {
@@ -228,12 +384,21 @@ export class ItemsUsoHelper {
 
       item.textoBusqueda = normalizarTextoBusqueda(
         item.nombre,
-        categoria?.nombre,
+        item.sku,
         marca?.nombre,
+        categoria?.nombre,
+        padre?.nombre,
+        ...aliases.map((a) => a.alias),
         ...valoresAtributos,
       );
-    }
 
-    await manager.save(Item, items);
+      // Solo actualiza textoBusqueda: no toca updatedAt ni auditoría.
+      await manager
+        .createQueryBuilder()
+        .update(Item)
+        .set({ textoBusqueda: item.textoBusqueda })
+        .where('id = :id', { id: item.id })
+        .execute();
+    }
   }
 }

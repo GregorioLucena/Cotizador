@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { entities } from '@cotizador/database/entities';
 import { AuthModule } from './auth/auth.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
+import { ItemsModule } from './items/items.module';
 import { MaestrasModule } from './maestras/maestras.module';
 import { OrganizacionesModule } from './organizaciones/organizaciones.module';
 import { SaludModule } from './salud/salud.module';
@@ -31,6 +32,7 @@ function postgresSslOption(): boolean | { rejectUnauthorized: boolean } {
     OrganizacionesModule,
     ConfiguracionModule,
     MaestrasModule,
+    ItemsModule,
   ],
 })
 export class AppModule {}

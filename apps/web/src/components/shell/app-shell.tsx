@@ -18,9 +18,9 @@ const NAV = {
   organizacion: [
     { href: '/panel', label: 'Inicio', desc: 'Tu panel y accesos', icon: Home },
     {
-      href: '/catalogo/maestras',
+      href: '/catalogo',
       label: 'Catálogo',
-      desc: 'Maestras del catálogo',
+      desc: 'Items y maestras',
       icon: Package,
     },
     {

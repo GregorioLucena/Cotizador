@@ -34,6 +34,7 @@ export class ApiClientError extends Error {
     public readonly code: string,
     message: string,
     public readonly status: number,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiClientError';
@@ -76,6 +77,7 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
       err?.code ?? 'HTTP_ERROR',
       err?.message ?? 'No se pudo completar la solicitud.',
       response.status,
+      err?.details,
     );
   }
 

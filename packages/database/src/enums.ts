@@ -28,3 +28,9 @@ export enum TipoItem {
   SERIALIZADO = 'SERIALIZADO',
   SERVICIO = 'SERVICIO',
 }
+
+export enum OrigenAlias {
+  MANUAL = 'MANUAL',
+  IMPORTADO = 'IMPORTADO',
+  APRENDIDO = 'APRENDIDO',
+}

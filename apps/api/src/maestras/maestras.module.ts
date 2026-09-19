@@ -4,6 +4,7 @@ import {
   Categoria,
   DefinicionAtributo,
   Item,
+  ItemAlias,
   Marca,
   UnidadMedida,
 } from '@cotizador/database';
@@ -25,6 +26,7 @@ import { UnidadesMedidaService } from './unidades-medida.service';
       Marca,
       DefinicionAtributo,
       Item,
+      ItemAlias,
     ]),
   ],
   controllers: [

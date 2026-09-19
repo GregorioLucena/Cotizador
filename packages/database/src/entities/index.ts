@@ -15,6 +15,9 @@ export { DefinicionAtributo } from './definicion-atributo.entity';
 export { Categoria } from './categoria.entity';
 export { Marca } from './marca.entity';
 export { Item } from './item.entity';
+export { ItemAlias } from './item-alias.entity';
+export { ItemAplicacion } from './item-aplicacion.entity';
+export { TerminoNoResuelto } from './termino-no-resuelto.entity';
 export { ListaPrecio } from './lista-precio.entity';
 export { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 export { PlantillaDocumento } from './plantilla-documento.entity';
@@ -35,6 +38,9 @@ import { DefinicionAtributo } from './definicion-atributo.entity';
 import { Categoria } from './categoria.entity';
 import { Marca } from './marca.entity';
 import { Item } from './item.entity';
+import { ItemAlias } from './item-alias.entity';
+import { ItemAplicacion } from './item-aplicacion.entity';
+import { TerminoNoResuelto } from './termino-no-resuelto.entity';
 import { ListaPrecio } from './lista-precio.entity';
 import { ConfiguracionCotizacion } from './configuracion-cotizacion.entity';
 import { PlantillaDocumento } from './plantilla-documento.entity';
@@ -56,6 +62,9 @@ export const entities = [
   Categoria,
   Marca,
   Item,
+  ItemAlias,
+  ItemAplicacion,
+  TerminoNoResuelto,
   ListaPrecio,
   ConfiguracionCotizacion,
   PlantillaDocumento,

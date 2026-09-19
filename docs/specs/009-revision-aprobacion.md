@@ -2,7 +2,34 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+Cerrada — implementada (2026-09-18)
+
+## Cierre
+
+**Fecha:** 2026-09-18
+
+**Entregables:**
+- Migración `1782900000000-CotizacionLineaActiva` (soft-delete de líneas con `activa`)
+- Shared: schemas de revisión, errores `COTIZACION_*` / líneas / sobrescritura, `armarMensajeWhatsApp`
+- API: PATCH cabecera/líneas, POST agregar/recalcular/aprobar/enviada/resultado/anular/duplicar, DELETE línea, GET mensaje/eventos
+- UI: `/cotizaciones/[id]` revisión operativa (semáforo, candidatos, alias, rail aprobar, WhatsApp, bitácora)
+
+**Verificación de criterios de aceptación (por código y typecheck):**
+
+| CA | Resultado |
+|----|-----------|
+| CA-001 Elegir candidato | `editarLinea` + `candidatoItemId` → `RESUELTA_MANUAL` |
+| CA-002 Asignar item | PATCH `itemId` |
+| CA-003/004 Cantidad | Validación unidad / SERIALIZADO |
+| CA-005 Quitar línea | Soft-delete `activa=false` + recálculo |
+| CA-006 Línea manual | POST lineas → `AGREGADA_MANUAL` |
+| CA-007 Sobrescritura | Permiso + motivo |
+| CA-008 Alias | Solo con `guardarAlias: true` |
+| CA-009 Totales | `TOTALES_DESFASADOS` si diverge |
+| CA-010 Lista | PATCH cabecera recalcula |
+| Aprobar / WhatsApp / enviada / resultado / anular / duplicar | Endpoints + UI |
+
+**Verificación requerida:** typecheck shared/database/api/web OK. QA manual tras `pnpm db:migrate` (migración `activa`).
 
 ## Objetivo
 
@@ -693,12 +720,14 @@ recibe 403 y la línea conserva el precio calculado por el motor.
 
 | Tema | Pregunta | Impacto si se decide mal |
 |------|----------|--------------------------|
-| Soft-delete de lineas quitadas | Si al quitar una línea del borrador se inactiva la fila o se elimina de la tabla de líneas manteniendo solo el evento | Dificultad para auditorías de edición vs simplicidad del modelo |
-| Tolerancia de `TOTALES_DESFASADOS` | Cuál es el delta exacto aceptable entre cliente y servidor además del redondeo configurado | Falsos positivos al editar en dispositivos lentos |
-| Solicitud en el duplicado | Si el duplicado debe clonar `solicitudId` o nacer sin solicitud | Trazabilidad del mensaje original vs claridad de origen |
+| Soft-delete de lineas quitadas | **Decisión MVP (2026-09-18, backend):** columna `activa` boolean (default `true`); quitar línea marca `activa = false` y deja el evento `LINEA_ELIMINADA`. No hay borrado físico de la fila. | — |
+| Tolerancia de `TOTALES_DESFASADOS` | **Decisión MVP (2026-09-18, backend):** delta absoluto ≤ `10^(-decimalesRedondeo)` de la configuración de cotización (acotado a escala 0–4). | Revisar si hace falta tolerancia fija a 4 decimales de importe |
+| Solicitud en el duplicado | **Decisión MVP (2026-09-18, backend):** el duplicado conserva `solicitudId` del origen como referencia informativa; no crea interpretación nueva. | — |
 | Edicion de textos de condiciones tras aprobar | Si se permiten correcciones ortográficas no comerciales después de aprobar | Documentos ya enviados vs flexibilidad operativa |
 | Vencimiento automatico | Quién ejecuta el paso a `VENCIDA` (job programado vs evaluación perezosa al leer) | Estados desactualizados en listados |
-| Ruta de eventos | Confirmar incorporación de `GET /api/cotizaciones/:id/eventos` al diseño maestro | Divergencia de contrato |
+| Ruta de eventos | **Decisión MVP (2026-09-18, backend):** expuesto `GET /api/cotizaciones/:id/eventos` (además del detalle). Pendiente reflejar en `docs/06-diseno-tecnico.md`. | — |
+| Ruta marcar enviada | Spec y diseño usan `POST .../enviada`. El brief de implementación mencionó `/enviar`. **Se implementó `/enviada`.** | Contrato de cliente web |
+| Endpoint recalcular | Spec no listaba `POST .../recalcular` en la tabla API; el brief sí. **Se implementó** para forzar recálculo con tasa/lista vigentes y evento `RECALCULADA`. | — |
 
 ## Decisiones MVP v1
 

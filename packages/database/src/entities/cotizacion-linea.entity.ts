@@ -103,4 +103,8 @@ export class CotizacionLinea extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   notas?: string | null;
+
+  /** Soft-delete en borrador: false = fuera del documento activo (spec 009). */
+  @Column({ type: 'boolean', default: true })
+  activa!: boolean;
 }

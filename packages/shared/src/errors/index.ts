@@ -17,3 +17,4 @@ export * from './importacion.errors';
 export * from './precios.errors';
 export * from './cliente.errors';
 export * from './solicitud.errors';
+export * from './cotizacion.errors';

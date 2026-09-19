@@ -11,6 +11,7 @@ import {
   Item,
   ItemAlias,
   ListaPrecio,
+  Moneda,
   Organizacion,
   PlantillaDocumento,
   PrecioItem,
@@ -26,7 +27,9 @@ import {
   ProveedorIaMock,
   ProveedorIaNone,
 } from '@cotizador/shared';
+import { ItemsModule } from '../items/items.module';
 import { CotizacionesController } from './cotizaciones.controller';
+import { CotizacionesRevisionService } from './cotizaciones-revision.service';
 import { ExtraccionIaService } from './extraccion-ia.service';
 import { PrecotizacionesController } from './precotizaciones.controller';
 import { PrecotizacionesService } from './precotizaciones.service';
@@ -40,6 +43,7 @@ function crearProveedorIa() {
 
 @Module({
   imports: [
+    ItemsModule,
     TypeOrmModule.forFeature([
       Solicitud,
       InterpretacionSolicitud,
@@ -60,11 +64,13 @@ function crearProveedorIa() {
       Organizacion,
       ConfiguracionCotizacion,
       PlantillaDocumento,
+      Moneda,
     ]),
   ],
   controllers: [PrecotizacionesController, CotizacionesController],
   providers: [
     PrecotizacionesService,
+    CotizacionesRevisionService,
     ExtraccionIaService,
     ResolucionCatalogoService,
     {
@@ -72,6 +78,6 @@ function crearProveedorIa() {
       useFactory: crearProveedorIa,
     },
   ],
-  exports: [PrecotizacionesService],
+  exports: [PrecotizacionesService, CotizacionesRevisionService],
 })
 export class PrecotizacionesModule {}

@@ -21,6 +21,13 @@ export function mapCotizacionDetalle(
   lineas: CotizacionLinea[],
   candidatosPorLinea: Map<string, CotizacionLineaCandidato[]>,
   itemsPorId: Map<string, Item>,
+  documentoGenerado?: {
+    id: string;
+    plantillaVersion: number;
+    hashContenido: string;
+    tamanoBytes: number;
+    createdAt: string;
+  } | null,
 ) {
   return {
     id: cotizacion.id,
@@ -71,6 +78,7 @@ export function mapCotizacionDetalle(
       : null,
     motivoAnulacion: cotizacion.motivoAnulacion ?? null,
     cotizacionOrigenId: cotizacion.cotizacionOrigenId ?? null,
+    documentoGenerado: documentoGenerado ?? null,
     createdAt: cotizacion.createdAt.toISOString(),
     updatedAt: cotizacion.updatedAt.toISOString(),
     lineas: lineas

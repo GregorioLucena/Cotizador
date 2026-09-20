@@ -124,3 +124,19 @@ export enum TipoEventoCotizacion {
   ANULADA = 'ANULADA',
   DUPLICADA = 'DUPLICADA',
 }
+
+export enum FormatoDocumento {
+  PDF = 'PDF',
+}
+
+export enum PropositoPrompt {
+  EXTRACCION_LINEAS = 'EXTRACCION_LINEAS',
+}
+
+export enum EstadoPromptVersion {
+  BORRADOR = 'BORRADOR',
+  PUBLICADA = 'PUBLICADA',
+  ACTIVA = 'ACTIVA',
+  ARCHIVADA = 'ARCHIVADA',
+}
+

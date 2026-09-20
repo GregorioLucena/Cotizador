@@ -33,6 +33,8 @@ export { Cotizacion } from './cotizacion.entity';
 export { CotizacionLinea } from './cotizacion-linea.entity';
 export { CotizacionLineaCandidato } from './cotizacion-linea-candidato.entity';
 export { CotizacionEvento } from './cotizacion-evento.entity';
+export { DocumentoGenerado } from './documento-generado.entity';
+export { PromptVersion } from './prompt-version.entity';
 
 import { Vertical } from './vertical.entity';
 import { Moneda } from './moneda.entity';
@@ -68,6 +70,8 @@ import { Cotizacion } from './cotizacion.entity';
 import { CotizacionLinea } from './cotizacion-linea.entity';
 import { CotizacionLineaCandidato } from './cotizacion-linea-candidato.entity';
 import { CotizacionEvento } from './cotizacion-evento.entity';
+import { DocumentoGenerado } from './documento-generado.entity';
+import { PromptVersion } from './prompt-version.entity';
 
 export const entities = [
   Vertical,
@@ -104,4 +108,6 @@ export const entities = [
   CotizacionLinea,
   CotizacionLineaCandidato,
   CotizacionEvento,
+  DocumentoGenerado,
+  PromptVersion,
 ];

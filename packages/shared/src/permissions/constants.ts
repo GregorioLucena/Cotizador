@@ -4,6 +4,8 @@ export const PERMISOS = {
   PLATAFORMA_ORGANIZACIONES_EDITAR: 'plataforma.organizaciones.editar',
   PLATAFORMA_USUARIOS_ADMINISTRAR: 'plataforma.usuarios.administrar',
   PLATAFORMA_METRICAS_VER: 'plataforma.metricas.ver',
+  PLATAFORMA_IA_VER: 'plataforma.ia.ver',
+  PLATAFORMA_IA_EDITAR: 'plataforma.ia.editar',
 
   CONFIGURACION_ORGANIZACION_VER: 'configuracion.organizacion.ver',
   CONFIGURACION_ORGANIZACION_ADMINISTRAR: 'configuracion.organizacion.administrar',
@@ -56,6 +58,9 @@ export const PERMISOS_DESCRIPCION: Record<PermisoCodigo, string> = {
   [PERMISOS.PLATAFORMA_USUARIOS_ADMINISTRAR]:
     'Crear el usuario administrador inicial de una organizacion',
   [PERMISOS.PLATAFORMA_METRICAS_VER]: 'Ver metricas agregadas de la plataforma',
+  [PERMISOS.PLATAFORMA_IA_VER]: 'Ver versiones de prompt y config de IA de plataforma',
+  [PERMISOS.PLATAFORMA_IA_EDITAR]:
+    'Editar, publicar, activar y evaluar politicas de extraccion IA',
   [PERMISOS.CONFIGURACION_ORGANIZACION_VER]: 'Ver la configuracion de la organizacion',
   [PERMISOS.CONFIGURACION_ORGANIZACION_ADMINISTRAR]:
     'Editar datos, monedas, umbrales y configuracion de cotizacion',

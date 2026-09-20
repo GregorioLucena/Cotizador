@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, ChevronRight, FileText, Store, Users } from 'lucide-react';
+import { Building2, ChevronRight, FileText, LayoutTemplate, Store, Users } from 'lucide-react';
 import { PERMISOS, hasPermission, type OrgContext } from '@cotizador/shared';
 import { ApiClientError, apiFetch, clearSession, getAccessToken } from '@/lib/api';
 import { AppShell, PageHeader, StatusBanner } from '@/components/shell/app-shell';
@@ -33,6 +33,13 @@ const ALL_LINKS = [
     desc: 'Vigencia, impuesto, redondeo y lista predeterminada',
     icon: FileText,
     permiso: PERMISOS.CONFIGURACION_ORGANIZACION_VER,
+  },
+  {
+    href: '/configuracion/plantilla',
+    title: 'Plantilla de documento',
+    desc: 'PDF, columnas, textos y mensaje de WhatsApp',
+    icon: LayoutTemplate,
+    permiso: PERMISOS.PLANTILLAS_VER,
   },
   {
     href: '/configuracion/usuarios',

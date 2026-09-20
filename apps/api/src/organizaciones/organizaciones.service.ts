@@ -33,7 +33,6 @@ import {
   crearOrganizacionSchema,
   editarOrganizacionSchema,
   crearUsuarioInicialSchema,
-  metricasQuerySchema,
   organizacionNoEncontrada,
   organizacionNombreDuplicado,
   organizacionIdentificacionDuplicada,
@@ -603,64 +602,6 @@ export class OrganizacionesService {
       perfiles: [perfilAdmin.nombre],
       sucursalIds: [sucursalPrincipal.id],
     };
-  }
-
-  async metricas(ctx: OrgContext, query: unknown) {
-    requirePlataformaContext(ctx);
-    requirePermission(ctx, PERMISOS.PLATAFORMA_METRICAS_VER);
-
-    const { desde, hasta } = metricasQuerySchema.parse(query);
-    const hastaFecha = hasta ?? new Date();
-    const desdeFecha =
-      desde ??
-      new Date(hastaFecha.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    // Periodo validado para uso futuro cuando existan cotizaciones.
-    void desdeFecha;
-    void hastaFecha;
-
-    const orgs = await this.organizacionRepo.find({
-      relations: { vertical: true },
-      order: { nombre: 'ASC' },
-    });
-
-    const resultado = await Promise.all(
-      orgs.map(async (org) => {
-        const usuariosActivos = await this.usuarioRepo.count({
-          where: {
-            organizacionId: org.id,
-            estadoRegistro: EstadoRegistro.ACTIVO,
-          },
-        });
-
-        const row = await this.usuarioRepo
-          .createQueryBuilder('u')
-          .select('MAX(u.ultimoAccesoAt)', 'ultimo')
-          .where('u.organizacionId = :organizacionId', {
-            organizacionId: org.id,
-          })
-          .getRawOne<{ ultimo: Date | string | null }>();
-
-        const ultimoAccesoAt = row?.ultimo
-          ? new Date(row.ultimo).toISOString()
-          : null;
-
-        return {
-          organizacionId: org.id,
-          nombre: org.nombre,
-          vertical: org.vertical.codigo,
-          estadoRegistro: org.estadoRegistro,
-          usuariosActivos,
-          itemsActivos: 0,
-          cotizacionesTotales: 0,
-          cotizacionesPeriodo: 0,
-          ultimaCotizacionAt: null as string | null,
-          ultimoAccesoAt,
-        };
-      }),
-    );
-
-    return resultado;
   }
 
   private parseCrearOrganizacion(body: unknown) {

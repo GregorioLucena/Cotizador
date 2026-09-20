@@ -72,6 +72,9 @@ Ver `decisions/0004-proveedor-de-ia-abstraido.md`.
 | `IA_TIMEOUT_MS` | Tiempo limite de la llamada al proveedor. Al expirar, la etapa falla de forma controlada y el borrador se crea vacio | `20000` |
 | `IA_MAX_CARACTERES` | Longitud maxima del texto del cliente que se envia al proveedor, para acotar costo y evitar abuso | `4000` |
 | `OPENAI_API_KEY` | Credencial del servicio remoto. Solo se define cuando `IA_PROVEEDOR` es `openai` | `sk-...` |
+| `IA_TEMPERATURA` | Temperatura del modelo (extraccion: preferir 0) | `0` |
+| `IA_COSTO_ENTRADA_POR_1K` | USD estimado por 1000 tokens de entrada | `0.00015` |
+| `IA_COSTO_SALIDA_POR_1K` | USD estimado por 1000 tokens de salida | `0.0006` |
 | `OLLAMA_BASE_URL` | Direccion del servidor local de modelos. Desde un contenedor se usa `host.docker.internal` | `http://localhost:11434` |
 
 ### Documentos y archivos

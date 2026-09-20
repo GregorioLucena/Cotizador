@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize } from 'node:path';
+import type { AlmacenamientoArchivos } from '@cotizador/shared';
 
 @Injectable()
-export class AlmacenamientoLocalService {
+export class AlmacenamientoLocalService implements AlmacenamientoArchivos {
   raiz(): string {
-    return process.env.UPLOAD_DIR
-      ? normalize(process.env.UPLOAD_DIR)
-      : join(process.cwd(), 'uploads');
+    if (process.env.ALMACENAMIENTO) {
+      return normalize(process.env.ALMACENAMIENTO);
+    }
+    if (process.env.UPLOAD_DIR) {
+      return normalize(process.env.UPLOAD_DIR);
+    }
+    return join(process.cwd(), 'storage');
   }
 
   private absoluto(pathRelativo: string): string {

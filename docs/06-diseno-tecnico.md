@@ -386,7 +386,8 @@ Indices: (`organizacionId`, `estado`, `createdAt`); (`organizacionId`, `clienteI
 
 **`cotizacion_lineas`**
 `id`, `organizacionId`, `cotizacionId`, `orden`, `textoSolicitado`, `itemId` (nulable),
-`descripcion` (congelada al aprobar), `sku` (congelado), `unidadMedidaId`, `cantidad numeric(18,4)`,
+`descripcion` (congelada al aprobar), `sku` (congelado), `atributosCongelados jsonb` (congelado
+al aprobar; el PDF lee de aquí), `marcaCongelada` (congelada), `unidadMedidaId`, `cantidad numeric(18,4)`,
 `precioLista numeric(18,4)`, `precioUnitario numeric(18,4)`, `reglaDescuentoId` (nulable),
 `descuentoMonto numeric(18,4)`, `descuentoPorcentaje numeric(9,4)`, `precioSobrescrito` (booleano),
 `motivoSobrescritura`, `subtotal`, `total`,
@@ -525,6 +526,7 @@ Solo se inserta. Nunca se actualiza ni se elimina.
 | Metodo | Ruta | Permiso |
 |--------|------|---------|
 | GET | `/api/plantillas-documento` | `plantillas.ver` |
+| GET | `/api/plantillas-documento/:id` | `plantillas.ver` |
 | PATCH | `/api/plantillas-documento/:id` | `plantillas.administrar` |
 | POST | `/api/plantillas-documento/:id/previsualizar` | `plantillas.administrar` |
 | GET | `/api/reportes/cotizaciones-resumen` | `reportes.ver` |

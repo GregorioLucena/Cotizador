@@ -322,6 +322,13 @@ aceptados cuando el sufijo ya es inequívoco (`LINEAS_`, `CANTIDAD_`, `SOBRESCRI
 | `TOTALES_DESFASADOS` | 422 | Los totales del cliente no coinciden con el cálculo del servidor. | Desfase más allá de la tolerancia de redondeo |
 | `FOLIO_NO_DISPONIBLE` | 422 | No se pudo asignar el folio de la cotización. | Fallo al bloquear o incrementar `secuencias_folio` |
 | `FOLIO_FORMATO_INVALIDO` | 422 | El formato de folio de la plantilla no es válido. | Plantilla con patrón de folio incorrecto |
+| `PERIODO_INVALIDO` | 400 | El periodo indicado no es válido. Revise las fechas desde y hasta. | `desde` posterior a `hasta` o fecha mal formada en reportes/historial |
+| `SUCURSAL_NO_ENCONTRADA` | 404 | No se encontró la sucursal indicada. | Filtro de historial con sucursal ajena o fuera de `ctx.sucursalIds` |
+
+Códigos de la spec 011 alineados a existentes: `ESTADO_INCOMPATIBLE` → `COTIZACION_ESTADO_INVALIDO` /
+`OPERACION_NO_PERMITIDA_EN_ESTADO`; `MOTIVO_OBLIGATORIO` → `MOTIVO_ANULACION_REQUERIDO` /
+`MOTIVO_PERDIDA_REQUERIDO`; `TRANSICION_INVALIDA` → `TRANSICION_ESTADO_INVALIDA`;
+`PERMISO_DENEGADO` → `SIN_PERMISO`.
 
 Alias históricos (no usar en código nuevo; se mantienen por compatibilidad documental):
 `COTIZACION_LINEA_NO_RESUELTA` → `LINEAS_SIN_RESOLVER` / `LINEAS_SIN_PRECIO`;
@@ -342,13 +349,38 @@ Alias históricos (no usar en código nuevo; se mantienen por compatibilidad doc
 |--------|------|--------------------|---------------|
 | `PLANTILLA_NO_ENCONTRADA` | 404 | No se encontró la plantilla de documento indicada. | Id inexistente o de otra organización |
 | `PLANTILLA_CONFIGURACION_INVALIDA` | 400 | La configuración de la plantilla no es válida. | Fallo del esquema Zod de plantilla |
+| `MARCADOR_NO_PERMITIDO` | 400 | El marcador indicado no está permitido. | Texto con `{{...}}` distinto de los cinco admitidos |
+| `COLUMNA_ATRIBUTO_SIN_CODIGO` | 400 | Una columna ATRIBUTO debe indicar atributoCodigo. | Columna ATRIBUTO sin código |
+| `COLUMNAS_INSUFICIENTES` | 400 | La plantilla debe tener al menos dos columnas con DESCRIPCION e importes visibles. | Menos de dos columnas o falta DESCRIPCION/importe |
+| `COLUMNAS_ORDEN_DUPLICADO` | 400 | Dos columnas visibles no pueden compartir el mismo orden. | Orden repetido entre visibles |
+| `COLOR_INVALIDO` | 400 | Los colores deben ser hexadecimales de seis dígitos (#RRGGBB). | Color fuera del patrón |
 | `PLANTILLA_INACTIVA` | 422 | La plantilla está inactiva. | Generar documento con plantilla inactiva |
-| `PLANTILLA_PREDETERMINADA_REQUERIDA` | 422 | Debe existir una plantilla predeterminada. | Quitar la única predeterminada sin reemplazo |
+| `PLANTILLA_PREDETERMINADA_REQUERIDA` | 422 | Debe existir una plantilla predeterminada. | Organización sin plantilla activa predeterminada |
+| `PLANTILLA_PREDETERMINADA_NO_INACTIVABLE` | 422 | No se puede inactivar la plantilla predeterminada. | Intento de inactivar la única predeterminada |
+| `COTIZACION_NO_APROBADA` | 422 | Solo se genera documento de cotizaciones aprobadas o posteriores no anuladas. | Intento de PDF/mensaje sobre `BORRADOR` o `ANULADA` |
+| `DOCUMENTO_YA_GENERADO` | 409 | Ya existe un PDF generado para esta cotización. Use la descarga. | Segundo `POST` de generación |
+| `DOCUMENTO_NO_ENCONTRADO` | 404 | Aún no hay un documento generado para esta cotización. | `GET` sin documento previo |
+| `DOCUMENTO_ARCHIVO_AUSENTE` | 502 | El registro del documento existe pero el archivo no está en el almacenamiento. | Fila sin archivo físico |
 | `PDF_GENERACION_FALLIDA` | 502 | No se pudo generar el PDF. Intente de nuevo. | Fallo del adaptador `GeneradorPdf` / Chromium |
 | `PDF_TIMEOUT` | 502 | La generación del PDF agotó el tiempo de espera. | Superó `PDF_TIMEOUT_MS` |
-| `DOCUMENTO_NO_DISPONIBLE` | 404 | El documento aún no está disponible. | Descarga antes de generar, archivo ausente en almacenamiento o hash no encontrado |
-| `DOCUMENTO_COTIZACION_NO_APROBADA` | 422 | Solo se genera documento de cotizaciones aprobadas o posteriores. | Intento de PDF sobre `BORRADOR` |
 | `DOCUMENTO_ALMACENAMIENTO_NO_DISPONIBLE` | 502 | No se pudo guardar o leer el archivo del documento. | Fallo del adaptador de almacenamiento |
+
+Códigos históricos alineados a la spec 010: `DOCUMENTO_COTIZACION_NO_APROBADA` → `COTIZACION_NO_APROBADA`;
+`DOCUMENTO_NO_DISPONIBLE` se desdobla en `DOCUMENTO_NO_ENCONTRADO` / `DOCUMENTO_ARCHIVO_AUSENTE`.
+
+---
+
+## Laboratorio de prompts de plataforma (`PROMPT_*`)
+
+| Código | HTTP | Mensaje al usuario | Cuando ocurre |
+|--------|------|--------------------|---------------|
+| `PROMPT_NO_ENCONTRADO` | 404 | No se encontró la versión de prompt indicada. | Id inexistente |
+| `PROMPT_SOLO_BORRADOR_EDITABLE` | 422 | Solo se puede editar una versión en borrador. | PATCH sobre publicada/activa |
+| `PROMPT_ESTADO_INVALIDO` | 422 | La operación no aplica al estado actual de la versión. | Publicar/activar fuera de transición |
+| `PROMPT_CODIGO_DUPLICADO` | 409 | Ya existe una versión con ese código. | Código repetido |
+| `PROMPT_POLITICA_INVALIDA` | 400 | La política de extracción no es válida. | Fallo Zod de política |
+| `PROMPT_EVALUACION_SIN_MUESTRAS` | 422 | No hay interpretaciones históricas suficientes para evaluar. | Evaluar sin datos |
+| `OPENAI_API_KEY_AUSENTE` | 502 | Falta la clave de OpenAI en la configuración de la plataforma. | `IA_PROVEEDOR=openai` sin key (diagnóstico / factory) |
 
 ---
 

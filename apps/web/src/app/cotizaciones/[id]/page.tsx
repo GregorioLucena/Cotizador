@@ -15,6 +15,8 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  Download,
+  FileDown,
   Plus,
   RefreshCw,
   Search,
@@ -594,6 +596,43 @@ export default function CotizacionDetallePage() {
     }
   }
 
+  async function generarPdf() {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch(`/cotizaciones/${id}/documento`, { method: 'POST' });
+      const detalle = await apiFetch<PrecotizacionResultado | CotizacionDetalle>(
+        `/cotizaciones/${id}`,
+      );
+      aplicarDetalle(detalle);
+      setAviso('PDF generado. Ya puede descargarlo.');
+    } catch (err) {
+      setError(mensajeErrorApi(err, 'No se pudo generar el PDF.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function descargarPdf() {
+    if (!cotizacion) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const blob = await apiFetch<Blob>(`/cotizaciones/${id}/documento`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cotizacion.folio}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setAviso('Descarga iniciada.');
+    } catch (err) {
+      setError(mensajeErrorApi(err, 'No se pudo descargar el PDF.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function marcarEnviada() {
     const ok = window.confirm(
       '¿Marcar como enviada? Confirma que ya entregaste el mensaje al cliente.',
@@ -1128,6 +1167,32 @@ export default function CotizacionDetallePage() {
                   Copiar para WhatsApp
                 </Button>
               )}
+              {puedeDocumento &&
+                puedeCopiarWhatsApp(cotizacion.estado) &&
+                !cotizacion.documentoGenerado && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => void generarPdf()}
+                    disabled={busy}
+                  >
+                    <FileDown className="size-4" aria-hidden />
+                    Generar PDF
+                  </Button>
+                )}
+              {cotizacion.documentoGenerado &&
+                hasPermission(
+                  contexto!,
+                  PERMISOS.COTIZACIONES_VER,
+                ) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => void descargarPdf()}
+                    disabled={busy}
+                  >
+                    <Download className="size-4" aria-hidden />
+                    Descargar PDF
+                  </Button>
+                )}
               {puedeResultado && puedeMarcarEnviada(cotizacion.estado) && (
                 <Button
                   variant="secondary"

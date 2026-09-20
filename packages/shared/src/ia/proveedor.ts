@@ -9,6 +9,10 @@ export type EntradaExtraccion = {
   textoNormalizado: string;
   unidadesValidas: string[];
   limiteLineas: number;
+  /** Mensajes ya compuestos; requerido por adaptadores remotos (OpenAI). */
+  mensajes?: Array<{ role: 'system' | 'user'; content: string }>;
+  /** Codigo de politica activa; el adaptador lo refleja en versionPrompt si aplica. */
+  versionPromptOverride?: string;
 };
 
 export interface ProveedorIa {

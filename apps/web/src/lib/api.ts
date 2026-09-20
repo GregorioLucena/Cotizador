@@ -68,11 +68,15 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
     credentials: 'include',
   });
 
-  // Descarga binaria (plantilla CSV)
+  // Descarga binaria (plantilla CSV o PDF)
   const contentType = response.headers.get('content-type') ?? '';
   if (response.ok && contentType.includes('text/csv')) {
     const text = await response.text();
     return text as T;
+  }
+  if (response.ok && contentType.includes('application/pdf')) {
+    const blob = await response.blob();
+    return blob as T;
   }
 
   const json = (await response.json().catch(() => null)) as

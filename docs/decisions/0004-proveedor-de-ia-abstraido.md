@@ -2,7 +2,8 @@
 
 ## Estado
 
-Aceptada — 2026-09-17
+Aceptada — 2026-09-17  
+Enmienda — 2026-09-19 (laboratorio de prompts en plataforma; ver spec 012)
 
 ## Contexto
 
@@ -79,11 +80,27 @@ export type ResultadoExtraccion = {
 8. La configuracion del proveedor es de plataforma, no de organizacion, en el MVP. La organizacion
    solo puede activar o desactivar el uso de IA y ajustar los umbrales de confianza.
 
-### Prompt como artefacto versionado
+### Prompt como artefacto versionado (enmienda 2026-09-19; vertical 2026-09-19)
 
-El prompt vive en un archivo del repositorio, no en base de datos ni incrustado en una cadena dentro
-de un servicio. Se versiona con la convencion `extraccion-lineas.v1.md`. Cada version documenta que
-cambio y por que.
+El prompt de extraccion se compone en **tres capas**:
+
+1. **Contrato** (inmutable, en codigo del repositorio): schema Zod, JSON Schema derivado y
+   prohibiciones (sin precios, ids, SKU ni totales). Se identifica como `contrato-extraccion.vN`.
+   No es editable desde la interfaz.
+2. **Politica** (versionada en base de datos, ambito plataforma, **por vertical**): blacklist,
+   reglas de cantidad, few-shots e instrucciones extra. Cada fila en `prompt_versiones` tiene
+   `verticalCodigo` (p. ej. `FERRETERIA`, `AUTOMOTRIZ`, `GENERICO`) y un `codigo`
+   (`extraccion-lineas.FERRETERIA.v1`). Como maximo **una `ACTIVA` por (`proposito`, `verticalCodigo`)**.
+   Al extraer se usa la ACTIVA de la vertical de la organizacion; si no hay, la de `GENERICO`;
+   si tampoco, la politica embebida en codigo.
+3. **Contexto** (runtime): texto normalizado, unidades validas, limite de lineas y nombre de
+   vertical. No incluye catalogo ni precios.
+
+Cambiar la politica activa **no exige redeploy**. No hay politica por organizacion en el MVP:
+la vertical es la unidad de configuracion del rubro (alineado a “ninguna regla ramifica por
+vertical en codigo”).
+
+Detalle operativo: `docs/specs/012-adaptador-openai-y-laboratorio-prompts.md`.
 
 ## Alternativas descartadas
 
@@ -124,4 +141,5 @@ operador queda registrada.
 ## Referencias
 
 - `docs/specs/008-precotizacion-ia.md`
+- `docs/specs/012-adaptador-openai-y-laboratorio-prompts.md`
 - `decisions/0003-pipeline-precotizacion.md`

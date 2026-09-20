@@ -295,26 +295,44 @@ se registran en la interpretación sin abortar el alta del borrador.
 
 ---
 
-## Cotización (`COTIZACION_*`, `FOLIO_*`)
+## Cotización (`COTIZACION_*`, `LINEAS_*`, `CANTIDAD_*`, `FOLIO_*`, …)
+
+Códigos de `docs/specs/009-revision-aprobacion.md` (y precotización). Prefijos mixtos
+aceptados cuando el sufijo ya es inequívoco (`LINEAS_`, `CANTIDAD_`, `SOBRESCRITURA_`).
 
 | Código | HTTP | Mensaje al usuario | Cuando ocurre |
 |--------|------|--------------------|---------------|
 | `COTIZACION_NO_ENCONTRADA` | 404 | No se encontró la cotización indicada. | Id inexistente o de otra organización |
+| `COTIZACION_ESTADO_INVALIDO` | 422 | La operación no aplica al estado actual de la cotización. | Operación incompatible con el estado |
+| `TRANSICION_ESTADO_INVALIDA` | 422 | Esa transición de estado no está permitida. | Fuera de la tabla de transiciones |
 | `COTIZACION_SIN_LINEAS` | 422 | No se puede aprobar una cotización sin líneas. | Aprobar borrador vacío |
-| `COTIZACION_LINEA_NO_RESUELTA` | 422 | Hay líneas sin item o sin precio; resuélvalas antes de aprobar. | Línea `NO_ENCONTRADA` o sin precio en la lista |
-| `COTIZACION_LINEA_NO_ENCONTRADA` | 404 | No se encontró la línea indicada. | Línea inexistente o de otra cotización/organización |
-| `COTIZACION_NO_EDITABLE` | 422 | Solo se pueden editar cotizaciones en borrador. | Editar líneas fuera de `BORRADOR` |
-| `COTIZACION_TRANSICION_INVALIDA` | 422 | Esa transición de estado no está permitida. | Fuera de la tabla del glosario |
-| `COTIZACION_ANULACION_SIN_MOTIVO` | 400 | Indique un motivo de anulación de al menos diez caracteres. | Motivo ausente o demasiado corto |
-| `COTIZACION_YA_ANULADA` | 422 | La cotización ya está anulada. | Reanular |
-| `COTIZACION_VIGENCIA_VENCIDA` | 422 | La vigencia de la cotización expiró. | Operación incompatible con `VENCIDA` (salvo las permitidas) |
-| `COTIZACION_PRECIO_SOBRESCRITURA_SIN_PERMISO` | 403 | No tiene permiso para sobrescribir el precio de una línea. | Falta `cotizaciones.sobrescribir_precio` |
-| `COTIZACION_PRECIO_SOBRESCRITURA_SIN_MOTIVO` | 400 | Indique el motivo de la sobrescritura de precio. | Sobrescritura sin motivo |
-| `COTIZACION_CANTIDAD_INVALIDA` | 400 | La cantidad de la línea no es válida. | Cantidad ≤ 0, o decimal cuando la unidad no lo permite |
-| `COTIZACION_SERIALIZADO_CANTIDAD_INVALIDA` | 422 | Un item serializado solo admite cantidad 1. | Cantidad distinta de 1 en `SERIALIZADO` |
-| `COTIZACION_ITEM_INACTIVO` | 422 | No se puede usar un item inactivo en el borrador. | Agregar item inactivo |
+| `LINEAS_SIN_RESOLVER` | 422 | Hay líneas sin resolver o sin item asignado. | Línea `NO_ENCONTRADA` o sin `itemId` |
+| `LINEAS_SIN_PRECIO` | 422 | Hay líneas sin precio cotizable. | Sin precio de lista ni sobrescritura válida |
+| `LINEA_NO_ENCONTRADA` | 404 | No se encontró la línea indicada. | Línea inexistente, inactiva o de otra cotización |
+| `BORRADOR_NO_EDITABLE` | 422 | Solo se pueden editar cotizaciones en borrador. | Editar cabecera/líneas fuera de `BORRADOR` |
+| `ITEM_NO_COTIZABLE` | 422 | No se puede usar un item inactivo en el borrador. | Asignar o agregar item inactivo |
+| `CANTIDAD_INVALIDA` | 400 | La cantidad de la línea no es válida. | Cantidad ≤ 0 |
+| `CANTIDAD_NO_ENTERA` | 422 | La unidad no admite cantidades decimales. | Decimal con `permiteDecimales` falso |
+| `CANTIDAD_INCOMPATIBLE_CON_UNIDAD` | 422 | La cantidad actual no es compatible con la unidad elegida. | Fracción al cambiar a unidad entera |
+| `SERIALIZADO_CANTIDAD_INVALIDA` | 422 | Un item serializado solo admite cantidad 1. | Cantidad distinta de 1 en `SERIALIZADO` |
+| `SOBRESCRITURA_NO_PERMITIDA` | 403/422 | No tiene permiso / la organización no permite sobrescribir precios. | Falta permiso o `permiteSobrescribirPrecio` falso |
+| `MOTIVO_SOBRESCRITURA_REQUERIDO` | 400 | Indique el motivo de la sobrescritura de precio (mínimo 10 caracteres). | Sobrescritura sin motivo válido |
+| `MOTIVO_ANULACION_REQUERIDO` | 400 | Indique un motivo de anulación de al menos diez caracteres. | Motivo ausente o demasiado corto |
+| `MOTIVO_PERDIDA_REQUERIDO` | 400 | Indique un motivo de pérdida de al menos diez caracteres. | Perdida sin motivo válido |
+| `TOTALES_DESFASADOS` | 422 | Los totales del cliente no coinciden con el cálculo del servidor. | Desfase más allá de la tolerancia de redondeo |
 | `FOLIO_NO_DISPONIBLE` | 422 | No se pudo asignar el folio de la cotización. | Fallo al bloquear o incrementar `secuencias_folio` |
 | `FOLIO_FORMATO_INVALIDO` | 422 | El formato de folio de la plantilla no es válido. | Plantilla con patrón de folio incorrecto |
+
+Alias históricos (no usar en código nuevo; se mantienen por compatibilidad documental):
+`COTIZACION_LINEA_NO_RESUELTA` → `LINEAS_SIN_RESOLVER` / `LINEAS_SIN_PRECIO`;
+`COTIZACION_LINEA_NO_ENCONTRADA` → `LINEA_NO_ENCONTRADA`;
+`COTIZACION_NO_EDITABLE` → `BORRADOR_NO_EDITABLE`;
+`COTIZACION_TRANSICION_INVALIDA` → `TRANSICION_ESTADO_INVALIDA`;
+`COTIZACION_ANULACION_SIN_MOTIVO` → `MOTIVO_ANULACION_REQUERIDO`;
+`COTIZACION_PRECIO_SOBRESCRITURA_SIN_PERMISO` / `_SIN_MOTIVO` → `SOBRESCRITURA_NO_PERMITIDA` / `MOTIVO_SOBRESCRITURA_REQUERIDO`;
+`COTIZACION_CANTIDAD_INVALIDA` → `CANTIDAD_INVALIDA` / `CANTIDAD_NO_ENTERA`;
+`COTIZACION_SERIALIZADO_CANTIDAD_INVALIDA` → `SERIALIZADO_CANTIDAD_INVALIDA`;
+`COTIZACION_ITEM_INACTIVO` → `ITEM_NO_COTIZABLE`.
 
 ---
 

@@ -94,19 +94,10 @@ export function sucursalNoAccesible(): BusinessRuleError {
   );
 }
 
-export function cotizacionNoEncontrada(): NotFoundError {
-  return new NotFoundError(
-    'COTIZACION_NO_ENCONTRADA',
-    'No se encontró la cotización indicada.',
-  );
-}
-
-export function folioNoDisponible(): BusinessRuleError {
-  return new BusinessRuleError(
-    'FOLIO_NO_DISPONIBLE',
-    'No se pudo asignar el folio de la cotización.',
-  );
-}
+export {
+  cotizacionNoEncontrada,
+  folioNoDisponible,
+} from './cotizacion.errors';
 
 /** Códigos de interpretación fallida (no abortan el HTTP 201 del pipeline). */
 export const CODIGOS_IA = {

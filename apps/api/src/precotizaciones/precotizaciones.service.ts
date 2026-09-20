@@ -503,6 +503,7 @@ export class PrecotizacionesService {
             ? (lr.resolucion.origenMatch as OrigenMatch)
             : null,
           notas: lr.notas ?? null,
+          activa: true,
           createdById: ctx.usuarioId,
           updatedById: ctx.usuarioId,
         });
@@ -769,7 +770,11 @@ export class PrecotizacionesService {
 
   private async cargarDetalle(orgId: string, cotizacion: Cotizacion) {
     const lineas = await this.lineaRepo.find({
-      where: { cotizacionId: cotizacion.id, organizacionId: orgId },
+      where: {
+        cotizacionId: cotizacion.id,
+        organizacionId: orgId,
+        activa: true,
+      },
       order: { orden: 'ASC' },
     });
     const lineaIds = lineas.map((l) => l.id);

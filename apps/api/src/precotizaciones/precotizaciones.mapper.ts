@@ -52,9 +52,29 @@ export function mapCotizacionDetalle(
       cotizacion.porcentajeImpuestoAplicado ?? '0',
     ),
     observaciones: cotizacion.observaciones ?? null,
+    textoCondiciones: cotizacion.textoCondiciones ?? null,
+    textoPie: cotizacion.textoPie ?? null,
+    aprobadaPorId: cotizacion.aprobadaPorId ?? null,
+    aprobadaAt: cotizacion.aprobadaAt
+      ? cotizacion.aprobadaAt.toISOString()
+      : null,
+    enviadaAt: cotizacion.enviadaAt
+      ? cotizacion.enviadaAt.toISOString()
+      : null,
+    resultadoAt: cotizacion.resultadoAt
+      ? cotizacion.resultadoAt.toISOString()
+      : null,
+    motivoPerdida: cotizacion.motivoPerdida ?? null,
+    anulado: cotizacion.anulado,
+    anuladoAt: cotizacion.anuladoAt
+      ? cotizacion.anuladoAt.toISOString()
+      : null,
+    motivoAnulacion: cotizacion.motivoAnulacion ?? null,
+    cotizacionOrigenId: cotizacion.cotizacionOrigenId ?? null,
     createdAt: cotizacion.createdAt.toISOString(),
     updatedAt: cotizacion.updatedAt.toISOString(),
     lineas: lineas
+      .filter((l) => l.activa !== false)
       .slice()
       .sort((a, b) => a.orden - b.orden)
       .map((l) => {
@@ -74,6 +94,13 @@ export function mapCotizacionDetalle(
           precioUnitario:
             l.precioUnitario != null ? formatImporte(l.precioUnitario) : null,
           descuentoMonto: formatImporte(l.descuentoMonto ?? '0'),
+          descuentoPorcentaje:
+            l.descuentoPorcentaje != null
+              ? formatImporte(l.descuentoPorcentaje)
+              : null,
+          precioSobrescrito: l.precioSobrescrito,
+          motivoSobrescritura: l.motivoSobrescritura ?? null,
+          reglaDescuentoId: l.reglaDescuentoId ?? null,
           subtotal: l.subtotal != null ? formatImporte(l.subtotal) : null,
           total: l.total != null ? formatImporte(l.total) : null,
           estadoResolucion: l.estadoResolucion,

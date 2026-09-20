@@ -18,3 +18,6 @@ export * from './precios.errors';
 export * from './cliente.errors';
 export * from './solicitud.errors';
 export * from './cotizacion.errors';
+export * from './plantilla.errors';
+export * from './reportes.errors';
+export * from './prompt.errors';

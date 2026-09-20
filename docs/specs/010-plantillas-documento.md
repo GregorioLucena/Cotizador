@@ -2,7 +2,7 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+Implementada — cerrada (2026-09-19)
 
 ## Objetivo
 
@@ -672,13 +672,14 @@ existencia.
 
 ## Preguntas abiertas
 
-| Tema | Pregunta | Impacto si se decide mal |
-|------|----------|--------------------------|
-| Asimetria mensaje vs PDF | Si el texto de WhatsApp debe congelarse también al generar el PDF | Un mensaje recopiado después de editar la plantilla puede diferir del PDF emitido |
-| Multiples plantillas | Si el MVP debe bloquear la creación de plantillas adicionales aunque el modelo las admita | Confusión sobre cuál se usa al generar |
-| Regeneracion de emergencia | Si un administrador de plataforma puede forzar regeneración cuando el archivo falta en almacenamiento | Pérdida de evidencia vs. imposibilidad de reentregar |
-| Precarga de identidad | Si al editar la plantilla los campos vacíos se rellenan siempre desde `organizaciones` o solo al provisionar | Divergencia entre ficha de organización y encabezado del documento |
-| Nombre del archivo | Referencia en spec 002 a `010-plantilla-documento.md` (singular) vs este archivo `010-plantillas-documento.md` | Enlaces rotos entre documentos |
+| Tema | Pregunta | Impacto si se decide mal | Nota 2026-09-19 |
+|------|----------|--------------------------|-----------------|
+| Asimetria mensaje vs PDF | Si el texto de WhatsApp debe congelarse también al generar el PDF | Un mensaje recopiado después de editar la plantilla puede diferir del PDF emitido | MVP: el mensaje refleja la plantilla vigente; el PDF no cambia. Sin congelar texto. |
+| Multiples plantillas | Si el MVP debe bloquear la creación de plantillas adicionales aunque el modelo las admita | Confusión sobre cuál se usa al generar | MVP: no hay endpoint de creación; solo editar la predeterminada. |
+| Regeneracion de emergencia | Si un administrador de plataforma puede forzar regeneración cuando el archivo falta en almacenamiento | Pérdida de evidencia vs. imposibilidad de reentregar | MVP: `DOCUMENTO_ARCHIVO_AUSENTE` sin regeneración silenciosa. |
+| Precarga de identidad | Si al editar la plantilla los campos vacíos se rellenan siempre desde `organizaciones` o solo al provisionar | Divergencia entre ficha de organización y encabezado del documento | Solo al provisionar; el logo vivo se lee de `organizaciones.logoUrl` al renderizar si la plantilla no fija `logoUrl`. |
+| Nombre del archivo | Referencia en spec 002 a `010-plantilla-documento.md` (singular) vs este archivo `010-plantillas-documento.md` | Enlaces rotos entre documentos | Corregir enlaces en spec 002 cuando se toque ese doc. |
+| GeneradorPdf en local | ¿Mock determinista vs Chromium/puppeteer en desarrollo? | Preview HTML completa; PDF mock no refleja tipografía real | MVP: `GeneradorPdfMock` por defecto (bytes PDF mínimos válidos). Interfaz lista para adaptador Chromium. |
 
 ## Decisiones MVP v1
 
@@ -698,3 +699,40 @@ existencia.
 12. Ningún importe del documento proviene de un modelo de lenguaje; solo de la cotización aprobada.
 13. Los importes viajan como cadenas con 4 decimales.
 14. Ninguna regla ramifica por vertical: el rubro se cubre con columnas `ATRIBUTO` y datos semilla.
+
+## Cierre de implementación
+
+**Fecha:** 2026-09-19
+
+### Entregables
+
+| Área | Archivos / rutas |
+|------|------------------|
+| Shared | `schemas/plantilla-documento.schemas.ts`, `errors/plantilla.errors.ts`, `documentos/*` (renderizador, GeneradorPdf, almacenamiento) |
+| Database | Entidad `DocumentoGenerado`, migración `1783000000000-DocumentosGenerados`, columnas `atributosCongelados` / `marcaCongelada` en líneas |
+| API | Módulo `plantillas`; endpoints plantillas + `POST/GET …/cotizaciones/:id/documento`; mensaje vía renderizador |
+| Web | `/configuracion/plantilla`; botones Generar/Descargar PDF en detalle de cotización |
+
+### Verificación de criterios de aceptación
+
+| CA | Resultado |
+|----|-----------|
+| CA-001 Lectura predeterminada | Implementado (`GET /api/plantillas-documento`) |
+| CA-002/003 Versionado | Incrementa solo si `canonicalJson` cambia |
+| CA-004/005 Marcador y ATRIBUTO | Zod + errores específicos |
+| CA-006 Escape HTML | `escapeHtml` en renderizador; prueba unitaria |
+| CA-007 Atributo congelado | Congelado al aprobar; PDF lee `atributosCongelados` |
+| CA-008/009 Vista previa | Mismo `renderizarDocumento`; no persiste |
+| CA-010–013 Generación/reentrega | Hash SHA-256, evento, 409, sin re-render en GET |
+| CA-014/015 Timeout/fallo | Mapeo a `PDF_TIMEOUT` / `PDF_GENERACION_FALLIDA` |
+| CA-016/017 Logo | Advertencia `LOGO_AUSENTE`; límites en spec 002 |
+| CA-018 WhatsApp | Mismo motor; `maximoLineasDetalle` |
+| CA-019–022 Permisos/estados/aislamiento | `requirePermission` + 404 por org |
+
+### Cómo generar PDF en local
+
+1. Migrar: `pnpm --filter @cotizador/database db:migration:run`
+2. Arrancar API con `ALMACENAMIENTO` (o default `storage/`) y opcional `PDF_TIMEOUT_MS=30000`
+3. Aprobar una cotización → `POST /api/cotizaciones/:id/documento` → archivo en `storage/documentos/{orgId}/{cotizacionId}.pdf`
+4. Reentrega: `GET /api/cotizaciones/:id/documento`
+5. El adaptador por defecto es `GeneradorPdfMock` (PDF mínimo válido). La maquetación real se verifica con vista previa HTML.

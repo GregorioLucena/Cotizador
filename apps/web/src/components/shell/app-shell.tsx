@@ -10,7 +10,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   Building2,
+  ChartColumn,
   ChevronRight,
+  ClipboardList,
   Home,
   LogOut,
   Menu,
@@ -34,6 +36,18 @@ const NAV = {
       label: 'Cotizar',
       desc: 'Pegar WhatsApp y generar borrador',
       icon: MessageSquareText,
+    },
+    {
+      href: '/historial',
+      label: 'Historial',
+      desc: 'Cotizaciones y bitácora',
+      icon: ClipboardList,
+    },
+    {
+      href: '/reportes',
+      label: 'Métricas',
+      desc: 'Indicadores del piloto',
+      icon: ChartColumn,
     },
     {
       href: '/catalogo',
@@ -68,13 +82,30 @@ const NAV = {
       desc: 'Alta y listado de plataforma',
       icon: Building2,
     },
+    {
+      href: '/plataforma/metricas',
+      label: 'Métricas',
+      desc: 'Agregados de plataforma',
+      icon: ChartColumn,
+    },
+    {
+      href: '/plataforma/ia',
+      label: 'Laboratorio IA',
+      desc: 'Prompts y proveedor de extracción',
+      icon: MessageSquareText,
+    },
   ],
 } as const;
 
 function isActive(pathname: string, href: string) {
   if (href === '/panel') return pathname === '/panel';
   if (href === '/cotizar') {
-    return pathname === '/cotizar' || pathname.startsWith('/cotizaciones');
+    return pathname === '/cotizar';
+  }
+  if (href === '/historial') {
+    return (
+      pathname === '/historial' || pathname.startsWith('/cotizaciones/')
+    );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

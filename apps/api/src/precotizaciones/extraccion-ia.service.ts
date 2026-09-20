@@ -7,9 +7,11 @@ import {
   type ProveedorIa,
   PROVEEDOR_IA_TOKEN,
   LIMITE_LINEAS_EXTRACCION,
+  componerPromptExtraccion,
   resultadoExtraccionSchema,
 } from '@cotizador/shared';
 import { ZodError } from 'zod';
+import { PromptVersionesService } from '../ia/prompt-versiones.service';
 
 const DEFAULT_TIMEOUT_MS = 20_000;
 const RETRY_WAIT_MS = 300;
@@ -35,6 +37,7 @@ export class ExtraccionIaService {
   constructor(
     @Inject(PROVEEDOR_IA_TOKEN)
     private readonly proveedor: ProveedorIa,
+    private readonly prompts: PromptVersionesService,
   ) {}
 
   async extraer(opts: {
@@ -42,12 +45,17 @@ export class ExtraccionIaService {
     unidadesValidas: string[];
     usaIa: boolean;
     timeoutMs?: number;
+    nombreVertical?: string | null;
+    verticalCodigo?: string | null;
   }): Promise<ResultadoEtapaExtraccion> {
     const inicio = Date.now();
+    const activa = await this.prompts.obtenerPoliticaActiva(
+      opts.verticalCodigo,
+    );
     const baseMeta = {
       proveedor: this.proveedor.nombre,
       modelo: this.proveedor.modelo,
-      versionPrompt: this.proveedor.versionPrompt,
+      versionPrompt: activa.codigo,
     };
 
     if (!opts.usaIa || this.proveedor.nombre === 'none') {
@@ -63,16 +71,29 @@ export class ExtraccionIaService {
       };
     }
 
-    const entrada: EntradaExtraccion = {
+    const entradaBase: EntradaExtraccion = {
       textoNormalizado: opts.textoNormalizado,
       unidadesValidas: opts.unidadesValidas,
       limiteLineas: LIMITE_LINEAS_EXTRACCION,
     };
-    const timeoutMs = opts.timeoutMs ?? Number(process.env.IA_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
+    const compuesto = componerPromptExtraccion({
+      politica: activa.politica,
+      codigoVersion: activa.codigo,
+      entrada: entradaBase,
+      nombreVertical: opts.nombreVertical,
+    });
+    const entrada: EntradaExtraccion = {
+      ...entradaBase,
+      mensajes: compuesto.mensajes,
+      versionPromptOverride: compuesto.versionPrompt,
+    };
+    const advertenciasBase = activa.ausente ? ['PROMPT_ACTIVO_AUSENTE'] : [];
+    const timeoutMs =
+      opts.timeoutMs ?? Number(process.env.IA_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
 
     let ultimoError: unknown = null;
     let intento = 0;
-    const maxIntentos = 2; // original + 1 reintento
+    const maxIntentos = 2;
 
     while (intento < maxIntentos) {
       intento += 1;
@@ -83,7 +104,10 @@ export class ExtraccionIaService {
         );
         try {
           const validado = resultadoExtraccionSchema.parse(crudo);
-          const advertencias = [...validado.advertencias];
+          const advertencias = [
+            ...advertenciasBase,
+            ...validado.advertencias,
+          ];
           if (validado.lineas.length === 0) {
             advertencias.push(CODIGOS_IA.SIN_LINEAS);
           }
@@ -104,7 +128,6 @@ export class ExtraccionIaService {
             resultadoCrudo: crudo,
           };
         } catch (zerr) {
-          // Validación Zod: no reintentar
           const detalle =
             zerr instanceof ZodError
               ? zerr.issues.map((i) => i.message).join('; ')
@@ -113,7 +136,7 @@ export class ExtraccionIaService {
             ...baseMeta,
             exito: false,
             lineas: [],
-            advertencias: [CODIGOS_IA.SALIDA_INVALIDA],
+            advertencias: [...advertenciasBase, CODIGOS_IA.SALIDA_INVALIDA],
             latenciaMs: Date.now() - inicio,
             errorCodigo: CODIGOS_IA.SALIDA_INVALIDA,
             errorDetalle: detalle.slice(0, 500),
@@ -133,6 +156,7 @@ export class ExtraccionIaService {
             inicio,
             CODIGOS_IA.TIMEOUT,
             String(err),
+            advertenciasBase,
           );
         }
         if (
@@ -142,7 +166,13 @@ export class ExtraccionIaService {
           await sleep(RETRY_WAIT_MS);
           continue;
         }
-        return fallido(baseMeta, inicio, clasificado, String(err));
+        return fallido(
+          baseMeta,
+          inicio,
+          clasificado,
+          String(err),
+          advertenciasBase,
+        );
       }
     }
 
@@ -151,6 +181,7 @@ export class ExtraccionIaService {
       inicio,
       CODIGOS_IA.ERROR_INTERNO,
       String(ultimoError ?? 'desconocido'),
+      advertenciasBase,
     );
   }
 
@@ -164,7 +195,10 @@ export class ExtraccionIaService {
         fn(),
         new Promise<T>((_, reject) => {
           timer = setTimeout(
-            () => reject(Object.assign(new Error('IA_TIMEOUT'), { code: 'IA_TIMEOUT' })),
+            () =>
+              reject(
+                Object.assign(new Error('IA_TIMEOUT'), { code: 'IA_TIMEOUT' }),
+              ),
             timeoutMs,
           );
         }),
@@ -180,6 +214,9 @@ function clasificarErrorIa(err: unknown): CodigoIa {
     const e = err as { code?: string; status?: number; message?: string };
     if (e.code === 'IA_TIMEOUT' || e.message === 'IA_TIMEOUT') {
       return CODIGOS_IA.TIMEOUT;
+    }
+    if (e.code === 'IA_PROVEEDOR_NO_DISPONIBLE') {
+      return CODIGOS_IA.PROVEEDOR_NO_DISPONIBLE;
     }
     if (e.status === 429 || (e.status != null && e.status >= 500)) {
       return CODIGOS_IA.PROVEEDOR_NO_DISPONIBLE;
@@ -199,12 +236,13 @@ function fallido(
   inicio: number,
   codigo: CodigoIa,
   detalle: string,
+  advertenciasExtra: string[] = [],
 ): ResultadoEtapaExtraccion {
   return {
     ...baseMeta,
     exito: false,
     lineas: [],
-    advertencias: [codigo],
+    advertencias: [...advertenciasExtra, codigo],
     latenciaMs: Date.now() - inicio,
     errorCodigo: codigo,
     errorDetalle: detalle.slice(0, 500),

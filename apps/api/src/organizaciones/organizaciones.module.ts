@@ -23,9 +23,11 @@ import { OrganizacionesService } from './organizaciones.service';
 import { PlataformaMetricasController } from './plataforma-metricas.controller';
 import { ProvisionamientoService } from './provisionamiento.service';
 import { VerticalesController } from './verticales.controller';
+import { ReportesModule } from '../reportes/reportes.module';
 
 @Module({
   imports: [
+    ReportesModule,
     TypeOrmModule.forFeature([
       Organizacion,
       Vertical,

@@ -8,10 +8,12 @@ import {
   CotizacionEvento,
   CotizacionLinea,
   CotizacionLineaCandidato,
+  DocumentoGenerado,
   EstadoCotizacion,
   EstadoRegistro,
   EstadoResolucionLinea,
   EstadoSolicitud,
+  FormatoDocumento,
   InterpretacionSolicitud,
   Item,
   ItemAlias,
@@ -23,10 +25,12 @@ import {
   ReglaDescuento,
   SecuenciaFolio,
   Solicitud,
+  Sucursal,
   TasaCambio,
   TerminoNoResuelto,
   TipoEventoCotizacion,
   UnidadMedida,
+  Usuario,
 } from '@cotizador/database';
 import {
   type OrgContext,
@@ -45,9 +49,11 @@ import {
   listaPrecioCapturaInactiva,
   listaPrecioNoEncontrada,
   listaPrecioNoResoluble,
+  listarCotizacionesQuerySchema,
   MAX_TEXTO_SOLICITUD,
   normalizarTexto,
   normalizarTextoSolicitud,
+  periodoInvalido,
   reprocesarPrecotizacionSchema,
   requireOrganizacionContext,
   requirePermission,
@@ -56,8 +62,13 @@ import {
   solicitudTextoSinContenido,
   solicitudTextoVacio,
   sucursalNoAccesible,
+  sucursalNoEncontradaHistorial,
 } from '@cotizador/shared';
 import { DataSource, In, Repository } from 'typeorm';
+import {
+  aplicarVencimientoPerezoso,
+  marcarVencidasPendientesOrganizacion,
+} from './cotizacion-vencimiento';
 import { ExtraccionIaService } from './extraccion-ia.service';
 import {
   mapCotizacionDetalle,
@@ -86,6 +97,8 @@ export class PrecotizacionesService {
     private readonly itemRepo: Repository<Item>,
     @InjectRepository(InterpretacionSolicitud)
     private readonly interpretacionRepo: Repository<InterpretacionSolicitud>,
+    @InjectRepository(DocumentoGenerado)
+    private readonly documentoRepo: Repository<DocumentoGenerado>,
   ) {}
 
   async crear(ctx: OrgContext, body: unknown) {
@@ -165,6 +178,175 @@ export class PrecotizacionesService {
     });
   }
 
+  async listarCotizaciones(ctx: OrgContext, query: unknown) {
+    requireOrganizacionContext(ctx);
+    requirePermission(ctx, PERMISOS.COTIZACIONES_VER);
+
+    const parsed = listarCotizacionesQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      const desdeHasta = parsed.error.issues.some(
+        (i) => i.path[0] === 'desde' || i.path[0] === 'hasta',
+      );
+      if (desdeHasta) throw periodoInvalido(parsed.error.flatten());
+      throw parsed.error;
+    }
+    const input = parsed.data;
+    if (
+      input.desde &&
+      input.hasta &&
+      input.desde.getTime() > input.hasta.getTime()
+    ) {
+      throw periodoInvalido({ desde: input.desde, hasta: input.hasta });
+    }
+
+    const orgId = ctx.organizacionId!;
+
+    if (input.clienteId) {
+      const cliente = await this.dataSource.getRepository(Cliente).findOne({
+        where: { id: input.clienteId, organizacionId: orgId },
+      });
+      if (!cliente) throw clienteNoEncontrado();
+    }
+
+    if (input.sucursalId) {
+      if (!ctx.sucursalIds.includes(input.sucursalId)) {
+        throw sucursalNoEncontradaHistorial();
+      }
+      const sucursal = await this.dataSource.getRepository(Sucursal).findOne({
+        where: { id: input.sucursalId, organizacionId: orgId },
+      });
+      if (!sucursal) throw sucursalNoEncontradaHistorial();
+    }
+
+    const vencidasMarcadas = await marcarVencidasPendientesOrganizacion(
+      this.dataSource,
+      orgId,
+    );
+
+    const qb = this.cotizacionRepo
+      .createQueryBuilder('c')
+      .leftJoin(Cliente, 'cli', 'cli.id = c.clienteId AND cli.organizacionId = c.organizacionId')
+      .where('c.organizacionId = :orgId', { orgId });
+
+    if (input.estado?.length) {
+      qb.andWhere('c.estado IN (:...estados)', { estados: input.estado });
+    }
+
+    if (input.clienteId) {
+      qb.andWhere('c.clienteId = :clienteId', { clienteId: input.clienteId });
+    }
+
+    if (input.desde) {
+      qb.andWhere('c.createdAt >= :desde', { desde: input.desde });
+    }
+    if (input.hasta) {
+      qb.andWhere('c.createdAt <= :hasta', { hasta: input.hasta });
+    }
+
+    if (input.usuarioId) {
+      if (input.rolUsuario === 'APROBADOR') {
+        qb.andWhere('c.aprobadaPorId = :usuarioId', {
+          usuarioId: input.usuarioId,
+        });
+      } else {
+        qb.andWhere('c.createdById = :usuarioId', {
+          usuarioId: input.usuarioId,
+        });
+      }
+    }
+
+    if (input.sucursalId) {
+      qb.andWhere('c.sucursalId = :sucursalId', {
+        sucursalId: input.sucursalId,
+      });
+    }
+
+    if (input.anulado === true) {
+      qb.andWhere('c.anulado = true');
+    }
+
+    if (input.search) {
+      const term = `%${input.search}%`;
+      qb.andWhere(
+        `(c.folio ILIKE :term OR COALESCE(cli.nombre, c.nombreClienteLibre, '') ILIKE :term)`,
+        { term },
+      );
+    }
+
+    qb.orderBy('c.createdAt', 'DESC')
+      .skip((input.page - 1) * input.limit)
+      .take(input.limit);
+
+    const [rows, total] = await qb.getManyAndCount();
+
+    // Relajar joins: TypeORM no hidrata cli/u en la entidad Cotizacion;
+    // pedimos nombres en una pasada aparte si hace falta.
+    const clienteIds = [
+      ...new Set(
+        rows
+          .map((c) => c.clienteId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const usuarioIds = [
+      ...new Set(
+        rows
+          .map((c) => c.createdById)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    const clientes =
+      clienteIds.length > 0
+        ? await this.dataSource.getRepository(Cliente).find({
+            where: { id: In(clienteIds), organizacionId: orgId },
+          })
+        : [];
+    const usuarios =
+      usuarioIds.length > 0
+        ? await this.dataSource.getRepository(Usuario).find({
+            where: { id: In(usuarioIds) },
+          })
+        : [];
+    const clientePorId = new Map(clientes.map((c) => [c.id, c]));
+    const usuarioPorId = new Map(usuarios.map((u) => [u.id, u]));
+
+    const items = rows.map((c) => {
+      const cli = c.clienteId ? clientePorId.get(c.clienteId) : undefined;
+      const usr = c.createdById ? usuarioPorId.get(c.createdById) : undefined;
+      return {
+        id: c.id,
+        folio: c.folio,
+        folioNumero: c.folioNumero,
+        estado: c.estado,
+        total: formatImporte(c.total ?? '0'),
+        anulado: c.anulado,
+        clienteId: c.clienteId ?? null,
+        nombreCliente:
+          cli?.nombre?.trim() || c.nombreClienteLibre?.trim() || null,
+        sucursalId: c.sucursalId,
+        vigenciaHasta: c.vigenciaHasta
+          ? c.vigenciaHasta.toISOString()
+          : null,
+        createdAt: c.createdAt.toISOString(),
+        createdById: c.createdById ?? null,
+        aprobadaPorId: c.aprobadaPorId ?? null,
+        usuarioNombre: usr?.nombreCompleto ?? null,
+      };
+    });
+
+    return {
+      items,
+      meta: {
+        page: input.page,
+        limit: input.limit,
+        total,
+        totalPages: Math.ceil(total / input.limit) || 0,
+      },
+      vencidasMarcadas,
+    };
+  }
+
   async obtenerCotizacion(ctx: OrgContext, id: string) {
     requireOrganizacionContext(ctx);
     requirePermission(ctx, PERMISOS.COTIZACIONES_VER);
@@ -175,7 +357,14 @@ export class PrecotizacionesService {
     });
     if (!cotizacion) throw cotizacionNoEncontrada();
 
+    await aplicarVencimientoPerezoso(this.dataSource, cotizacion);
+
     const { detalle, lineas } = await this.cargarDetalle(orgId, cotizacion);
+
+    const eventos = await this.dataSource.getRepository(CotizacionEvento).find({
+      where: { cotizacionId: cotizacion.id, organizacionId: orgId },
+      order: { createdAt: 'ASC' },
+    });
 
     let interpretacion = null;
     if (cotizacion.solicitudId) {
@@ -193,6 +382,14 @@ export class PrecotizacionesService {
       cotizacion: detalle,
       interpretacion,
       resumen: resumenResolucion(lineas),
+      eventos: eventos.map((e) => ({
+        id: e.id,
+        tipo: e.tipo,
+        descripcion: e.descripcion ?? null,
+        datos: e.datos ?? null,
+        usuarioId: e.usuarioId ?? null,
+        createdAt: e.createdAt.toISOString(),
+      })),
     };
   }
 
@@ -223,6 +420,8 @@ export class PrecotizacionesService {
       textoNormalizado: params.textoNormalizado,
       unidadesValidas: params.unidadesValidas,
       usaIa: params.organizacion.usaIa,
+      verticalCodigo: params.organizacion.vertical?.codigo ?? null,
+      nombreVertical: params.organizacion.vertical?.nombre ?? null,
     });
 
     // Etapa 3 — resolución
@@ -641,7 +840,10 @@ export class PrecotizacionesService {
 
     const organizacion = await this.dataSource
       .getRepository(Organizacion)
-      .findOne({ where: { id: orgId } });
+      .findOne({
+        where: { id: orgId },
+        relations: { vertical: true },
+      });
     if (!organizacion) throw solicitudNoEncontrada();
 
     const configuracion = await this.dataSource
@@ -806,12 +1008,30 @@ export class PrecotizacionesService {
         : [];
     const itemsPorId = new Map(items.map((i) => [i.id, i]));
 
+    const documento = await this.documentoRepo.findOne({
+      where: {
+        organizacionId: orgId,
+        cotizacionId: cotizacion.id,
+        formato: FormatoDocumento.PDF,
+      },
+    });
+    const documentoGenerado = documento
+      ? {
+          id: documento.id,
+          plantillaVersion: documento.plantillaVersion,
+          hashContenido: documento.hashContenido,
+          tamanoBytes: documento.tamanoBytes,
+          createdAt: documento.createdAt.toISOString(),
+        }
+      : null;
+
     return {
       detalle: mapCotizacionDetalle(
         cotizacion,
         lineas,
         candidatosMap,
         itemsPorId,
+        documentoGenerado,
       ),
       lineas,
     };

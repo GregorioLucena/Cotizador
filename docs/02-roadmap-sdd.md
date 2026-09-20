@@ -145,7 +145,7 @@ precios con reglas de descuento y buscar un item escribiendolo mal.
 | Resolucion contra catalogo con umbrales y candidatos | `decisions/0007-estrategia-de-matching.md` | Pendiente |
 | Pantalla de cotizar y revision con semaforo | `specs/009-revision-aprobacion.md` | Pendiente |
 | Aprobacion con congelamiento y texto para WhatsApp | `specs/009-revision-aprobacion.md` | Pendiente |
-| Proveedor de IA real y ajuste de umbrales | `specs/008-precotizacion-ia.md` | Pendiente |
+| Proveedor de IA real (OpenAI) y laboratorio de prompts | `specs/012-adaptador-openai-y-laboratorio-prompts.md` | Cerrada |
 
 Criterio de salida: se pega un mensaje real de cinco items y se obtiene un borrador aprobable en menos
 de un minuto, con el texto listo para pegar en WhatsApp.

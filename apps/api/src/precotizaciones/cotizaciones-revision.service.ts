@@ -12,6 +12,7 @@ import {
   EstadoResolucionLinea,
   Item,
   ListaPrecio,
+  Marca,
   Moneda,
   Organizacion,
   OrigenAlias,
@@ -75,6 +76,7 @@ import {
 } from '@cotizador/shared';
 import { DataSource, In, Repository } from 'typeorm';
 import { AliasService } from '../items/alias.service';
+import { aplicarVencimientoPerezoso } from './cotizacion-vencimiento';
 import { PrecotizacionesService } from './precotizaciones.service';
 
 type FolioConfig = { prefijo?: string; longitudNumero?: number };
@@ -599,7 +601,27 @@ export class CotizacionesRevisionService {
     );
     cotizacion.updatedById = ctx.usuarioId;
 
-    // Congelar descripción/SKU ya están en línea; asegurar copia vigente
+    // Congelar descripción/SKU/atributos/marca al aprobar (spec 010)
+    const marcaIds = [
+      ...new Set(
+        lineas
+          .map((l) => {
+            const item = l.itemId
+              ? contexto.itemsPorId.get(l.itemId)
+              : undefined;
+            return item?.marcaId ?? null;
+          })
+          .filter((x): x is string => Boolean(x)),
+      ),
+    ];
+    const marcas =
+      marcaIds.length > 0
+        ? await this.dataSource.getRepository(Marca).find({
+            where: { id: In(marcaIds), organizacionId: orgId },
+          })
+        : [];
+    const marcaPorId = new Map(marcas.map((m) => [m.id, m.nombre]));
+
     for (const linea of lineas) {
       const item = linea.itemId
         ? contexto.itemsPorId.get(linea.itemId)
@@ -607,6 +629,12 @@ export class CotizacionesRevisionService {
       if (item) {
         linea.descripcion = item.nombre;
         linea.sku = item.sku;
+        linea.atributosCongelados = {
+          ...((item.atributos as Record<string, unknown>) ?? {}),
+        };
+        linea.marcaCongelada = item.marcaId
+          ? (marcaPorId.get(item.marcaId) ?? null)
+          : null;
       }
       linea.updatedById = ctx.usuarioId;
     }
@@ -1060,7 +1088,7 @@ export class CotizacionesRevisionService {
 
     const eventos = await this.eventoRepo.find({
       where: { cotizacionId: id, organizacionId: orgId },
-      order: { createdAt: 'DESC' },
+      order: { createdAt: 'ASC' },
     });
 
     return eventos.map((e) => ({
@@ -1083,6 +1111,7 @@ export class CotizacionesRevisionService {
       where: { id, organizacionId: orgId },
     });
     if (!cotizacion) throw cotizacionNoEncontrada();
+    await aplicarVencimientoPerezoso(this.dataSource, cotizacion);
     return cotizacion;
   }
 

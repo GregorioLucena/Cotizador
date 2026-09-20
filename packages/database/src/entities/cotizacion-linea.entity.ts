@@ -104,6 +104,17 @@ export class CotizacionLinea extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   notas?: string | null;
 
+  /**
+   * Atributos del item congelados al aprobar (spec 010).
+   * El PDF lee de aquí, nunca del catálogo vivo.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  atributosCongelados?: Record<string, unknown> | null;
+
+  /** Nombre de marca congelado al aprobar (columna MARCA del PDF). */
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  marcaCongelada?: string | null;
+
   /** Soft-delete en borrador: false = fuera del documento activo (spec 009). */
   @Column({ type: 'boolean', default: true })
   activa!: boolean;

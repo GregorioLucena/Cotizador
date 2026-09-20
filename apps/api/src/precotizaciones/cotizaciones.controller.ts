@@ -7,9 +7,12 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
+  StreamableFile,
 } from '@nestjs/common';
 import type { OrgContext } from '@cotizador/shared';
 import { OrgCtx } from '../common/decorators/org-ctx.decorator';
+import { PlantillasDocumentoService } from '../plantillas/plantillas-documento.service';
 import { CotizacionesRevisionService } from './cotizaciones-revision.service';
 import { PrecotizacionesService } from './precotizaciones.service';
 
@@ -18,7 +21,14 @@ export class CotizacionesController {
   constructor(
     private readonly service: PrecotizacionesService,
     private readonly revision: CotizacionesRevisionService,
+    private readonly plantillas: PlantillasDocumentoService,
   ) {}
+
+  @Get()
+  async listar(@OrgCtx() ctx: OrgContext, @Query() query: unknown) {
+    const data = await this.service.listarCotizaciones(ctx, query);
+    return { data };
+  }
 
   @Get(':id')
   async obtener(
@@ -95,8 +105,32 @@ export class CotizacionesController {
     @OrgCtx() ctx: OrgContext,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const data = await this.revision.mensajeWhatsApp(ctx, id);
+    const data = await this.plantillas.mensajeDesdePlantilla(ctx, id);
     return { data };
+  }
+
+  @Post(':id/documento')
+  async generarDocumento(
+    @OrgCtx() ctx: OrgContext,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const data = await this.plantillas.generarDocumento(ctx, id);
+    return { data };
+  }
+
+  @Get(':id/documento')
+  async descargarDocumento(
+    @OrgCtx() ctx: OrgContext,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const { buffer, filename } = await this.plantillas.descargarDocumento(
+      ctx,
+      id,
+    );
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 
   /** Spec / diseño: `/enviada`. Alias `/enviar` no expuesto. */

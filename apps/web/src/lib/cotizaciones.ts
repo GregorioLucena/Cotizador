@@ -80,6 +80,13 @@ export type CotizacionDetalle = {
   anuladoAt?: string | null;
   motivoAnulacion?: string | null;
   cotizacionOrigenId?: string | null;
+  documentoGenerado?: {
+    id: string;
+    plantillaVersion: number;
+    hashContenido: string;
+    tamanoBytes: number;
+    createdAt: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   lineas: LineaCotizacion[];

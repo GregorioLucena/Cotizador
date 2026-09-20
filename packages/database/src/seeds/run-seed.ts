@@ -9,13 +9,19 @@ import {
   Perfil,
   PerfilPermiso,
   Permiso,
+  PromptVersion,
   Sucursal,
   Usuario,
   UsuarioPerfil,
   UsuarioSucursal,
   Vertical,
 } from '../entities';
-import { AmbitoPerfil, EstadoRegistro } from '../enums';
+import { AmbitoPerfil, EstadoPromptVersion, EstadoRegistro, PropositoPrompt } from '../enums';
+import {
+  CONTRATO_EXTRACCION_VERSION,
+  POLITICA_EXTRACCION_DEFAULT,
+  VERTICAL_PROMPT_FALLBACK,
+} from '@cotizador/shared';
 
 const TODOS_LOS_PERMISOS = Object.values(PERMISOS) as PermisoCodigo[];
 
@@ -398,8 +404,57 @@ async function runSeed() {
     perfilAdminOrgId: perfilAdminOrg.id,
   });
 
+  const promptRepo = AppDataSource.getRepository(PromptVersion);
+  const ahora = new Date();
+  const semillasPrompt: Array<{
+    codigo: string;
+    verticalCodigo: string;
+    notas: string;
+  }> = [
+    {
+      codigo: 'extraccion-lineas.FERRETERIA.v1',
+      verticalCodigo: 'FERRETERIA',
+      notas: 'Semilla ferretería',
+    },
+    {
+      codigo: 'extraccion-lineas.GENERICO.v1',
+      verticalCodigo: VERTICAL_PROMPT_FALLBACK,
+      notas: 'Semilla fallback GENERICO',
+    },
+  ];
+  for (const s of semillasPrompt) {
+    const activaVertical = await promptRepo.findOne({
+      where: {
+        proposito: PropositoPrompt.EXTRACCION_LINEAS,
+        verticalCodigo: s.verticalCodigo,
+        estado: EstadoPromptVersion.ACTIVA,
+      },
+    });
+    if (activaVertical) continue;
+
+    const existeCodigo = await promptRepo.findOne({
+      where: { codigo: s.codigo },
+    });
+    if (existeCodigo) continue;
+
+    await promptRepo.save(
+      promptRepo.create({
+        proposito: PropositoPrompt.EXTRACCION_LINEAS,
+        verticalCodigo: s.verticalCodigo,
+        codigo: s.codigo,
+        estado: EstadoPromptVersion.ACTIVA,
+        contratoVersion: CONTRATO_EXTRACCION_VERSION,
+        politica: POLITICA_EXTRACCION_DEFAULT,
+        notasCambio: s.notas,
+        publishedAt: ahora,
+        activatedAt: ahora,
+      }),
+    );
+    console.log(`Prompt activo sembrado: ${s.codigo} (${s.verticalCodigo})`);
+  }
+
   console.log(
-    'Seed de plataforma completado (permisos, perfiles, monedas, verticales, superadmin, demo).',
+    'Seed de plataforma completado (permisos, perfiles, monedas, verticales, superadmin, demo, prompts).',
   );
 
   await AppDataSource.destroy();

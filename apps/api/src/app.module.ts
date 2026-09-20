@@ -4,12 +4,15 @@ import { entities } from '@cotizador/database/entities';
 import { AuthModule } from './auth/auth.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
+import { IaModule } from './ia/ia.module';
 import { ImportacionesModule } from './importaciones/importaciones.module';
 import { ItemsModule } from './items/items.module';
 import { MaestrasModule } from './maestras/maestras.module';
 import { OrganizacionesModule } from './organizaciones/organizaciones.module';
 import { PreciosModule } from './precios/precios.module';
 import { PrecotizacionesModule } from './precotizaciones/precotizaciones.module';
+import { PlantillasModule } from './plantillas/plantillas.module';
+import { ReportesModule } from './reportes/reportes.module';
 import { SaludModule } from './salud/salud.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
@@ -40,7 +43,10 @@ function postgresSslOption(): boolean | { rejectUnauthorized: boolean } {
     ImportacionesModule,
     PreciosModule,
     ClientesModule,
+    IaModule,
     PrecotizacionesModule,
+    PlantillasModule,
+    ReportesModule,
   ],
 })
 export class AppModule {}

@@ -7,6 +7,7 @@ import {
   CotizacionEvento,
   CotizacionLinea,
   CotizacionLineaCandidato,
+  DocumentoGenerado,
   InterpretacionSolicitud,
   Item,
   ItemAlias,
@@ -22,12 +23,9 @@ import {
   TerminoNoResuelto,
   UnidadMedida,
 } from '@cotizador/database';
-import {
-  PROVEEDOR_IA_TOKEN,
-  ProveedorIaMock,
-  ProveedorIaNone,
-} from '@cotizador/shared';
 import { ItemsModule } from '../items/items.module';
+import { PlantillasModule } from '../plantillas/plantillas.module';
+import { IaModule } from '../ia/ia.module';
 import { CotizacionesController } from './cotizaciones.controller';
 import { CotizacionesRevisionService } from './cotizaciones-revision.service';
 import { ExtraccionIaService } from './extraccion-ia.service';
@@ -35,15 +33,11 @@ import { PrecotizacionesController } from './precotizaciones.controller';
 import { PrecotizacionesService } from './precotizaciones.service';
 import { ResolucionCatalogoService } from './resolucion-catalogo.service';
 
-function crearProveedorIa() {
-  const nombre = (process.env.IA_PROVEEDOR ?? 'mock').toLowerCase();
-  if (nombre === 'none') return new ProveedorIaNone();
-  return new ProveedorIaMock();
-}
-
 @Module({
   imports: [
     ItemsModule,
+    PlantillasModule,
+    IaModule,
     TypeOrmModule.forFeature([
       Solicitud,
       InterpretacionSolicitud,
@@ -64,6 +58,7 @@ function crearProveedorIa() {
       Organizacion,
       ConfiguracionCotizacion,
       PlantillaDocumento,
+      DocumentoGenerado,
       Moneda,
     ]),
   ],
@@ -73,10 +68,6 @@ function crearProveedorIa() {
     CotizacionesRevisionService,
     ExtraccionIaService,
     ResolucionCatalogoService,
-    {
-      provide: PROVEEDOR_IA_TOKEN,
-      useFactory: crearProveedorIa,
-    },
   ],
   exports: [PrecotizacionesService, CotizacionesRevisionService],
 })

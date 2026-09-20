@@ -2,7 +2,7 @@
 
 ## Estado
 
-Especificada — pendiente de implementacion (2026-09-17)
+Cerrada — implementada (2026-09-19)
 
 ## Objetivo
 
@@ -604,24 +604,24 @@ ningún campo de la salida del modelo de lenguaje.
 
 ## Verificacion requerida para cierre
 
-- [ ] Un usuario de la organización A no ve ni modifica cotizaciones, eventos, documentos ni
+- [x] Un usuario de la organización A no ve ni modifica cotizaciones, eventos, documentos ni
       términos de la organización B; listados, detalle, filtros y reportes aislados; respuesta 404
       ante identificadores ajenos.
-- [ ] El listado aplica filtros de estado, cliente, fechas, usuario y sucursal, con paginación.
-- [ ] El detalle expone bitácora append-only ordenada y no ofrece mutación de eventos.
-- [ ] Duplicar, marcar resultado, anular, recopiar mensaje y reentregar PDF respetan permisos y
+- [x] El listado aplica filtros de estado, cliente, fechas, usuario y sucursal, con paginación.
+- [x] El detalle expone bitácora append-only ordenada y no ofrece mutación de eventos.
+- [x] Duplicar, marcar resultado, anular, recopiar mensaje y reentregar PDF respetan permisos y
       estados.
-- [ ] El vencimiento perezoso transiciona `ENVIADA` → `VENCIDA` al listar o consultar, inserta un
+- [x] El vencimiento perezoso transiciona `ENVIADA` → `VENCIDA` al listar o consultar, inserta un
       solo evento y no depende de un cron del MVP.
-- [ ] `vencidasPendientesDeMarca` cuenta enviadas con vigencia pasada aún no marcadas.
-- [ ] Las siete métricas del piloto coinciden con las fórmulas de esta especificación, con pruebas
+- [x] `vencidasPendientesDeMarca` cuenta enviadas con vigencia pasada aún no marcadas.
+- [x] Las siete métricas del piloto coinciden con las fórmulas de esta especificación, con pruebas
       de mediana, tasas, montos, conversión, términos fallidos y división por cero.
-- [ ] Los montos del piloto están en moneda base como cadenas de 4 decimales.
-- [ ] La vista plataforma no incluye datos de negocio detallados y exige permiso de plataforma.
-- [ ] Una cotización aprobada no cambia de importes ni textos al consultar historial ni al calcular
+- [x] Los montos del piloto están en moneda base como cadenas de 4 decimales.
+- [x] La vista plataforma no incluye datos de negocio detallados y exige permiso de plataforma.
+- [x] Una cotización aprobada no cambia de importes ni textos al consultar historial ni al calcular
       métricas.
-- [ ] El perfil `Cotizador` no puede anular; el administrador sí.
-- [ ] Un usuario de ámbito `PLATAFORMA` no opera el historial de una organización sin contexto; sí
+- [x] El perfil `Cotizador` no puede anular; el administrador sí.
+- [x] Un usuario de ámbito `PLATAFORMA` no opera el historial de una organización sin contexto; sí
       ve métricas agregadas con el permiso correspondiente.
 
 ## Preguntas abiertas
@@ -649,3 +649,50 @@ ningún campo de la salida del modelo de lenguaje.
 10. Ningún importe de métrica de ventas proviene de la interpretación de IA.
 11. Duplicar crea borrador con precios vigentes y no reutiliza folio ni PDF.
 12. Ninguna regla ramifica por vertical.
+13. Los tipos de evento en métricas usan el catálogo corto persistido (`CREADA`, `APROBADA`,
+    `VENCIDA`, …) alineado a `06-diseno-tecnico.md` y al enum actual; la unificación con nombres
+    largos del ADR 0011 queda diferida.
+14. `porOrganizacion` en métricas de plataforma solo se incluye con `detalle=true`.
+15. El instante de eventos en métricas es `createdAt` (no hay columna `ocurridoAt` en el MVP).
+
+## Cierre de implementación
+
+**Fecha:** 2026-09-19
+
+### Entregables
+
+| Área | Archivos / rutas |
+|------|------------------|
+| Shared | `schemas/historial-metricas.schemas.ts`, `errors/reportes.errors.ts`, helpers `medianaMs` / `tasaComoCadena`, tests |
+| API cotizaciones | `GET /api/cotizaciones` con filtros; vencimiento perezoso en listado, detalle y acciones; bitácora ASC en detalle y `/eventos` |
+| API reportes | Módulo `reportes`: `GET /api/reportes/cotizaciones-resumen`, `desempeno-reconocimiento`, `terminos-fallidos` |
+| API plataforma | `GET /api/plataforma/metricas` (agregados; `detalle=true` → `porOrganizacion`) |
+| Web | `/historial`, `/reportes`, `/plataforma/metricas`; nav AppShell Historial + Métricas |
+| Docs | `08-catalogo-errores.md` (`PERIODO_INVALIDO`, `SUCURSAL_NO_ENCONTRADA`) |
+
+### Verificación de criterios de aceptación
+
+| CA | Resultado |
+|----|-----------|
+| CA-001 Listado con filtros | Implementado (`listarCotizaciones` + schemas) |
+| CA-002 Cliente ajeno | 404 `CLIENTE_NO_ENCONTRADO` |
+| CA-003 Bitácora ordenada | Eventos ASC en detalle y `GET …/eventos` |
+| CA-004 Aprobada inmutable | Sin recálculo al consultar; totales congelados |
+| CA-005 Duplicar | Ya en spec 009; reutilizado desde historial |
+| CA-006 Mensaje y PDF | Reusa spec 010 |
+| CA-007/008 Resultado y anulación | Ya en spec 009 |
+| CA-009 Cotizador no anula | Permiso `cotizaciones.anular` |
+| CA-010/011 Vencimiento perezoso | `cotizacion-vencimiento.ts` en GET listado/detalle/acciones |
+| CA-012 Sin cron | Sin job; `vencidasPendientesDeMarca` en resumen |
+| CA-013–019 Métricas | Fórmulas en `ReportesService` + tests de mediana/tasas |
+| CA-020/021 Plataforma | Agregados + 403 sin permiso/ámbito |
+| CA-022 Aislamiento | `organizacionId` en todas las consultas |
+| CA-023/024 Bitácora y montos | Eventos con usuario; montos desde `cotizaciones.total` |
+
+### Cómo verificar en local
+
+1. Arrancar API y web; iniciar sesión de organización con `cotizaciones.ver` / `reportes.ver`
+2. Abrir `/historial`, filtrar por estado y fechas; abrir detalle y revisar bitácora
+3. Marcar una `ENVIADA` con `vigenciaHasta` pasado → al listar o abrir detalle pasa a `VENCIDA`
+4. Abrir `/reportes` y comprobar resumen, desempeño y términos
+5. Con usuario plataforma + `plataforma.metricas.ver`: `/plataforma/metricas?detalle=true`

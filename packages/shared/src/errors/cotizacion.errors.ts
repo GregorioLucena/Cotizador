@@ -170,7 +170,7 @@ export function mensajeWhatsAppNoDisponible(
   details?: unknown,
 ): BusinessRuleError {
   return new BusinessRuleError(
-    'DOCUMENTO_COTIZACION_NO_APROBADA',
+    'COTIZACION_NO_APROBADA',
     'Solo se genera el mensaje de cotizaciones aprobadas o posteriores no anuladas.',
     details,
   );

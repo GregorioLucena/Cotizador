@@ -28,6 +28,8 @@ type PerfilData = {
     estadoRegistro: string;
   };
   contexto: OrgContext;
+  organizacion: { id: string; nombre: string } | null;
+  sucursalActiva: { id: string; nombre: string } | null;
 };
 
 type RefreshData = {
@@ -112,7 +114,7 @@ export default function PanelPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell maxWidth="lg">
         <p className="py-20 text-center text-sm text-muted">Cargando panel…</p>
       </AppShell>
     );
@@ -120,7 +122,7 @@ export default function PanelPage() {
 
   if (error || !perfil) {
     return (
-      <AppShell>
+      <AppShell maxWidth="lg">
         <div className="flex flex-col items-center gap-4 py-16">
           <StatusBanner tone="error">{error ?? 'Sesión no disponible.'}</StatusBanner>
           <Link href="/acceso" className="text-sm font-semibold text-teal underline">
@@ -131,11 +133,11 @@ export default function PanelPage() {
     );
   }
 
-  const { usuario, contexto } = perfil;
+  const { usuario, contexto, organizacion, sucursalActiva } = perfil;
   const nav = contexto.ambito === 'PLATAFORMA' ? 'plataforma' : 'organizacion';
 
   return (
-    <AppShell nav={nav}>
+    <AppShell nav={nav} maxWidth="lg">
       <section className="mb-6">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal">Panel</p>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink md:text-4xl">
@@ -159,7 +161,7 @@ export default function PanelPage() {
                 Organización
               </dt>
               <dd className="mt-1 font-semibold text-ink">
-                {contexto.organizacionId ?? 'Plataforma'}
+                {organizacion?.nombre ?? 'Plataforma'}
               </dd>
             </div>
             <div className="rounded-xl bg-paper/80 p-3.5">
@@ -167,7 +169,7 @@ export default function PanelPage() {
                 Sucursal activa
               </dt>
               <dd className="mt-1 font-semibold text-ink">
-                {contexto.sucursalActivaId ?? '—'}
+                {sucursalActiva?.nombre ?? '—'}
               </dd>
             </div>
             <div className="rounded-xl bg-paper/80 p-3.5">

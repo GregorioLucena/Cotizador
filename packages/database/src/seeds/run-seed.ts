@@ -22,6 +22,7 @@ import {
   POLITICA_EXTRACCION_DEFAULT,
   VERTICAL_PROMPT_FALLBACK,
 } from '@cotizador/shared';
+import { asegurarDatosDemoFerreteria } from './demo-ferreteria';
 
 const TODOS_LOS_PERMISOS = Object.values(PERMISOS) as PermisoCodigo[];
 
@@ -315,7 +316,7 @@ async function runSeed() {
     codigosPermitidos: expandirPatrones(PERFIL_ADMIN_ORG_PATRONES),
   });
 
-  await asegurarPerfilConPermisos({
+  const perfilCotizador = await asegurarPerfilConPermisos({
     perfilRepo,
     perfilPermisoRepo,
     permisos,
@@ -402,6 +403,13 @@ async function runSeed() {
     verticalId: verticalFerreteria.id,
     monedaBaseId: monedaUsd.id,
     perfilAdminOrgId: perfilAdminOrg.id,
+  });
+
+  await asegurarDatosDemoFerreteria({
+    ds: AppDataSource,
+    perfilAdminOrgId: perfilAdminOrg.id,
+    perfilCotizadorId: perfilCotizador.id,
+    createdById: admin.id,
   });
 
   const promptRepo = AppDataSource.getRepository(PromptVersion);

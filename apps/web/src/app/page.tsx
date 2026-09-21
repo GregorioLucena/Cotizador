@@ -69,7 +69,7 @@ export default function LandingPage() {
                 aria-hidden
               />
               <div className="relative space-y-2.5">
-                <div className="ml-auto max-w-[88%] rounded-2xl rounded-br-md bg-[#25D366] px-3.5 py-2.5 text-left text-[12px] font-medium leading-snug text-ink shadow-lg">
+                <div className="ml-auto max-w-[88%] rounded-2xl rounded-br-md bg-[#25D366] px-3.5 py-2.5 text-left text-xs font-medium leading-snug text-ink shadow-lg">
                   hola, 2 tubos de media, 10 codos y un pegamento azul
                 </div>
 
@@ -77,28 +77,28 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between bg-teal px-3.5 py-3 text-white">
                     <div>
                       <p className="font-display text-base font-bold tracking-tight">COT-0045</p>
-                      <p className="text-[10px] text-white/70">Borrador · 48 h</p>
+                      <p className="text-xs text-white/70">Borrador · 48 h</p>
                     </div>
-                    <span className="rounded-md bg-brass px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-ink">
+                    <span className="rounded-md bg-brass px-2 py-1 text-xs font-bold uppercase tracking-wider text-ink">
                       Revisar
                     </span>
                   </div>
-                  <ul className="divide-y divide-borde px-3.5 text-[13px] text-ink">
+                  <ul className="divide-y divide-borde px-3.5 text-sm text-ink">
                     <li className="flex items-center justify-between gap-2 py-2.5">
                       <span>Tubo PVC 1/2″ × 3m</span>
-                      <span className="text-[11px] font-bold text-exito">Listo</span>
+                      <span className="text-xs font-bold text-exito">Listo</span>
                     </li>
                     <li className="flex items-center justify-between gap-2 py-2.5">
                       <span>Codo — candidatos</span>
-                      <span className="text-[11px] font-bold text-ambar">Revisar</span>
+                      <span className="text-xs font-bold text-ambar">Revisar</span>
                     </li>
                     <li className="flex items-center justify-between gap-2 py-2.5">
                       <span className="text-slate">“eso del lavamanos”</span>
-                      <span className="text-[11px] font-bold text-peligro">Sin match</span>
+                      <span className="text-xs font-bold text-peligro">Sin match</span>
                     </li>
                   </ul>
                   <div className="ticket-perforation h-2 w-full opacity-50" aria-hidden />
-                  <p className="px-3.5 py-2.5 text-[10px] font-medium uppercase tracking-wider text-muted">
+                  <p className="px-3.5 py-2.5 text-xs font-medium uppercase tracking-wider text-muted">
                     Precios del catálogo · nunca de la IA
                   </p>
                 </div>

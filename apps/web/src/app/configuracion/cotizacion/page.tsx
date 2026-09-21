@@ -9,6 +9,7 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { CheckField, SelectField, TextField } from '@/components/ui/field';
@@ -28,9 +29,9 @@ type Cfg = {
 
 export default function CotizacionConfigPage() {
   const router = useRouter();
+  const toast = useToast();
   const [cfg, setCfg] = useState<Cfg | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -50,7 +51,6 @@ export default function CotizacionConfigPage() {
     if (!cfg) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     try {
       const data = await apiFetch<Cfg>('/configuracion-cotizacion', {
@@ -70,7 +70,7 @@ export default function CotizacionConfigPage() {
         }),
       });
       setCfg(data);
-      setMsg('Configuración de cotización guardada.');
+      toast.success('Configuración de cotización guardada.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error');
     } finally {
@@ -87,7 +87,7 @@ export default function CotizacionConfigPage() {
   }
 
   return (
-    <AppShell nav="organizacion" maxWidth="sm">
+    <AppShell nav="organizacion" maxWidth="lg">
       <PageHeader
         eyebrow={<BackLink href="/configuracion">← Configuración</BackLink>}
         title="Cotización"
@@ -162,7 +162,6 @@ export default function CotizacionConfigPage() {
         </Card>
 
         {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-        {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {pending ? 'Guardando…' : 'Guardar cambios'}

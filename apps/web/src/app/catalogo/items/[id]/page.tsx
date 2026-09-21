@@ -22,9 +22,11 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useConfirm, useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody } from '@/components/ui/card';
+import { Field, FormRequiredLegend, RequiredAsterisk } from '@/components/ui/field';
 import { Input, Select, Textarea } from '@/components/ui/input';
 
 type PerfilAuth = {
@@ -41,6 +43,8 @@ export default function ItemDetallePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [auth, setAuth] = useState<PerfilAuth | null>(null);
   const [item, setItem] = useState<ItemDetalle | null>(null);
@@ -68,7 +72,6 @@ export default function ItemDetallePage() {
   const [appAnioHasta, setAppAnioHasta] = useState('');
   const [appPosicion, setAppPosicion] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -182,7 +185,6 @@ export default function ItemDetallePage() {
     if (!puedeEditar) return;
     setSaving(true);
     setError(null);
-    setMsg(null);
     try {
       const body: Record<string, unknown> = {
         nombre: nombre.trim(),
@@ -204,7 +206,7 @@ export default function ItemDetallePage() {
         body: JSON.stringify(body),
       });
       hidratar(updated);
-      setMsg('Cambios guardados.');
+      toast.success('Cambios guardados.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo guardar.');
     } finally {
@@ -215,9 +217,13 @@ export default function ItemDetallePage() {
   async function inactivar() {
     if (!puedeEditar || !item) return;
     if (
-      !window.confirm(
-        'El item dejará de ser cotizable. Las cotizaciones anteriores no cambian. ¿Continuar?',
-      )
+      !(await confirm({
+        title: 'Inactivar item',
+        description:
+          'El item dejará de ser cotizable. Las cotizaciones anteriores no cambian.',
+        confirmLabel: 'Inactivar',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
@@ -229,7 +235,7 @@ export default function ItemDetallePage() {
         body: JSON.stringify({ estadoRegistro: 'INACTIVO' }),
       });
       hidratar(updated);
-      setMsg('Item inactivado.');
+      toast.success('Item inactivado.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo inactivar.');
     } finally {
@@ -247,7 +253,7 @@ export default function ItemDetallePage() {
         body: JSON.stringify({ estadoRegistro: 'ACTIVO' }),
       });
       hidratar(updated);
-      setMsg('Item reactivado.');
+      toast.success('Item reactivado.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo reactivar.');
     } finally {
@@ -259,7 +265,6 @@ export default function ItemDetallePage() {
     if (!puedeAlias || !nuevoAlias.trim()) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     try {
       const creado = await apiFetch<{
         advertencias?: string[];
@@ -276,7 +281,7 @@ export default function ItemDetallePage() {
           `También en: ${creado.itemsCompartidos.map((i) => i.nombre).join(', ')}`,
         );
       }
-      setMsg(
+      toast.success(
         avisos.length
           ? `Alias agregado. ${avisos.join(' · ')}`
           : 'Alias agregado.',
@@ -302,7 +307,7 @@ export default function ItemDetallePage() {
     try {
       await apiFetch(`/items/${id}/alias/${aliasId}`, { method: 'DELETE' });
       await cargarItem();
-      setMsg('Alias depurado.');
+      toast.success('Alias depurado.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo depurar.');
     } finally {
@@ -324,7 +329,6 @@ export default function ItemDetallePage() {
     }
     setPending(true);
     setError(null);
-    setMsg(null);
     try {
       await apiFetch(`/items/${id}/aplicaciones`, {
         method: 'POST',
@@ -336,7 +340,7 @@ export default function ItemDetallePage() {
       setAppAnioHasta('');
       setAppPosicion('');
       await cargarItem();
-      setMsg('Aplicación agregada.');
+      toast.success('Aplicación agregada.');
     } catch (err) {
       setError(
         err instanceof ApiClientError ? err.message : 'No se pudo agregar la aplicación.',
@@ -355,7 +359,7 @@ export default function ItemDetallePage() {
         method: 'DELETE',
       });
       await cargarItem();
-      setMsg('Aplicación eliminada.');
+      toast.success('Aplicación eliminada.');
     } catch (err) {
       setError(
         err instanceof ApiClientError ? err.message : 'No se pudo eliminar.',
@@ -366,7 +370,7 @@ export default function ItemDetallePage() {
   }
 
   return (
-    <AppShell nav="organizacion" maxWidth="md">
+    <AppShell nav="organizacion" maxWidth="lg">
       <BackLink href="/catalogo">Volver al catálogo</BackLink>
       <PageHeader
         title={item?.nombre ?? 'Item'}
@@ -385,7 +389,6 @@ export default function ItemDetallePage() {
       />
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
       {item?.advertencias?.length ? (
         <StatusBanner tone="info">
           {item.advertencias.join(' · ')}
@@ -396,11 +399,11 @@ export default function ItemDetallePage() {
         <p className="text-sm text-muted">Cargando…</p>
       ) : item ? (
         <form onSubmit={onSubmit} className="space-y-4">
+          <FormRequiredLegend />
           <Card>
             <CardBody className="space-y-3">
               <h2 className="text-sm font-bold text-ink">Identificación</h2>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Nombre</span>
+              <Field label="Nombre" required>
                 <Input
                   required
                   minLength={3}
@@ -409,33 +412,30 @@ export default function ItemDetallePage() {
                   onChange={(e) => setNombre(e.target.value)}
                   disabled={!puedeEditar}
                 />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">SKU</span>
+              </Field>
+              <Field label="SKU">
                 <Input
                   maxLength={60}
                   value={sku}
                   onChange={(e) => setSku(e.target.value)}
                   disabled={!puedeEditar}
                 />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Descripción</span>
+              </Field>
+              <Field label="Descripción">
                 <Textarea
                   maxLength={2000}
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                   disabled={!puedeEditar}
                 />
-              </label>
+              </Field>
             </CardBody>
           </Card>
 
           <Card>
             <CardBody className="space-y-3">
               <h2 className="text-sm font-bold text-ink">Clasificación</h2>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Unidad</span>
+              <Field label="Unidad" required>
                 <Select
                   required
                   value={unidadMedidaId}
@@ -451,7 +451,7 @@ export default function ItemDetallePage() {
                     <option value={unidadMedidaId}>{item.unidadMedida.codigo}</option>
                   ) : null}
                 </Select>
-              </label>
+              </Field>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted">Tipo</span>
                 <Select
@@ -739,13 +739,7 @@ function AtributoField({
   disabled?: boolean;
   onChange: (v: string | boolean | { desde: string; hasta: string }) => void;
 }) {
-  const label = (
-    <span className="mb-1 block text-xs font-medium text-muted">
-      {def.etiqueta}
-      {def.requerido ? ' *' : ''}
-      {def.unidadSugerida ? ` (${def.unidadSugerida})` : ''}
-    </span>
-  );
+  const labelText = `${def.etiqueta}${def.unidadSugerida ? ` (${def.unidadSugerida})` : ''}`;
 
   if (def.tipoDato === 'BOOLEANO') {
     return (
@@ -757,15 +751,14 @@ function AtributoField({
           disabled={disabled}
         />
         {def.etiqueta}
-        {def.requerido ? ' *' : ''}
+        {def.requerido ? <RequiredAsterisk /> : null}
       </label>
     );
   }
 
   if (def.tipoDato === 'LISTA') {
     return (
-      <label className="block">
-        {label}
+      <Field label={labelText} required={def.requerido}>
         <Select
           value={typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(e.target.value)}
@@ -779,7 +772,7 @@ function AtributoField({
             </option>
           ))}
         </Select>
-      </label>
+      </Field>
     );
   }
 
@@ -790,9 +783,9 @@ function AtributoField({
         : { desde: '', hasta: '' };
     return (
       <fieldset className="space-y-2">
-        <legend className="text-xs font-medium text-muted">
+        <legend className="text-sm font-semibold text-ink">
           {def.etiqueta}
-          {def.requerido ? ' *' : ''}
+          {def.requerido ? <RequiredAsterisk /> : null}
         </legend>
         <div className="grid grid-cols-2 gap-2">
           <Input
@@ -815,14 +808,13 @@ function AtributoField({
   }
 
   return (
-    <label className="block">
-      {label}
+    <Field label={labelText} required={def.requerido}>
       <Input
         value={typeof value === 'string' ? value : ''}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         required={def.requerido}
       />
-    </label>
+    </Field>
   );
 }

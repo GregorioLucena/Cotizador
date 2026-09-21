@@ -18,6 +18,7 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useConfirm, useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody } from '@/components/ui/card';
@@ -35,6 +36,8 @@ type PerfilAuth = {
 
 export default function UsuariosListPage() {
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [auth, setAuth] = useState<PerfilAuth | null>(null);
   const [data, setData] = useState<Listado | null>(null);
   const [perfiles, setPerfiles] = useState<PerfilOpcion[]>([]);
@@ -43,7 +46,6 @@ export default function UsuariosListPage() {
   const [perfilId, setPerfilId] = useState('');
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -123,7 +125,6 @@ export default function UsuariosListPage() {
   async function toggleEstado(u: UsuarioDetalle) {
     setPendingId(u.id);
     setError(null);
-    setMsg(null);
     try {
       await apiFetch(`/usuarios/${u.id}`, {
         method: 'PATCH',
@@ -131,7 +132,7 @@ export default function UsuariosListPage() {
           estadoRegistro: u.estadoRegistro === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO',
         }),
       });
-      setMsg(
+      toast.success(
         u.estadoRegistro === 'ACTIVO'
           ? 'Usuario inactivado. Sus sesiones se cerraron.'
           : 'Usuario reactivado.',
@@ -146,22 +147,24 @@ export default function UsuariosListPage() {
 
   async function restablecer(u: UsuarioDetalle) {
     if (
-      !window.confirm(
-        `¿Restablecer la contraseña de ${u.nombreCompleto}? Se cerrarán sus sesiones.`,
-      )
+      !(await confirm({
+        title: 'Restablecer contraseña',
+        description: `Se generará una contraseña temporal para ${u.nombreCompleto} y se cerrarán sus sesiones.`,
+        confirmLabel: 'Restablecer',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
     setPendingId(u.id);
     setError(null);
-    setMsg(null);
     try {
       const res = await apiFetch<{ passwordTemporal: string; sesionesRevocadas: number }>(
         `/usuarios/${u.id}/restablecer-password`,
         { method: 'POST', body: JSON.stringify({}) },
       );
       setTempPassword(res.passwordTemporal);
-      setMsg(
+      toast.success(
         'Contraseña restablecida. Cópiela: no se volverá a mostrar. Las sesiones del usuario se cerraron.',
       );
     } catch (err) {
@@ -250,7 +253,6 @@ export default function UsuariosListPage() {
       </form>
 
       {error ? <div className="mb-4"><StatusBanner tone="error">{error}</StatusBanner></div> : null}
-      {msg ? <div className="mb-4"><StatusBanner tone="success">{msg}</StatusBanner></div> : null}
 
       {tempPassword ? (
         <Card accent className="mb-5">

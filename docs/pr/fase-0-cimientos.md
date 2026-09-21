@@ -10,7 +10,7 @@
 ## Summary
 
 - Scaffold del monorepo pnpm (`apps/api`, `apps/web`, `packages/shared`, `packages/database`).
-- Docker Compose de desarrollo con PostgreSQL 16, `.env.development.example` y scripts de raiz.
+- Docker Compose de desarrollo con PostgreSQL 16, `.env.example` y scripts de raiz.
 - Paquete compartido: errores tipados, `OrgContext`, permisos del MVP y paginacion Zod.
 - Migracion inicial con `uuid-ossp`, `pg_trgm`, `unaccent` y tablas globales (verticales, monedas, permisos, perfiles, usuarios).
 - Seed idempotente: permisos, perfiles, monedas, verticales y superadmin de plataforma.
@@ -21,7 +21,7 @@
 
 - [ ] `nvm use 22` (o Node 22+)
 - [ ] `pnpm install`
-- [ ] Copiar `.env.development.example` → `.env.development`
+- [ ] Copiar `.env.example` → `.env.development`
 - [ ] `pnpm docker:db`
 - [ ] `pnpm db:migrate`
 - [ ] `pnpm db:seed`

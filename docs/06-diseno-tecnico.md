@@ -505,7 +505,7 @@ Solo se inserta. Nunca se actualiza ni se elimina.
 | Metodo | Ruta | Permiso | Notas |
 |--------|------|---------|-------|
 | POST | `/api/precotizaciones` | `cotizaciones.crear` | Ejecuta el pipeline completo y devuelve el borrador |
-| POST | `/api/precotizaciones/:solicitudId/reprocesar` | `cotizaciones.crear` | Nueva interpretacion sobre el mismo texto |
+| POST | `/api/precotizaciones/:solicitudId/reprocesar` | `cotizaciones.crear` | Nueva interpretacion; reescribe el borrador indicado |
 | GET | `/api/cotizaciones` | `cotizaciones.ver` | Historial con filtros |
 | GET | `/api/cotizaciones/:id` | `cotizaciones.ver` | Con lineas y candidatos |
 | PATCH | `/api/cotizaciones/:id` | `cotizaciones.editar` | Cliente, lista, vigencia, observaciones |
@@ -614,8 +614,9 @@ El seed debe crear, de forma idempotente:
 - Monedas iniciales: USD, VES, COP, EUR.
 - Verticales: `FERRETERIA`, `REPUESTOS`, `AUTOMOTRIZ`, `GENERICO`.
 - Usuario superadmin de plataforma con credenciales tomadas de variables de entorno.
-- Opcionalmente, una organizacion de demostracion del vertical ferreteria con catalogo de ejemplo,
-  precios, alias, un cliente y una cotizacion de muestra, controlada por variable de entorno.
+- Organizacion de demostracion `Demo Ferretería` (vertical ferreteria). Con `SEED_DEMO` distinto de
+  `false` (por defecto): pack de maestras, lista de precios, plantilla, items de ejemplo con precios y
+  alias, cliente de mostrador, tasa USD→VES, usuarios admin y cotizador. Desactivar con `SEED_DEMO=false`.
 
 ---
 

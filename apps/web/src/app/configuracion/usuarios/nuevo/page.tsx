@@ -19,7 +19,7 @@ import {
 } from '@/components/shell/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
-import { CheckField, TextField } from '@/components/ui/field';
+import { CheckField, FormRequiredLegend, TextField } from '@/components/ui/field';
 
 type CrearResultado = {
   usuarioId: string;
@@ -122,7 +122,7 @@ export default function NuevoUsuarioPage() {
 
   if (resultado) {
     return (
-      <AppShell nav="organizacion" maxWidth="sm">
+      <AppShell nav="organizacion" maxWidth="lg">
         <PageHeader title="Usuario creado" />
         <StatusBanner tone="success">
           Contraseña temporal generada. Cópiela: no se volverá a mostrar.
@@ -171,7 +171,7 @@ export default function NuevoUsuarioPage() {
   }
 
   return (
-    <AppShell nav="organizacion" maxWidth="sm">
+    <AppShell nav="organizacion" maxWidth="lg">
       <PageHeader
         eyebrow={<BackLink href="/configuracion/usuarios">← Usuarios</BackLink>}
         title="Nuevo usuario"
@@ -179,36 +179,39 @@ export default function NuevoUsuarioPage() {
       />
 
       <form onSubmit={onSubmit} className="space-y-5">
+        <FormRequiredLegend />
         <Card accent>
           <CardHeader title="Datos personales" />
           <CardBody className="space-y-4">
             <TextField
-              label="Nombre completo *"
+              label="Nombre completo"
               value={nombreCompleto}
               onChange={(e) => setNombreCompleto(e.target.value)}
               required
               minLength={3}
               maxLength={120}
             />
-            <TextField
-              label="Correo *"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <TextField
-              label="Teléfono"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              maxLength={40}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Correo"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <TextField
+                label="Teléfono"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                maxLength={40}
+              />
+            </div>
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader
-            title="Perfiles *"
+            title="Perfiles"
             description="Al menos uno. Definen qué puede hacer en el panel."
           />
           <CardBody className="space-y-2">
@@ -231,7 +234,7 @@ export default function NuevoUsuarioPage() {
 
         <Card>
           <CardHeader
-            title="Sucursales *"
+            title="Sucursales"
             description="Al menos una. La principal viene marcada por defecto."
           />
           <CardBody className="space-y-2">

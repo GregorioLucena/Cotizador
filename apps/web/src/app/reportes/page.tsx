@@ -144,7 +144,7 @@ export default function ReportesPage() {
         className="mb-6 flex flex-wrap items-end gap-3"
       >
         <label className="text-sm">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+          <span className="mb-1 block text-sm font-semibold text-muted">
             Desde
           </span>
           <Input
@@ -154,7 +154,7 @@ export default function ReportesPage() {
           />
         </label>
         <label className="text-sm">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
+          <span className="mb-1 block text-sm font-semibold text-muted">
             Hasta
           </span>
           <Input
@@ -207,7 +207,7 @@ export default function ReportesPage() {
                 key={card.label}
                 className="rounded-2xl border border-borde/80 bg-surface px-4 py-4"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
                   {card.label}
                 </p>
                 <p className="mt-2 font-display text-2xl font-bold tabular-nums text-ink">

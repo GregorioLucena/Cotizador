@@ -15,9 +15,10 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
-import { CheckField, Field, SelectField, TextField } from '@/components/ui/field';
+import { CheckField, Field, FormRequiredLegend, SelectField, TextField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 type ColumnaCfg = {
@@ -116,12 +117,12 @@ function insertarMarcador(
 
 export default function PlantillaDocumentoPage() {
   const router = useRouter();
+  const toast = useToast();
   const [plantilla, setPlantilla] = useState<Plantilla | null>(null);
   const [cfg, setCfg] = useState<Configuracion | null>(null);
   const [atributos, setAtributos] = useState<DefinicionAtributo[]>([]);
   const [puedeAdmin, setPuedeAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewTexto, setPreviewTexto] = useState<string | null>(null);
@@ -182,7 +183,6 @@ export default function PlantillaDocumentoPage() {
     if (!plantilla || !cfg || !puedeAdmin) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     try {
       const data = await apiFetch<Plantilla>(
         `/plantillas-documento/${plantilla.id}`,
@@ -196,11 +196,11 @@ export default function PlantillaDocumentoPage() {
       );
       setPlantilla(data);
       setCfg(structuredClone(data.configuracion));
-      setMsg(
-        data.version === plantilla.version
-          ? 'Sin cambios de configuración; la versión no se incrementó.'
-          : `Plantilla guardada. Versión ${data.version}.`,
-      );
+      if (data.version === plantilla.version) {
+        toast.info('Sin cambios de configuración; la versión no se incrementó.');
+      } else {
+        toast.success(`Plantilla guardada. Versión ${data.version}.`);
+      }
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error al guardar');
     } finally {
@@ -225,7 +225,7 @@ export default function PlantillaDocumentoPage() {
       if (formato === 'HTML') setPreviewHtml(data.html ?? null);
       if (formato === 'TEXTO') setPreviewTexto(data.texto ?? null);
       if (data.advertencias?.length) {
-        setMsg(`Advertencias: ${data.advertencias.join(', ')}`);
+        toast.warn(`Advertencias: ${data.advertencias.join(', ')}`);
       }
     } catch (err) {
       setError(
@@ -257,9 +257,9 @@ export default function PlantillaDocumentoPage() {
       />
 
       {error && <StatusBanner tone="error">{error}</StatusBanner>}
-      {msg && <StatusBanner tone="success">{msg}</StatusBanner>}
 
       <form onSubmit={guardar} className="space-y-5">
+        <FormRequiredLegend />
         <Card accent>
           <CardHeader
             title="Identidad"
@@ -689,7 +689,7 @@ export default function PlantillaDocumentoPage() {
                       key={m}
                       type="button"
                       disabled={!puedeAdmin}
-                      className="rounded-md border border-borde bg-surface px-2 py-0.5 text-[11px] font-semibold text-teal hover:border-teal/40 disabled:opacity-50"
+                      className="rounded-md border border-borde bg-surface px-2 py-0.5 text-xs font-semibold text-teal hover:border-teal/40 disabled:opacity-50"
                       onClick={() =>
                         setCfg({
                           ...cfg,

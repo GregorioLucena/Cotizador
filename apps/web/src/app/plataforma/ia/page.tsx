@@ -20,6 +20,7 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -64,6 +65,7 @@ function estadoTone(estado: string): string {
 
 export default function PlataformaIaPage() {
   const router = useRouter();
+  const toast = useToast();
   const [config, setConfig] = useState<IaConfig | null>(null);
   const [verticales, setVerticales] = useState<VerticalItem[]>([]);
   const [filtroVertical, setFiltroVertical] = useState<string>('');
@@ -79,7 +81,6 @@ export default function PlataformaIaPage() {
   const [notas, setNotas] = useState('');
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -142,7 +143,6 @@ export default function PlataformaIaPage() {
     setNotas(v.notasCambio ?? '');
     setVerticalNueva(v.verticalCodigo);
     setPreview(null);
-    setOk(null);
     setError(null);
   }
 
@@ -150,7 +150,6 @@ export default function PlataformaIaPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    setOk(null);
     try {
       const creada = await apiFetch<PromptVersion>('/plataforma/ia/prompts', {
         method: 'POST',
@@ -161,7 +160,7 @@ export default function PlataformaIaPage() {
           notasCambio: notas.trim() || undefined,
         }),
       });
-      setOk(`Borrador ${creada.codigo} (${creada.verticalCodigo}) creado.`);
+      toast.success(`Borrador ${creada.codigo} (${creada.verticalCodigo}) creado.`);
       await cargar();
       seleccionar(creada);
     } catch (err) {
@@ -177,7 +176,6 @@ export default function PlataformaIaPage() {
     if (!seleccionada || seleccionada.estado !== 'BORRADOR') return;
     setBusy(true);
     setError(null);
-    setOk(null);
     try {
       const actualizada = await apiFetch<PromptVersion>(
         `/plataforma/ia/prompts/${seleccionada.id}`,
@@ -189,7 +187,7 @@ export default function PlataformaIaPage() {
           }),
         },
       );
-      setOk('Borrador guardado.');
+      toast.success('Borrador guardado.');
       await cargar();
       seleccionar(actualizada);
     } catch (err) {
@@ -208,7 +206,6 @@ export default function PlataformaIaPage() {
     if (!seleccionada) return;
     setBusy(true);
     setError(null);
-    setOk(null);
     try {
       const actualizada = await apiFetch<PromptVersion>(
         `/plataforma/ia/prompts/${seleccionada.id}/${path}`,
@@ -218,7 +215,7 @@ export default function PlataformaIaPage() {
             path === 'evaluar' ? JSON.stringify({ limiteMuestras: 10 }) : '{}',
         },
       );
-      setOk(`${label} OK (${actualizada.verticalCodigo}).`);
+      toast.success(`${label} OK (${actualizada.verticalCodigo}).`);
       await cargar();
       seleccionar(actualizada);
     } catch (err) {
@@ -276,7 +273,6 @@ export default function PlataformaIaPage() {
       />
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {ok ? <StatusBanner tone="success">{ok}</StatusBanner> : null}
 
       {loading ? (
         <p className="text-sm text-muted">Cargando…</p>
@@ -337,7 +333,7 @@ export default function PlataformaIaPage() {
                           : 'border-borde hover:bg-white'
                       }`}
                     >
-                      <span className="block text-[11px] text-muted">
+                      <span className="block text-xs text-muted">
                         {v.verticalCodigo}
                       </span>
                       <span className="font-medium text-ink">{v.codigo}</span>

@@ -179,12 +179,15 @@ export default function OrganizacionesListPage() {
                   <th className="px-4 py-3 font-semibold">Moneda</th>
                   <th className="px-4 py-3 font-semibold">Estado</th>
                   <th className="px-4 py-3 font-semibold">Alta</th>
+                  <th className="px-4 py-3 font-semibold">
+                    <span className="sr-only">Acciones</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-muted">
+                    <td colSpan={6} className="px-4 py-10 text-center text-muted">
                       No hay organizaciones registradas.
                     </td>
                   </tr>
@@ -194,7 +197,14 @@ export default function OrganizacionesListPage() {
                       key={org.id}
                       className="border-b border-borde/70 transition hover:bg-paper/50 last:border-0"
                     >
-                      <td className="px-4 py-3.5 font-semibold text-ink">{org.nombre}</td>
+                      <td className="px-4 py-3.5">
+                        <Link
+                          href={`/plataforma/organizaciones/${org.id}`}
+                          className="font-semibold text-ink hover:text-teal"
+                        >
+                          {org.nombre}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3.5 text-slate">{org.vertical.nombre}</td>
                       <td className="px-4 py-3.5 text-slate">{org.monedaBase.codigoIso}</td>
                       <td className="px-4 py-3.5">
@@ -204,6 +214,22 @@ export default function OrganizacionesListPage() {
                       </td>
                       <td className="px-4 py-3.5 text-muted">
                         {new Date(org.createdAt).toLocaleDateString('es-VE')}
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Link
+                            href={`/plataforma/organizaciones/${org.id}`}
+                            className="inline-flex min-h-9 items-center rounded-lg border border-borde bg-surface px-3 text-xs font-semibold text-ink hover:border-teal/40"
+                          >
+                            Ver
+                          </Link>
+                          <Link
+                            href={`/plataforma/organizaciones/${org.id}/editar`}
+                            className="inline-flex min-h-9 items-center rounded-lg bg-teal/10 px-3 text-xs font-semibold text-teal hover:bg-teal/15"
+                          >
+                            Editar
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))

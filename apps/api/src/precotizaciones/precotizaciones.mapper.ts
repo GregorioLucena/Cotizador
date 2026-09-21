@@ -28,6 +28,7 @@ export function mapCotizacionDetalle(
     tamanoBytes: number;
     createdAt: string;
   } | null,
+  textoOriginal?: string | null,
 ) {
   return {
     id: cotizacion.id,
@@ -35,6 +36,7 @@ export function mapCotizacionDetalle(
     folioNumero: cotizacion.folioNumero,
     estado: cotizacion.estado,
     solicitudId: cotizacion.solicitudId ?? null,
+    textoOriginal: textoOriginal ?? null,
     clienteId: cotizacion.clienteId ?? null,
     nombreClienteLibre: cotizacion.nombreClienteLibre ?? null,
     telefonoClienteLibre: cotizacion.telefonoClienteLibre ?? null,

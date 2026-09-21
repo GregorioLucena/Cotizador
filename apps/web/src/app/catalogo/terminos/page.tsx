@@ -16,6 +16,7 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useConfirm, useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody } from '@/components/ui/card';
@@ -43,11 +44,12 @@ type PerfilAuth = {
 
 export default function TerminosNoResueltosPage() {
   const router = useRouter();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [auth, setAuth] = useState<PerfilAuth | null>(null);
   const [data, setData] = useState<Listado | null>(null);
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [itemIdPorTermino, setItemIdPorTermino] = useState<Record<string, string>>(
@@ -127,21 +129,22 @@ export default function TerminosNoResueltosPage() {
       return;
     }
     if (
-      !window.confirm(
-        `Se creará un alias aprendido sobre el item y se cerrará el término (visto ${termino.vecesVisto} veces). ¿Continuar?`,
-      )
+      !(await confirm({
+        title: 'Crear alias aprendido',
+        description: `Se creará un alias sobre el item y se cerrará el término (visto ${termino.vecesVisto} veces).`,
+        confirmLabel: 'Crear alias',
+      }))
     ) {
       return;
     }
     setPendingId(termino.id);
     setError(null);
-    setMsg(null);
     try {
       await apiFetch(`/terminos-no-resueltos/${termino.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ accion: 'CREAR_ALIAS', itemId }),
       });
-      setMsg(`Término cerrado. Apareció ${termino.vecesVisto} veces.`);
+      toast.success(`Término cerrado. Apareció ${termino.vecesVisto} veces.`);
       await cargar();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo cerrar.');
@@ -152,21 +155,23 @@ export default function TerminosNoResueltosPage() {
 
   async function descartar(termino: Termino) {
     if (
-      !window.confirm(
-        `¿Descartar «${termino.ejemploOriginal}»? Se vio ${termino.vecesVisto} veces.`,
-      )
+      !(await confirm({
+        title: 'Descartar término',
+        description: `¿Descartar «${termino.ejemploOriginal}»? Se vio ${termino.vecesVisto} veces.`,
+        confirmLabel: 'Descartar',
+        tone: 'danger',
+      }))
     ) {
       return;
     }
     setPendingId(termino.id);
     setError(null);
-    setMsg(null);
     try {
       await apiFetch(`/terminos-no-resueltos/${termino.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ accion: 'DESCARTAR' }),
       });
-      setMsg('Término descartado.');
+      toast.success('Término descartado.');
       await cargar();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo descartar.');
@@ -183,7 +188,6 @@ export default function TerminosNoResueltosPage() {
         description="Textos que el pipeline no asoció a ningún item. Ordene por frecuencia para curar alias."
       />
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
       {loading && !data ? (
         <p className="text-sm text-muted">Cargando…</p>

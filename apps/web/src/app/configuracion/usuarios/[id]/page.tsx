@@ -17,10 +17,11 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useConfirm, useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
-import { CheckField, TextField } from '@/components/ui/field';
+import { CheckField, FormRequiredLegend, TextField } from '@/components/ui/field';
 import { Select } from '@/components/ui/input';
 
 type ListadoSucursales = {
@@ -32,6 +33,8 @@ export default function UsuarioDetallePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [yoId, setYoId] = useState<string | null>(null);
   const [contexto, setContexto] = useState<OrgContext | null>(null);
@@ -44,7 +47,6 @@ export default function UsuarioDetallePage() {
   const [sucursalIds, setSucursalIds] = useState<string[]>([]);
   const [estadoRegistro, setEstadoRegistro] = useState<'ACTIVO' | 'INACTIVO'>('ACTIVO');
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
 
@@ -109,7 +111,6 @@ export default function UsuarioDetallePage() {
     e.preventDefault();
     if (!puedeEditar) return;
     setError(null);
-    setMsg(null);
     if (perfilIds.length === 0) {
       setError('Seleccione al menos un perfil.');
       return;
@@ -134,7 +135,7 @@ export default function UsuarioDetallePage() {
         body: JSON.stringify(body),
       });
       setUsuario(data);
-      setMsg(
+      toast.success(
         'Cambios guardados. Los permisos se aplicarán en la próxima renovación de sesión del usuario.',
       );
     } catch (err) {
@@ -146,19 +147,25 @@ export default function UsuarioDetallePage() {
 
   async function restablecer() {
     if (esYo) return;
-    if (!window.confirm('¿Restablecer la contraseña? Se cerrarán las sesiones del usuario.')) {
+    if (
+      !(await confirm({
+        title: 'Restablecer contraseña',
+        description: 'Se generará una contraseña temporal y se cerrarán las sesiones del usuario.',
+        confirmLabel: 'Restablecer',
+        tone: 'danger',
+      }))
+    ) {
       return;
     }
     setPending(true);
     setError(null);
-    setMsg(null);
     try {
       const res = await apiFetch<{ passwordTemporal: string }>(
         `/usuarios/${id}/restablecer-password`,
         { method: 'POST', body: JSON.stringify({}) },
       );
       setTempPassword(res.passwordTemporal);
-      setMsg(
+      toast.success(
         'Contraseña restablecida. Cópiela: no se volverá a mostrar. Las sesiones del usuario se cerraron.',
       );
     } catch (err) {
@@ -187,7 +194,7 @@ export default function UsuarioDetallePage() {
   if (!usuario) return null;
 
   return (
-    <AppShell nav="organizacion" maxWidth="sm">
+    <AppShell nav="organizacion" maxWidth="lg">
       <PageHeader
         eyebrow={<BackLink href="/configuracion/usuarios">← Usuarios</BackLink>}
         title={usuario.nombreCompleto}
@@ -227,11 +234,12 @@ export default function UsuarioDetallePage() {
       ) : null}
 
       <form onSubmit={onSubmit} className="space-y-5">
+        <FormRequiredLegend />
         <Card accent>
           <CardHeader title="Datos personales" />
           <CardBody className="space-y-4">
             <TextField
-              label="Nombre completo *"
+              label="Nombre completo"
               value={nombreCompleto}
               onChange={(e) => setNombreCompleto(e.target.value)}
               required
@@ -239,14 +247,16 @@ export default function UsuarioDetallePage() {
               maxLength={120}
               disabled={!puedeEditar}
             />
-            <TextField label="Correo" value={usuario.email} disabled readOnly />
-            <TextField
-              label="Teléfono"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              maxLength={40}
-              disabled={!puedeEditar}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField label="Correo" value={usuario.email} disabled readOnly />
+              <TextField
+                label="Teléfono"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                maxLength={40}
+                disabled={!puedeEditar}
+              />
+            </div>
             {puedeEditar ? (
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-ink" htmlFor="estado">
@@ -271,7 +281,7 @@ export default function UsuarioDetallePage() {
 
         <Card>
           <CardHeader
-            title="Perfiles *"
+            title="Perfiles"
             description={
               esYo
                 ? 'No puede modificar sus propios perfiles. Solicítelo a otro administrador.'
@@ -298,7 +308,7 @@ export default function UsuarioDetallePage() {
         </Card>
 
         <Card>
-          <CardHeader title="Sucursales *" description="Al menos una." />
+          <CardHeader title="Sucursales" description="Al menos una." />
           <CardBody className="space-y-2">
             {sucursales.map((s) => (
               <CheckField
@@ -315,7 +325,6 @@ export default function UsuarioDetallePage() {
         </Card>
 
         {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-        {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
         <div className="flex flex-wrap gap-3">
           {puedeEditar ? (

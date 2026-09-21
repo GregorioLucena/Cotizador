@@ -14,9 +14,10 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
-import { CheckField, Field, SelectField, TextField } from '@/components/ui/field';
+import { CheckField, Field, FormRequiredLegend, SelectField, TextField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 type OrgConfig = {
@@ -41,9 +42,9 @@ type Moneda = { id: string; codigoIso: string; nombre: string };
 
 export default function IdentidadPage() {
   const router = useRouter();
+  const toast = useToast();
   const [org, setOrg] = useState<OrgConfig | null>(null);
   const [monedas, setMonedas] = useState<Moneda[]>([]);
-  const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [confirmarMoneda, setConfirmarMoneda] = useState(false);
@@ -72,7 +73,6 @@ export default function IdentidadPage() {
     if (!org) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     const monedaBaseId = String(fd.get('monedaBaseId'));
     const body = {
@@ -99,7 +99,7 @@ export default function IdentidadPage() {
         { method: 'PATCH', body: JSON.stringify(body) },
       );
       setOrg(data.organizacion);
-      setMsg('Configuración guardada.');
+      toast.success('Configuración guardada.');
       setConfirmarMoneda(false);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo guardar');
@@ -133,7 +133,7 @@ export default function IdentidadPage() {
         );
       }
       setOrg(json.data);
-      setMsg('Logo actualizado.');
+      toast.success('Logo actualizado.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error al subir');
     } finally {
@@ -150,7 +150,7 @@ export default function IdentidadPage() {
   }
 
   return (
-    <AppShell nav="organizacion" maxWidth="sm">
+    <AppShell nav="organizacion" maxWidth="lg">
       <PageHeader
         eyebrow={<BackLink href="/configuracion">← Configuración</BackLink>}
         title="Identidad"
@@ -158,6 +158,7 @@ export default function IdentidadPage() {
       />
 
       <form onSubmit={onSubmit} className="space-y-5">
+        <FormRequiredLegend />
         <Card accent>
           <CardHeader title="Datos del negocio" />
           <CardBody className="space-y-4">
@@ -256,7 +257,6 @@ export default function IdentidadPage() {
         </Card>
 
         {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-        {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {pending ? 'Guardando…' : 'Guardar cambios'}

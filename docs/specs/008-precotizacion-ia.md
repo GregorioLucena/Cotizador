@@ -459,7 +459,7 @@ Consecuencias de los perfiles de `docs/06-diseno-tecnico.md`:
 | Metodo | Ruta | Permiso | Uso |
 |--------|------|---------|-----|
 | POST | `/api/precotizaciones` | `cotizaciones.crear` | Ejecuta el pipeline completo y devuelve el borrador |
-| POST | `/api/precotizaciones/:solicitudId/reprocesar` | `cotizaciones.crear` | Nueva interpretación sobre el mismo texto original |
+| POST | `/api/precotizaciones/:solicitudId/reprocesar` | `cotizaciones.crear` | Nueva interpretación; reescribe el borrador indicado |
 | GET | `/api/cotizaciones/:id` | `cotizaciones.ver` | Detalle del borrador con líneas y candidatos |
 | GET | `/api/terminos-no-resueltos` | `catalogo.items.ver` | Insumo de curación; escrito por este módulo |
 
@@ -506,13 +506,17 @@ sin líneas y advertencias. Nunca es un error de la petición por causa del prov
 ```typescript
 // POST /api/precotizaciones/:solicitudId/reprocesar
 type ReprocesarPrecotizacionInput = {
+  cotizacionId: string;           // borrador a reescribir (obligatorio)
   listaPrecioId?: string;         // opcional: permite cambiar la lista al reprocesar
   sucursalId?: string;
 };
 ```
 
-El texto original se toma de la solicitud existente. Se crea una interpretación nueva y una
-cotización nueva en `BORRADOR`. Las interpretaciones y cotizaciones anteriores permanecen intactas.
+El texto original se toma de la solicitud existente. Se crea una interpretación nueva y se
+**reescribe la misma cotización** en `BORRADOR` (mismo `id` y folio): las líneas anteriores se
+desactivan (`activa = false`) y se ensamblan líneas nuevas. No se consume un folio adicional. Si
+`cotizacionId` no es de esa solicitud, responde 404; si no está en `BORRADOR`,
+`COTIZACION_ESTADO_INVALIDO`.
 
 Los importes, cantidades y confianzas viajan como cadenas decimales con 4 decimales según
 `docs/06-diseno-tecnico.md`.
@@ -532,6 +536,8 @@ Los importes, cantidades y confianzas viajan como cadenas decimales con 4 decima
 | `LISTA_PRECIO_NO_RESOLUBLE` | No hay lista informada, del cliente ni predeterminada. Responde 422 |
 | `SUCURSAL_NO_ACCESIBLE` | Sucursal fuera de `ctx.sucursalIds` o inexistente. Responde 404 u 422 |
 | `SOLICITUD_NO_ENCONTRADA` | `solicitudId` inexistente o de otra organización al reprocesar. Responde 404 |
+| `COTIZACION_NO_ENCONTRADA` | `cotizacionId` inexistente, de otra org o no pertenece a la solicitud. Responde 404 |
+| `COTIZACION_ESTADO_INVALIDO` | La cotización a reprocesar no está en `BORRADOR`. Responde 422 |
 | `CONTEXTO_ORGANIZACION_REQUERIDO` | Usuario de plataforma sin organización operativa. Responde 403 |
 | `IA_DESACTIVADA` | No es error HTTP: viaja en la interpretación fallida del 201 |
 | `IA_TIMEOUT` | Idem: interpretación fallida, borrador vacío |
@@ -564,8 +570,9 @@ El detalle técnico queda en `interpretaciones_solicitud.errorDetalle` para sopo
 4. Desde el detalle se puede ver la traza de la interpretación: proveedor, modelo, versión de prompt,
    latencia y si hubo reintento. El costo estimado solo es visible para perfiles con permiso de
    reportes o administración.
-5. La acción de reprocesar pide confirmación y explica que se creará un borrador nuevo sin borrar el
-   anterior.
+5. La acción de reprocesar pide confirmación y explica que se reemplazarán las líneas del mismo
+   borrador (mismo folio), sin crear otra cotización.
+6. El detalle muestra el mensaje base del cliente (`textoOriginal`) para contrastar con las líneas.
 
 ### Aprendizaje visible
 
@@ -672,11 +679,13 @@ nueva cotización recibe folio `45`, la solicitud, la interpretación, las líne
 evento `CREADA` existen en la misma transacción, y un fallo posterior a la asignación de folio no
 deja cotización huérfana sin líneas a medias.
 
-#### CA-016: Reprocesar sin borrar interpretaciones
+#### CA-016: Reprocesar sobre el mismo borrador
 
-Dada una solicitud con una interpretación fallida, cuando se llama a reprocesar, entonces se crea una
-interpretación nueva y una cotización nueva; la interpretación anterior permanece consultable; ninguna
-fila se borra físicamente.
+Dada una solicitud con una interpretación (fallida o no) y una cotización en `BORRADOR`, cuando se
+llama a reprocesar con el `cotizacionId` de ese borrador, entonces se crea una interpretación nueva,
+se reescribe la misma cotización (mismo `id` y folio), las líneas previas quedan con `activa =
+false`, las líneas nuevas se ensamblan, no se incrementa la secuencia de folio, y ninguna
+interpretación ni cotización se borra físicamente.
 
 #### CA-017: Termino no resuelto acumulado
 
@@ -745,7 +754,6 @@ crea la cotización.
 
 | Tema | Pregunta | Impacto si se decide mal |
 |------|----------|--------------------------|
-| Destino del borrador previo al reprocesar | Si al reprocesar el borrador anterior en `BORRADOR` debe anularse automáticamente, marcarse o dejarse intacto sin más | Acumulación de borradores huérfanos o pérdida de trabajo del operador |
 | Limite de lineas extraidas | Si 40 líneas por solicitud es suficiente para el piloto | Mensajes de obra grande truncados o costo de IA elevado |
 | Visibilidad del costo estimado | Si el cotizador debe ver el costo de la interpretación o solo administración y reportes | Ruido operativo o falta de control de gasto |
 | Unidad no reconocida | Si una unidad extraída fuera de `unidadesValidas` debe fallar la línea, asumir la del item o dejarla nula | Líneas mal medidas o rechazos excesivos |
@@ -766,7 +774,8 @@ crea la cotización.
 7. La cascada de resolución tiene cinco estrategias; umbrales iniciales `0.8000` y `0.4500`.
 8. Un empate menor a `0.0500` entre los dos mejores candidatos impide la resolución automática.
 9. Se persisten hasta cinco candidatos por línea.
-10. Reprocesar crea interpretación y cotización nuevas; no borra historial.
+10. Reprocesar crea interpretación nueva y reescribe el borrador indicado (mismo id/folio); las
+    líneas previas se desactivan; no borra historial ni consume folio.
 11. Las interpretaciones son inmutables: solo se insertan.
 12. Los términos no resueltos se escriben desde líneas `NO_ENCONTRADA` y se curan en el catálogo.
 13. El cálculo usa el motor puro de `@cotizador/shared` con importes en cadena de 4 decimales.

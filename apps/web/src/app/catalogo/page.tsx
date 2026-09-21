@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Plus, Search, Settings2, MessageSquareWarning } from 'lucide-react';
+import { Plus, Search, MessageSquareWarning } from 'lucide-react';
 import { PERMISOS, hasPermission, type OrgContext } from '@cotizador/shared';
 import {
   ApiClientError,
@@ -221,13 +221,6 @@ export default function CatalogoItemsPage() {
               <MessageSquareWarning className="size-4" />
               Términos
             </Link>
-            <Link
-              href="/catalogo/maestras"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-ink hover:bg-teal/8"
-            >
-              <Settings2 className="size-4" />
-              Maestras
-            </Link>
             {puedeCrear ? (
               <Link
                 href="/catalogo/items/nuevo"
@@ -384,7 +377,7 @@ export default function CatalogoItemsPage() {
                     <Badge tone="brand">
                       {origenLabel[r.origenMatch] ?? r.origenMatch}
                     </Badge>
-                    <span className="text-[11px] text-muted">{r.puntaje}</span>
+                    <span className="text-xs text-muted">{r.puntaje}</span>
                   </div>
                 </Link>
               </li>

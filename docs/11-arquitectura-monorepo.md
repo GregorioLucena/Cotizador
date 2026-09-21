@@ -206,7 +206,7 @@ cotizador/
 │   └── specs/                            # especificaciones funcionales
 │
 ├── .cursor/rules/                        # reglas operativas del agente
-├── .env.development.example              # plantilla versionada de variables
+├── .env.example                          # plantilla versionada de variables (claves vacias)
 ├── .npmrc                                # node-linker=hoisted
 ├── pnpm-workspace.yaml
 ├── pnpm-lock.yaml                        # se versiona siempre

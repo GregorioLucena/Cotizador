@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { requisitosPassword } from '@cotizador/shared';
 import {
   ApiClientError,
@@ -12,8 +13,55 @@ import {
   setAccessToken,
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
+import { Field, FormRequiredLegend } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  autoComplete,
+  children,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+  children?: ReactNode;
+}) {
+  const [mostrar, setMostrar] = useState(false);
+  return (
+    <Field label={label} htmlFor={id} required>
+      <div className="relative">
+        <Input
+          id={id}
+          type={mostrar ? 'text' : 'password'}
+          autoComplete={autoComplete}
+          required
+          value={value}
+          onChange={(ev) => onChange(ev.target.value)}
+          className="pr-12"
+        />
+        <button
+          type="button"
+          onClick={() => setMostrar((v) => !v)}
+          className="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center rounded-r-xl text-muted transition hover:text-ink"
+          aria-label={mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          aria-pressed={mostrar}
+        >
+          {mostrar ? (
+            <EyeOff className="size-5" aria-hidden />
+          ) : (
+            <Eye className="size-5" aria-hidden />
+          )}
+        </button>
+      </div>
+      {children}
+    </Field>
+  );
+}
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -66,7 +114,7 @@ export default function CambiarPasswordPage() {
       /* idempotente */
     }
     clearAccessToken();
-    router.replace('/acceso');
+    router.replace('/');
   }
 
   return (
@@ -84,26 +132,22 @@ export default function CambiarPasswordPage() {
         onSubmit={onSubmit}
         className="animate-rise-delay w-full max-w-sm space-y-4 rounded-2xl border border-white/15 bg-white/95 p-6 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm"
       >
-        <Field label="Contraseña actual" htmlFor="actual">
-          <Input
-            id="actual"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={passwordActual}
-            onChange={(ev) => setPasswordActual(ev.target.value)}
-          />
-        </Field>
-        <Field label="Contraseña nueva" htmlFor="nueva">
-          <Input
-            id="nueva"
-            type="password"
-            autoComplete="new-password"
-            required
-            value={passwordNueva}
-            onChange={(ev) => setPasswordNueva(ev.target.value)}
-          />
-          <ul className="space-y-1 pt-1 text-xs text-muted">
+        <FormRequiredLegend />
+        <PasswordField
+          id="actual"
+          label="Contraseña actual"
+          value={passwordActual}
+          onChange={setPasswordActual}
+          autoComplete="current-password"
+        />
+        <PasswordField
+          id="nueva"
+          label="Contraseña nueva"
+          value={passwordNueva}
+          onChange={setPasswordNueva}
+          autoComplete="new-password"
+        >
+          <ul className="space-y-1 pt-1 text-sm text-muted">
             <li className={requisitos.longitud ? 'text-exito' : undefined}>
               Al menos 10 caracteres
             </li>
@@ -111,17 +155,14 @@ export default function CambiarPasswordPage() {
             <li className={requisitos.minuscula ? 'text-exito' : undefined}>Una minúscula</li>
             <li className={requisitos.digito ? 'text-exito' : undefined}>Un dígito</li>
           </ul>
-        </Field>
-        <Field label="Confirmar nueva" htmlFor="confirm">
-          <Input
-            id="confirm"
-            type="password"
-            autoComplete="new-password"
-            required
-            value={confirmacion}
-            onChange={(ev) => setConfirmacion(ev.target.value)}
-          />
-        </Field>
+        </PasswordField>
+        <PasswordField
+          id="confirm"
+          label="Confirmar nueva"
+          value={confirmacion}
+          onChange={setConfirmacion}
+          autoComplete="new-password"
+        />
         {error ? (
           <p className="text-sm text-peligro" role="alert">
             {error}

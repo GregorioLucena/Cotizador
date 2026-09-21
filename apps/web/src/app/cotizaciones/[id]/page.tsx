@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
 import {
   Check,
@@ -21,7 +20,6 @@ import {
   RefreshCw,
   Search,
   Trash2,
-  X,
 } from 'lucide-react';
 import {
   MOTIVO_MIN_LENGTH,
@@ -68,6 +66,7 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { Dialog, ProcessOverlay, useConfirm, useToast } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
@@ -86,52 +85,6 @@ function SemaforoDot({ estado }: { estado: LineaCotizacion['estadoResolucion'] }
       className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', color)}
       aria-hidden
     />
-  );
-}
-
-function PromptModal({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: ReactNode;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md animate-rise rounded-2xl border border-borde bg-surface p-4 shadow-[0_24px_60px_-28px_rgba(18,32,30,0.55)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <h2 className="font-display text-lg font-bold text-ink">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex size-10 items-center justify-center rounded-xl text-muted hover:bg-paper"
-            aria-label="Cerrar"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
   );
 }
 
@@ -184,7 +137,7 @@ function ItemBuscador({
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-semibold uppercase tracking-wide text-muted">
+      <label className="block text-sm font-semibold text-muted">
         Buscar item
       </label>
       <div className="relative">
@@ -201,10 +154,10 @@ function ItemBuscador({
           aria-label="Buscar item en el catálogo"
         />
       </div>
-      {error && <p className="text-xs text-peligro">{error}</p>}
-      {buscando && <p className="text-xs text-muted">Buscando…</p>}
+      {error && <p className="text-sm text-peligro">{error}</p>}
+      {buscando && <p className="text-sm text-muted">Buscando…</p>}
       {!buscando && q.trim().length >= 2 && resultados.length === 0 && (
-        <p className="text-xs text-muted">No hay coincidencias</p>
+        <p className="text-sm text-muted">No hay coincidencias</p>
       )}
       {resultados.length > 0 && (
         <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-borde bg-paper/80 p-1.5">
@@ -214,19 +167,19 @@ function ItemBuscador({
                 type="button"
                 disabled={disabled}
                 onClick={() => onElegir(item)}
-                className="flex w-full items-start justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition hover:bg-surface disabled:opacity-50"
+                className="flex w-full items-start justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-base transition hover:bg-surface disabled:opacity-50"
               >
                 <span className="min-w-0">
                   <span className="block truncate font-semibold text-ink">
                     {item.nombre}
                   </span>
-                  <span className="block text-xs text-muted">
+                  <span className="block text-sm text-muted">
                     {[item.sku, item.marca, item.unidadCodigo]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
                 </span>
-                <span className="shrink-0 tabular-nums text-xs text-muted">
+                <span className="shrink-0 tabular-nums text-sm text-muted">
                   {formatearPuntajeUi(item.puntaje)}
                 </span>
               </button>
@@ -242,6 +195,8 @@ export default function CotizacionDetallePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [cotizacion, setCotizacion] = useState<CotizacionDetalle | null>(null);
@@ -250,7 +205,6 @@ export default function CotizacionDetallePage() {
   >(null);
   const [eventos, setEventos] = useState<EventoCotizacion[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
   const [avisoIa, setAvisoIa] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -316,11 +270,10 @@ export default function CotizacionDetallePage() {
     }
     setCantidadesLocales(locales);
     setCandidatosAbiertos((prev) => {
-      const next = { ...prev };
+      const next: Record<string, boolean> = {};
       for (const l of normalizado.cotizacion.lineas) {
-        if (next[l.id] === undefined) {
-          next[l.id] = candidatosExpandidosPorDefecto(l.estadoResolucion);
-        }
+        next[l.id] =
+          prev[l.id] ?? candidatosExpandidosPorDefecto(l.estadoResolucion);
       }
       return next;
     });
@@ -419,7 +372,7 @@ export default function CotizacionDetallePage() {
       const normalizado = normalizarDetalleRespuesta(data);
       aplicarDetalle(normalizado);
       if (normalizado.advertencias?.includes('ALIAS_YA_EXISTE')) {
-        setAviso('Ese alias ya existía en el item; la línea se actualizó igual.');
+        toast.success('Ese alias ya existía en el item; la línea se actualizó igual.');
       }
       await cargarEventos(id);
       return normalizado;
@@ -531,7 +484,12 @@ export default function CotizacionDetallePage() {
   }
 
   async function quitarLinea(lineaId: string) {
-    const ok = window.confirm('¿Quitar esta línea del borrador?');
+    const ok = await confirm({
+      title: 'Quitar línea',
+      description: 'Se quitará esta línea del borrador. Puedes volver a agregarla después.',
+      confirmLabel: 'Quitar',
+      tone: 'danger',
+    });
     if (!ok) return;
     await mutar(`/cotizaciones/${id}/lineas/${lineaId}`, { method: 'DELETE' }, {
       lineaId,
@@ -555,9 +513,12 @@ export default function CotizacionDetallePage() {
 
   async function aprobar() {
     if (!cotizacion) return;
-    const vigenciaHint =
-      'Al aprobar se congelan precios, descuentos y tasa. No se podrán editar las líneas.';
-    const ok = window.confirm(vigenciaHint);
+    const ok = await confirm({
+      title: 'Aprobar cotización',
+      description:
+        'Al aprobar se congelan precios, descuentos y tasa. No se podrán editar las líneas.',
+      confirmLabel: 'Aprobar',
+    });
     if (!ok) return;
     setBusy(true);
     setError(null);
@@ -573,7 +534,7 @@ export default function CotizacionDetallePage() {
       );
       aplicarDetalle(data);
       await cargarEventos(id);
-      setAviso('Cotización aprobada. Los precios quedaron congelados.');
+      toast.success('Cotización aprobada. Los precios quedaron congelados.');
     } catch (err) {
       setError(mensajeErrorApi(err, 'No se pudo aprobar.'));
     } finally {
@@ -588,7 +549,7 @@ export default function CotizacionDetallePage() {
       const data = await apiFetch<MensajeWhatsApp>(`/cotizaciones/${id}/mensaje`);
       setMensajePreview(data.texto);
       await navigator.clipboard.writeText(data.texto);
-      setAviso('Texto copiado. Pégalo en WhatsApp. Esto no marca la cotización como enviada.');
+      toast.success('Texto copiado. Pégalo en WhatsApp. Esto no marca la cotización como enviada.');
     } catch (err) {
       setError(mensajeErrorApi(err, 'No se pudo generar el texto.'));
     } finally {
@@ -605,7 +566,7 @@ export default function CotizacionDetallePage() {
         `/cotizaciones/${id}`,
       );
       aplicarDetalle(detalle);
-      setAviso('PDF generado. Ya puede descargarlo.');
+      toast.success('PDF generado. Ya puede descargarlo.');
     } catch (err) {
       setError(mensajeErrorApi(err, 'No se pudo generar el PDF.'));
     } finally {
@@ -625,7 +586,7 @@ export default function CotizacionDetallePage() {
       a.download = `${cotizacion.folio}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      setAviso('Descarga iniciada.');
+      toast.success('Descarga iniciada.');
     } catch (err) {
       setError(mensajeErrorApi(err, 'No se pudo descargar el PDF.'));
     } finally {
@@ -634,22 +595,29 @@ export default function CotizacionDetallePage() {
   }
 
   async function marcarEnviada() {
-    const ok = window.confirm(
-      '¿Marcar como enviada? Confirma que ya entregaste el mensaje al cliente.',
-    );
+    const ok = await confirm({
+      title: 'Marcar como enviada',
+      description:
+        'Confirma que ya entregaste el mensaje o el PDF al cliente. Esto no envía nada automáticamente.',
+      confirmLabel: 'Marcar enviada',
+    });
     if (!ok) return;
     await mutar(`/cotizaciones/${id}/enviada`, { method: 'POST' });
-    setAviso('Marcada como enviada.');
+    toast.success('Marcada como enviada.');
   }
 
   async function registrarGanada() {
-    const ok = window.confirm('¿Marcar esta cotización como ganada?');
+    const ok = await confirm({
+      title: 'Marcar como ganada',
+      description: 'La cotización quedará registrada como ganada en el historial.',
+      confirmLabel: 'Marcar ganada',
+    });
     if (!ok) return;
     await mutar(`/cotizaciones/${id}/resultado`, {
       method: 'POST',
       body: JSON.stringify({ resultado: 'GANADA' }),
     });
-    setAviso('Cotización marcada como ganada.');
+    toast.success('Cotización marcada como ganada.');
   }
 
   async function confirmarMotivo() {
@@ -665,13 +633,13 @@ export default function CotizacionDetallePage() {
           method: 'POST',
           body: JSON.stringify({ resultado: 'PERDIDA', motivoPerdida: motivo }),
         });
-        setAviso('Cotización marcada como perdida.');
+        toast.success('Cotización marcada como perdida.');
       } else if (motivoDialog === 'anular') {
         await mutar(`/cotizaciones/${id}/anular`, {
           method: 'POST',
           body: JSON.stringify({ motivoAnulacion: motivo }),
         });
-        setAviso('Cotización anulada. El registro se conserva.');
+        toast.success('Cotización anulada. El registro se conserva.');
       } else if (motivoDialog === 'precio' && precioLineaId) {
         await mutar(
           `/cotizaciones/${id}/lineas/${precioLineaId}`,
@@ -684,7 +652,7 @@ export default function CotizacionDetallePage() {
           },
           { lineaId: precioLineaId },
         );
-        setAviso('Precio sobrescrito.');
+        toast.success('Precio sobrescrito.');
       }
       setMotivoDialog(null);
       setMotivoTexto('');
@@ -696,9 +664,12 @@ export default function CotizacionDetallePage() {
   }
 
   async function duplicar() {
-    const ok = window.confirm(
-      'Se creará un borrador nuevo con precios actuales (no los congelados). ¿Continuar?',
-    );
+    const ok = await confirm({
+      title: 'Duplicar cotización',
+      description:
+        'Se creará un borrador nuevo con precios actuales (no los congelados).',
+      confirmLabel: 'Duplicar',
+    });
     if (!ok) return;
     setBusy(true);
     setError(null);
@@ -717,9 +688,12 @@ export default function CotizacionDetallePage() {
 
   async function reprocesar() {
     if (!cotizacion?.solicitudId || !puedeCrear) return;
-    const ok = window.confirm(
-      'Se creará un borrador nuevo con una interpretación nueva. El borrador actual no se borra. ¿Continuar?',
-    );
+    const ok = await confirm({
+      title: 'Reprocesar pedido',
+      description:
+        'Se volverá a interpretar el mensaje y se reemplazarán las líneas de este borrador. El folio y la cotización se conservan.',
+      confirmLabel: 'Reprocesar',
+    });
     if (!ok) return;
     setReprocesando(true);
     setError(null);
@@ -729,20 +703,25 @@ export default function CotizacionDetallePage() {
         {
           method: 'POST',
           body: JSON.stringify({
+            cotizacionId: cotizacion.id,
             listaPrecioId: cotizacion.listaPrecioId,
             sucursalId: cotizacion.sucursalId,
           }),
         },
       );
+      aplicarDetalle(data);
       if (data.interpretacion && !data.interpretacion.exito) {
-        sessionStorage.setItem(
-          `cot_aviso_ia_${data.cotizacion.id}`,
+        setAvisoIa(
           'No se pudo interpretar el mensaje. Puedes armar la cotización a mano.',
         );
+      } else {
+        setAvisoIa(null);
       }
-      router.push(`/cotizaciones/${data.cotizacion.id}`);
+      await cargarEventos(data.cotizacion.id);
+      toast.success('Borrador reprocesado');
     } catch (err) {
       setError(mensajeErrorApi(err, 'No se pudo reprocesar.'));
+    } finally {
       setReprocesando(false);
     }
   }
@@ -819,11 +798,6 @@ export default function CotizacionDetallePage() {
             <StatusBanner tone="error">{error}</StatusBanner>
           </div>
         )}
-        {aviso && (
-          <div className="mb-4">
-            <StatusBanner tone="success">{aviso}</StatusBanner>
-          </div>
-        )}
         {(avisoIa || (esBorrador && cotizacion.lineas.length === 0)) && (
           <div className="mb-4">
             <StatusBanner tone="warn">
@@ -845,7 +819,7 @@ export default function CotizacionDetallePage() {
         {/* Resumen semáforo + totales */}
         <section className="animate-rise mb-5 space-y-3">
           {semaforo && (
-            <p className="text-sm text-slate">
+            <p className="text-base text-slate">
               <span className="font-semibold text-exito">{semaforo.verdes}</span>{' '}
               resueltas
               <span className="text-muted"> · </span>
@@ -859,14 +833,14 @@ export default function CotizacionDetallePage() {
           <div className="overflow-hidden rounded-2xl bg-teal text-white">
             <div className="flex flex-wrap items-end justify-between gap-3 px-4 py-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/65">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
                   {esBorrador ? 'Total borrador' : 'Total congelado'}
                 </p>
                 <p className="font-display text-3xl font-bold tracking-tight tabular-nums">
                   {formatearImporteUi(cotizacion.total)}
                 </p>
               </div>
-              <div className="text-right text-sm text-white/80">
+              <div className="text-right text-base text-white/80">
                 <p>Subtotal {formatearImporteUi(cotizacion.subtotal)}</p>
                 {Number(cotizacion.descuentoTotal) > 0 && (
                   <p>Desc. {formatearImporteUi(cotizacion.descuentoTotal)}</p>
@@ -880,7 +854,7 @@ export default function CotizacionDetallePage() {
                   </p>
                 )}
                 {cotizacion.vigenciaHasta && (
-                  <p className="mt-1 text-xs text-white/65">
+                  <p className="mt-1 text-sm text-white/65">
                     Vigencia hasta {formatearFechaEvento(cotizacion.vigenciaHasta)}
                   </p>
                 )}
@@ -889,53 +863,105 @@ export default function CotizacionDetallePage() {
           </div>
         </section>
 
+        {cotizacion.textoOriginal ? (
+          <details
+            className="animate-rise mb-5 rounded-xl border border-borde bg-surface px-4 py-3"
+            open={esBorrador}
+          >
+            <summary className="cursor-pointer text-sm font-semibold text-slate">
+              Mensaje del cliente
+            </summary>
+            <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-ink">
+              {cotizacion.textoOriginal}
+            </pre>
+          </details>
+        ) : null}
+
         {/* Líneas */}
-        <section className="animate-rise-delay space-y-2.5">
-          <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-muted">
-            Líneas
-          </h2>
+        <section className="animate-rise-delay">
+          <div className="mb-2.5 flex items-baseline justify-between gap-3">
+            <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-muted">
+              Líneas
+            </h2>
+            {cotizacion.lineas.length > 0 && (
+              <p className="text-sm tabular-nums text-muted">
+                {cotizacion.lineas.length}{' '}
+                {cotizacion.lineas.length === 1 ? 'línea' : 'líneas'}
+              </p>
+            )}
+          </div>
           {cotizacion.lineas.length === 0 ? (
             <p className="border border-dashed border-borde bg-surface/60 px-4 py-8 text-center text-sm text-muted">
               Sin líneas. {puedeEditar ? 'Agrega un item del catálogo.' : ''}
             </p>
           ) : (
-            cotizacion.lineas.map((linea) => {
-              const meta = etiquetaResolucion(linea.estadoResolucion);
-              const abiertos =
-                candidatosAbiertos[linea.id] ??
-                candidatosExpandidosPorDefecto(linea.estadoResolucion);
-              const lineaBusy = lineaBusyId === linea.id;
-              return (
-                <article
-                  key={linea.id}
-                  className={cn(
-                    'border-b border-borde/80 py-3.5 first:pt-0',
-                    lineaBusy && 'opacity-70',
-                  )}
-                >
-                  <div className="flex gap-3">
-                    <SemaforoDot estado={linea.estadoResolucion} />
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-ink">
-                          {linea.descripcion ?? linea.textoSolicitado}
-                        </p>
-                        <Badge tone={meta.tone}>{meta.label}</Badge>
-                        {linea.precioSobrescrito && (
-                          <Badge tone="warn">Precio fijo</Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted">
-                        Pediste: {linea.textoSolicitado}
-                        {linea.sku ? ` · ${linea.sku}` : ''}
-                      </p>
+            <div className="overflow-hidden rounded-2xl border border-borde bg-surface">
+              <div
+                className="hidden grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_6.5rem_auto] gap-3 border-b border-borde bg-paper/70 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-muted md:grid"
+                aria-hidden
+              >
+                <span>Item</span>
+                <span className="text-right">Cant.</span>
+                <span className="text-right">P. unit.</span>
+                <span className="text-right">Total</span>
+                <span className="w-[7.5rem] text-right">Acciones</span>
+              </div>
+              <ul className="divide-y divide-borde/80">
+                {cotizacion.lineas.map((linea) => {
+                  const meta = etiquetaResolucion(linea.estadoResolucion);
+                  const abiertos =
+                    candidatosAbiertos[linea.id] ??
+                    candidatosExpandidosPorDefecto(linea.estadoResolucion);
+                  const lineaBusy = lineaBusyId === linea.id;
+                  const titulo =
+                    linea.descripcion ?? linea.textoSolicitado;
+                  return (
+                    <li
+                      key={linea.id}
+                      className={cn(
+                        'px-3 py-3.5 sm:px-4',
+                        lineaBusy && 'opacity-70',
+                      )}
+                    >
+                      <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_5.5rem_6.5rem_6.5rem_auto] md:gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-start gap-2.5">
+                            <SemaforoDot estado={linea.estadoResolucion} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <p className="text-base font-semibold leading-snug text-ink">
+                                  {titulo}
+                                </p>
+                                <Badge tone={meta.tone}>{meta.label}</Badge>
+                                {linea.precioSobrescrito && (
+                                  <Badge tone="warn">Precio fijo</Badge>
+                                )}
+                              </div>
+                              <p className="mt-1 text-sm text-muted">
+                                Pediste: {linea.textoSolicitado}
+                                {linea.sku ? ` · ${linea.sku}` : ''}
+                              </p>
+                              {linea.estadoResolucion === 'NO_ENCONTRADA' &&
+                                linea.candidatos.length === 0 && (
+                                  <p className="mt-1.5 text-sm text-peligro">
+                                    Sin candidatos; busca un item.{' '}
+                                    <Link
+                                      href="/catalogo/terminos"
+                                      className="font-semibold underline"
+                                    >
+                                      Ver términos
+                                    </Link>
+                                  </p>
+                                )}
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="flex flex-wrap items-end gap-3">
-                        {esBorrador && puedeEditar ? (
-                          <label className="block">
-                            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
-                              Cantidad
-                            </span>
+                        <div className="flex items-center justify-between gap-4 md:block md:pt-0.5">
+                          <span className="text-sm font-semibold text-muted md:hidden">
+                            Cantidad
+                          </span>
+                          {esBorrador && puedeEditar ? (
                             <Input
                               type="text"
                               inputMode="decimal"
@@ -952,32 +978,126 @@ export default function CotizacionDetallePage() {
                                   e.currentTarget.blur();
                                 }
                               }}
-                              className="w-24 tabular-nums"
+                              className="w-24 tabular-nums md:ml-auto md:w-full md:text-right"
                               disabled={lineaBusy || busy}
-                              aria-label={`Cantidad de ${linea.descripcion ?? linea.textoSolicitado}`}
+                              aria-label={`Cantidad de ${titulo}`}
                             />
-                          </label>
-                        ) : (
-                          <p className="text-sm tabular-nums text-slate">
-                            {formatearCantidadUi(linea.cantidad)}
+                          ) : (
+                            <p className="text-base tabular-nums text-ink md:text-right">
+                              {formatearCantidadUi(linea.cantidad)}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="hidden md:block md:pt-1.5 md:text-right">
+                          <p
+                            className={cn(
+                              'text-base tabular-nums',
+                              linea.precioUnitario
+                                ? 'text-slate'
+                                : 'text-muted',
+                            )}
+                          >
+                            {linea.precioUnitario
+                              ? formatearImporteUi(linea.precioUnitario)
+                              : '—'}
                           </p>
-                        )}
-                        <p className="pb-2.5 text-sm tabular-nums text-slate">
-                          {linea.precioUnitario
-                            ? `· ${formatearImporteUi(linea.precioUnitario)}`
-                            : '· sin precio'}
-                          {linea.total
-                            ? ` · tot ${formatearImporteUi(linea.total)}`
-                            : ''}
-                        </p>
+                        </div>
+
+                        <div className="hidden md:block md:pt-1.5 md:text-right">
+                          <p
+                            className={cn(
+                              'text-base font-semibold tabular-nums',
+                              linea.total ? 'text-ink' : 'text-muted',
+                            )}
+                          >
+                            {linea.total
+                              ? formatearImporteUi(linea.total)
+                              : 'sin precio'}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 md:w-[7.5rem] md:items-start md:justify-end">
+                          <div className="flex gap-4 text-base tabular-nums md:hidden">
+                            <span
+                              className={
+                                linea.precioUnitario
+                                  ? 'text-slate'
+                                  : 'text-muted'
+                              }
+                            >
+                              {linea.precioUnitario
+                                ? formatearImporteUi(linea.precioUnitario)
+                                : 'sin precio'}
+                            </span>
+                            {linea.total ? (
+                              <span className="font-semibold text-ink">
+                                {formatearImporteUi(linea.total)}
+                              </span>
+                            ) : null}
+                          </div>
+                          {esBorrador && puedeEditar ? (
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              {puedeBuscarItems && (
+                                <Button
+                                  variant="ghost"
+                                  className="min-h-9 px-2.5 text-sm"
+                                  disabled={lineaBusy || busy}
+                                  onClick={() =>
+                                    setBuscarLineaId((prev) =>
+                                      prev === linea.id ? null : linea.id,
+                                    )
+                                  }
+                                  aria-label={`Buscar item para ${titulo}`}
+                                  title="Buscar item"
+                                >
+                                  <Search className="size-4" aria-hidden />
+                                  <span className="sm:hidden">Buscar</span>
+                                </Button>
+                              )}
+                              {puedeSobrescribir && linea.itemId && (
+                                <Button
+                                  variant="ghost"
+                                  className="min-h-9 px-2.5 text-sm"
+                                  disabled={lineaBusy || busy}
+                                  onClick={() => {
+                                    setPrecioLineaId(linea.id);
+                                    setPrecioOverride(
+                                      linea.precioUnitario
+                                        ? formatearCantidadUi(
+                                            linea.precioUnitario,
+                                          )
+                                        : '',
+                                    );
+                                    setMotivoTexto('');
+                                    setMotivoDialog('precio');
+                                  }}
+                                  title="Sobrescribir precio"
+                                >
+                                  Precio
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                className="min-h-9 px-2.5 text-sm text-peligro hover:bg-peligro/8"
+                                disabled={lineaBusy || busy}
+                                onClick={() => void quitarLinea(linea.id)}
+                                aria-label={`Quitar ${titulo}`}
+                                title="Quitar"
+                              >
+                                <Trash2 className="size-4" aria-hidden />
+                                <span className="sm:hidden">Quitar</span>
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
 
-                      {/* Candidatos */}
                       {linea.candidatos.length > 0 && (
-                        <div className="rounded-lg bg-paper/90 px-2.5 py-2">
+                        <div className="mt-3 rounded-xl bg-paper/90 px-3 py-2.5 md:ml-5">
                           <button
                             type="button"
-                            className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted"
+                            className="flex w-full items-center justify-between text-sm font-semibold text-muted"
                             onClick={() =>
                               setCandidatosAbiertos((prev) => ({
                                 ...prev,
@@ -997,21 +1117,25 @@ export default function CotizacionDetallePage() {
                               {linea.candidatos.map((c) => (
                                 <li
                                   key={`${c.itemId}-${c.orden}`}
-                                  className="flex items-center justify-between gap-2 text-sm"
+                                  className="flex items-center justify-between gap-2 text-base"
                                 >
                                   <span className="min-w-0 truncate text-slate">
-                                    {c.orden}. {c.nombre ?? c.itemId.slice(0, 8)}
-                                    <span className="ml-2 tabular-nums text-xs text-muted">
+                                    {c.orden}.{' '}
+                                    {c.nombre ?? c.itemId.slice(0, 8)}
+                                    <span className="ml-2 tabular-nums text-sm text-muted">
                                       {formatearPuntajeUi(c.puntaje)}
                                     </span>
                                   </span>
                                   {esBorrador && puedeEditar && (
                                     <Button
                                       variant="secondary"
-                                      className="min-h-9 shrink-0 px-3 text-xs"
+                                      className="min-h-9 shrink-0 px-3 text-sm"
                                       disabled={lineaBusy || busy}
                                       onClick={() =>
-                                        void elegirCandidato(linea.id, c.itemId)
+                                        void elegirCandidato(
+                                          linea.id,
+                                          c.itemId,
+                                        )
                                       }
                                     >
                                       Elegir
@@ -1024,69 +1148,8 @@ export default function CotizacionDetallePage() {
                         </div>
                       )}
 
-                      {linea.estadoResolucion === 'NO_ENCONTRADA' &&
-                        linea.candidatos.length === 0 && (
-                          <p className="text-xs text-peligro">
-                            Sin candidatos; busca un item.{' '}
-                            <Link
-                              href="/catalogo/terminos"
-                              className="font-semibold underline"
-                            >
-                              Ver términos
-                            </Link>
-                          </p>
-                        )}
-
-                      {esBorrador && puedeEditar && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {puedeBuscarItems && (
-                            <Button
-                              variant="ghost"
-                              className="min-h-9 px-3 text-xs"
-                              disabled={lineaBusy || busy}
-                              onClick={() =>
-                                setBuscarLineaId((prev) =>
-                                  prev === linea.id ? null : linea.id,
-                                )
-                              }
-                            >
-                              <Search className="size-3.5" aria-hidden />
-                              Buscar item
-                            </Button>
-                          )}
-                          {puedeSobrescribir && linea.itemId && (
-                            <Button
-                              variant="ghost"
-                              className="min-h-9 px-3 text-xs"
-                              disabled={lineaBusy || busy}
-                              onClick={() => {
-                                setPrecioLineaId(linea.id);
-                                setPrecioOverride(
-                                  linea.precioUnitario
-                                    ? formatearCantidadUi(linea.precioUnitario)
-                                    : '',
-                                );
-                                setMotivoTexto('');
-                                setMotivoDialog('precio');
-                              }}
-                            >
-                              Sobrescribir precio
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            className="min-h-9 px-3 text-xs text-peligro hover:bg-peligro/8"
-                            disabled={lineaBusy || busy}
-                            onClick={() => void quitarLinea(linea.id)}
-                          >
-                            <Trash2 className="size-3.5" aria-hidden />
-                            Quitar
-                          </Button>
-                        </div>
-                      )}
-
                       {buscarLineaId === linea.id && puedeBuscarItems && (
-                        <div className="mt-2 border-t border-borde/60 pt-3">
+                        <div className="mt-3 border-t border-borde/60 pt-3 md:ml-5">
                           <ItemBuscador
                             disabled={lineaBusy || busy}
                             onElegir={(item) =>
@@ -1097,11 +1160,11 @@ export default function CotizacionDetallePage() {
                           />
                         </div>
                       )}
-                    </div>
-                  </div>
-                </article>
-              );
-            })
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
         </section>
 
@@ -1132,7 +1195,7 @@ export default function CotizacionDetallePage() {
                   </button>
                 </div>
                 <label className="block max-w-[8rem]">
-                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  <span className="mb-1 block text-sm font-semibold text-muted">
                     Cantidad
                   </span>
                   <Input
@@ -1405,104 +1468,112 @@ export default function CotizacionDetallePage() {
       )}
 
       {/* Diálogo alias */}
-      {aliasPendiente && (
-        <PromptModal
-          title="¿Guardar como alias?"
-          onClose={() => setAliasPendiente(null)}
-        >
-          <p className="mb-4 text-sm text-slate">
-            Guardar «{aliasPendiente.texto}» como alias de{' '}
-            <span className="font-semibold text-ink">
-              {aliasPendiente.nombreItem}
-            </span>
-            . Por defecto no se guarda.
-          </p>
-          <div className="flex flex-col gap-2 sm:flex-row-reverse">
-            <Button
-              variant="secondary"
-              onClick={() => void confirmarAlias(false)}
-              disabled={busy}
-            >
-              Solo asignar item
-            </Button>
-            <Button onClick={() => void confirmarAlias(true)} disabled={busy}>
-              Guardar alias
-            </Button>
-          </div>
-        </PromptModal>
-      )}
+      <Dialog
+        open={Boolean(aliasPendiente)}
+        title="¿Guardar como alias?"
+        description={
+          aliasPendiente
+            ? `Guardar «${aliasPendiente.texto}» como alias de ${aliasPendiente.nombreItem}. Por defecto no se guarda.`
+            : undefined
+        }
+        onClose={() => setAliasPendiente(null)}
+      >
+        <div className="flex flex-col gap-2 sm:flex-row-reverse">
+          <Button
+            variant="secondary"
+            onClick={() => void confirmarAlias(false)}
+            disabled={busy}
+          >
+            Solo asignar item
+          </Button>
+          <Button onClick={() => void confirmarAlias(true)} disabled={busy}>
+            Guardar alias
+          </Button>
+        </div>
+      </Dialog>
 
       {/* Diálogos de motivo */}
-      {motivoDialog && (
-        <PromptModal
-          title={
-            motivoDialog === 'perdida'
-              ? 'Marcar como perdida'
-              : motivoDialog === 'anular'
-                ? 'Anular cotización'
-                : 'Sobrescribir precio'
-          }
-          onClose={() => {
-            setMotivoDialog(null);
-            setMotivoTexto('');
-            setPrecioOverride('');
-            setPrecioLineaId(null);
-          }}
-        >
-          {motivoDialog === 'anular' && (
-            <p className="mb-3 text-sm text-slate">
-              El registro se conserva. No se puede deshacer la anulación.
-            </p>
-          )}
-          {motivoDialog === 'precio' && (
-            <label className="mb-3 block">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
-                Precio unitario
-              </span>
-              <Input
-                value={precioOverride}
-                onChange={(e) => setPrecioOverride(e.target.value)}
-                inputMode="decimal"
-                placeholder="0.00"
-                aria-label="Precio unitario sobrescrito"
-              />
-            </label>
-          )}
-          <label className="mb-4 block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
-              Motivo (mín. {MOTIVO_MIN_LENGTH} caracteres)
+      <Dialog
+        open={Boolean(motivoDialog)}
+        title={
+          motivoDialog === 'perdida'
+            ? 'Marcar como perdida'
+            : motivoDialog === 'anular'
+              ? 'Anular cotización'
+              : motivoDialog === 'precio'
+                ? 'Sobrescribir precio'
+                : ''
+        }
+        description={
+          motivoDialog === 'anular'
+            ? 'El registro se conserva. No se puede deshacer la anulación.'
+            : undefined
+        }
+        onClose={() => {
+          setMotivoDialog(null);
+          setMotivoTexto('');
+          setPrecioOverride('');
+          setPrecioLineaId(null);
+        }}
+      >
+        {motivoDialog === 'precio' && (
+          <label className="mb-3 block">
+            <span className="mb-1 block text-sm font-semibold text-muted">
+              Precio unitario
             </span>
-            <Textarea
-              value={motivoTexto}
-              onChange={(e) => setMotivoTexto(e.target.value)}
-              rows={3}
-              aria-label="Motivo"
+            <Input
+              value={precioOverride}
+              onChange={(e) => setPrecioOverride(e.target.value)}
+              inputMode="decimal"
+              placeholder="0.00"
+              aria-label="Precio unitario sobrescrito"
             />
           </label>
-          <div className="flex flex-col gap-2 sm:flex-row-reverse">
-            <Button
-              variant={motivoDialog === 'anular' ? 'danger' : 'primary'}
-              onClick={() => void confirmarMotivo()}
-              disabled={
-                busy ||
-                motivoTexto.trim().length < MOTIVO_MIN_LENGTH ||
-                (motivoDialog === 'precio' && !precioOverride.trim())
-              }
-            >
-              Confirmar
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setMotivoDialog(null);
-                setMotivoTexto('');
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </PromptModal>
-      )}
+        )}
+        <label className="mb-4 block">
+          <span className="mb-1 block text-sm font-semibold text-muted">
+            Motivo (mín. {MOTIVO_MIN_LENGTH} caracteres)
+          </span>
+          <Textarea
+            value={motivoTexto}
+            onChange={(e) => setMotivoTexto(e.target.value)}
+            rows={3}
+            aria-label="Motivo"
+          />
+        </label>
+        <div className="flex flex-col gap-2 sm:flex-row-reverse">
+          <Button
+            variant={motivoDialog === 'anular' ? 'danger' : 'primary'}
+            onClick={() => void confirmarMotivo()}
+            disabled={
+              busy ||
+              motivoTexto.trim().length < MOTIVO_MIN_LENGTH ||
+              (motivoDialog === 'precio' && !precioOverride.trim())
+            }
+          >
+            Confirmar
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setMotivoDialog(null);
+              setMotivoTexto('');
+            }}
+          >
+            Cancelar
+          </Button>
+        </div>
+      </Dialog>
+
+      <ProcessOverlay
+        open={reprocesando}
+        title="Reprocesando pedido"
+        messages={[
+          'Interpretando el mensaje de nuevo…',
+          'Resolviendo contra el catálogo…',
+          'Armando el borrador nuevo…',
+        ]}
+      />
     </AppShell>
   );
 }

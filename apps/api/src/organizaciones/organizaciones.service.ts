@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import {
   Categoria,
   DefinicionAtributo,
@@ -314,6 +314,8 @@ export class OrganizacionesService {
       lista,
       plantilla,
       sucursal,
+      usuariosRaw,
+      perfilAdmin,
     ] = await Promise.all([
       this.unidadRepo.count({ where: { organizacionId: id } }),
       this.definicionRepo.count({ where: { organizacionId: id } }),
@@ -327,7 +329,45 @@ export class OrganizacionesService {
       this.sucursalRepo.findOne({
         where: { organizacionId: id, esPrincipal: true },
       }),
+      this.usuarioRepo.find({
+        where: { organizacionId: id },
+        order: { createdAt: 'ASC' },
+        select: {
+          id: true,
+          nombreCompleto: true,
+          email: true,
+          estadoRegistro: true,
+          createdAt: true,
+        },
+      }),
+      this.perfilRepo.findOne({
+        where: { codigo: CODIGO_ADMIN_ORG },
+        select: { id: true },
+      }),
     ]);
+
+    const adminUsuarioIds = new Set<string>();
+    if (perfilAdmin && usuariosRaw.length > 0) {
+      const vínculos = await this.dataSource.getRepository(UsuarioPerfil).find({
+        where: {
+          perfilId: perfilAdmin.id,
+          usuarioId: In(usuariosRaw.map((u) => u.id)),
+        },
+        select: { usuarioId: true },
+      });
+      for (const v of vínculos) {
+        adminUsuarioIds.add(v.usuarioId);
+      }
+    }
+
+    const usuarios = usuariosRaw.map((u) => ({
+      id: u.id,
+      nombreCompleto: u.nombreCompleto,
+      email: u.email,
+      estadoRegistro: u.estadoRegistro,
+      esAdministrador: adminUsuarioIds.has(u.id),
+      createdAt: u.createdAt.toISOString(),
+    }));
 
     return {
       organizacion: mapOrganizacionDetalle(org),
@@ -341,6 +381,10 @@ export class OrganizacionesService {
         definicionesAtributoCreadas,
         categoriasCreadas,
       },
+      usuarios,
+      tieneAdministrador: usuarios.some(
+        (u) => u.esAdministrador && u.estadoRegistro === EstadoRegistro.ACTIVO,
+      ),
     };
   }
 

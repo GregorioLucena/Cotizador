@@ -40,6 +40,7 @@ import {
   clienteInactivo,
   clienteNoEncontrado,
   clienteONombreRequerido,
+  cotizacionEstadoInvalido,
   cotizacionNoEncontrada,
   crearPrecotizacionSchema,
   formatConfianza,
@@ -148,6 +149,18 @@ export class PrecotizacionesService {
     });
     if (!solicitud) throw solicitudNoEncontrada();
 
+    const cotizacionExistente = await this.cotizacionRepo.findOne({
+      where: {
+        id: input.cotizacionId,
+        organizacionId: orgId,
+        solicitudId: solicitud.id,
+      },
+    });
+    if (!cotizacionExistente) throw cotizacionNoEncontrada();
+    if (cotizacionExistente.estado !== EstadoCotizacion.BORRADOR) {
+      throw cotizacionEstadoInvalido({ estado: cotizacionExistente.estado });
+    }
+
     const captura = await this.resolverCaptura(ctx, {
       clienteId: solicitud.clienteId ?? undefined,
       nombreClienteLibre: undefined,
@@ -155,23 +168,21 @@ export class PrecotizacionesService {
       listaPrecioId: input.listaPrecioId,
       sucursalId: input.sucursalId ?? solicitud.sucursalId ?? undefined,
       canal: solicitud.canal,
-      // En reproceso, si no hay cliente, se recupera nombre libre de la última cotización
+      // En reproceso, si no hay cliente, se recupera nombre libre del borrador
       recuperarLibreDeSolicitud: true,
       solicitudId: solicitud.id,
     });
 
-    // Si la captura no trajo nombre libre y no hay cliente, buscar en cotización previa
     if (!captura.clienteId && !captura.nombreClienteLibre) {
-      const prev = await this.cotizacionRepo.findOne({
-        where: { solicitudId: solicitud.id, organizacionId: orgId },
-        order: { createdAt: 'DESC' },
-      });
-      captura.nombreClienteLibre = prev?.nombreClienteLibre ?? 'Cliente';
-      captura.telefonoClienteLibre = prev?.telefonoClienteLibre ?? null;
+      captura.nombreClienteLibre =
+        cotizacionExistente.nombreClienteLibre ?? 'Cliente';
+      captura.telefonoClienteLibre =
+        cotizacionExistente.telefonoClienteLibre ?? null;
     }
 
     return this.ejecutarPipeline(ctx, {
       solicitudExistente: solicitud,
+      cotizacionExistente,
       textoOriginal: solicitud.textoOriginal,
       textoNormalizado: solicitud.textoNormalizado,
       ...captura,
@@ -397,6 +408,8 @@ export class PrecotizacionesService {
     ctx: OrgContext,
     params: {
       solicitudExistente: Solicitud | null;
+      /** Si viene, se reescribe ese borrador (reproceso in-place). */
+      cotizacionExistente?: Cotizacion | null;
       textoOriginal: string;
       textoNormalizado: string;
       clienteId: string | null;
@@ -596,69 +609,125 @@ export class PrecotizacionesService {
       });
       await manager.save(interpretacion);
 
-      // Folio con bloqueo de fila
-      let secuencia = await manager
-        .createQueryBuilder(SecuenciaFolio, 's')
-        .setLock('pessimistic_write')
-        .where('s.organizacionId = :orgId', { orgId })
-        .getOne();
-      if (!secuencia) {
-        secuencia = manager.create(SecuenciaFolio, {
-          organizacionId: orgId,
-          ultimoNumero: 0,
-        });
-        await manager.save(secuencia);
-        secuencia = await manager
-          .createQueryBuilder(SecuenciaFolio, 's')
-          .setLock('pessimistic_write')
-          .where('s.organizacionId = :orgId', { orgId })
-          .getOne();
-      }
-      if (!secuencia) {
-        throw folioNoDisponible();
-      }
-      secuencia.ultimoNumero += 1;
-      await manager.save(secuencia);
-      const folioNumero = secuencia.ultimoNumero;
-      const folio = formatearFolio(folioNumero, params.folioConfig);
-
       const descuentoTotal = calculo.lineas.reduce(
         (acc, l) => acc + Number(l.descuentoMonto || 0),
         0,
       );
 
-      const cotizacion = manager.create(Cotizacion, {
-        organizacionId: orgId,
-        sucursalId: params.sucursalId,
-        folioNumero,
-        folio,
-        solicitudId: solicitud.id,
-        clienteId: params.clienteId,
-        nombreClienteLibre: params.clienteId
+      let cotizacion: Cotizacion;
+      const esReproceso = Boolean(params.cotizacionExistente);
+
+      if (params.cotizacionExistente) {
+        const existente = await manager
+          .createQueryBuilder(Cotizacion, 'c')
+          .setLock('pessimistic_write')
+          .where('c.id = :id', { id: params.cotizacionExistente.id })
+          .andWhere('c.organizacionId = :orgId', { orgId })
+          .getOne();
+        if (!existente || existente.estado !== EstadoCotizacion.BORRADOR) {
+          throw cotizacionEstadoInvalido({
+            estado: existente?.estado ?? null,
+          });
+        }
+        cotizacion = existente;
+        cotizacion.sucursalId = params.sucursalId;
+        cotizacion.clienteId = params.clienteId;
+        cotizacion.nombreClienteLibre = params.clienteId
           ? null
-          : params.nombreClienteLibre,
-        telefonoClienteLibre: params.clienteId
+          : params.nombreClienteLibre;
+        cotizacion.telefonoClienteLibre = params.clienteId
           ? null
-          : params.telefonoClienteLibre,
-        listaPrecioId: params.listaPrecioId,
-        monedaBaseId: params.organizacion.monedaBaseId,
-        monedaPresentacionId: params.organizacion.monedaPresentacionId ?? null,
-        tasaAplicada: params.tasa?.valor ?? null,
-        tasaFecha: params.tasa?.fecha ?? null,
-        estado: EstadoCotizacion.BORRADOR,
-        vigenciaHasta: null,
-        subtotal: calculo.subtotal,
-        descuentoTotal: formatImporte(descuentoTotal),
-        impuestoTotal: calculo.impuestoTotal,
-        total: calculo.total,
-        totalPresentacion: calculo.totalPresentacion,
-        porcentajeImpuestoAplicado: params.configuracion.aplicaImpuesto
+          : params.telefonoClienteLibre;
+        cotizacion.listaPrecioId = params.listaPrecioId;
+        cotizacion.monedaBaseId = params.organizacion.monedaBaseId;
+        cotizacion.monedaPresentacionId =
+          params.organizacion.monedaPresentacionId ?? null;
+        cotizacion.tasaAplicada = params.tasa?.valor ?? null;
+        cotizacion.tasaFecha = params.tasa?.fecha ?? null;
+        cotizacion.subtotal = calculo.subtotal;
+        cotizacion.descuentoTotal = formatImporte(descuentoTotal);
+        cotizacion.impuestoTotal = calculo.impuestoTotal;
+        cotizacion.total = calculo.total;
+        cotizacion.totalPresentacion = calculo.totalPresentacion;
+        cotizacion.porcentajeImpuestoAplicado = params.configuracion
+          .aplicaImpuesto
           ? formatImporte(params.configuracion.porcentajeImpuesto)
-          : formatImporte(0),
-        createdById: ctx.usuarioId,
-        updatedById: ctx.usuarioId,
-      });
-      await manager.save(cotizacion);
+          : formatImporte(0);
+        cotizacion.updatedById = ctx.usuarioId;
+        await manager.save(cotizacion);
+
+        // Líneas previas: desactivar (no borrado físico)
+        await manager
+          .createQueryBuilder()
+          .update(CotizacionLinea)
+          .set({ activa: false, updatedById: ctx.usuarioId })
+          .where('cotizacionId = :cotizacionId', {
+            cotizacionId: cotizacion.id,
+          })
+          .andWhere('organizacionId = :orgId', { orgId })
+          .andWhere('activa = true')
+          .execute();
+      } else {
+        // Folio con bloqueo de fila (solo cotización nueva)
+        let secuencia = await manager
+          .createQueryBuilder(SecuenciaFolio, 's')
+          .setLock('pessimistic_write')
+          .where('s.organizacionId = :orgId', { orgId })
+          .getOne();
+        if (!secuencia) {
+          secuencia = manager.create(SecuenciaFolio, {
+            organizacionId: orgId,
+            ultimoNumero: 0,
+          });
+          await manager.save(secuencia);
+          secuencia = await manager
+            .createQueryBuilder(SecuenciaFolio, 's')
+            .setLock('pessimistic_write')
+            .where('s.organizacionId = :orgId', { orgId })
+            .getOne();
+        }
+        if (!secuencia) {
+          throw folioNoDisponible();
+        }
+        secuencia.ultimoNumero += 1;
+        await manager.save(secuencia);
+        const folioNumero = secuencia.ultimoNumero;
+        const folio = formatearFolio(folioNumero, params.folioConfig);
+
+        cotizacion = manager.create(Cotizacion, {
+          organizacionId: orgId,
+          sucursalId: params.sucursalId,
+          folioNumero,
+          folio,
+          solicitudId: solicitud.id,
+          clienteId: params.clienteId,
+          nombreClienteLibre: params.clienteId
+            ? null
+            : params.nombreClienteLibre,
+          telefonoClienteLibre: params.clienteId
+            ? null
+            : params.telefonoClienteLibre,
+          listaPrecioId: params.listaPrecioId,
+          monedaBaseId: params.organizacion.monedaBaseId,
+          monedaPresentacionId:
+            params.organizacion.monedaPresentacionId ?? null,
+          tasaAplicada: params.tasa?.valor ?? null,
+          tasaFecha: params.tasa?.fecha ?? null,
+          estado: EstadoCotizacion.BORRADOR,
+          vigenciaHasta: null,
+          subtotal: calculo.subtotal,
+          descuentoTotal: formatImporte(descuentoTotal),
+          impuestoTotal: calculo.impuestoTotal,
+          total: calculo.total,
+          totalPresentacion: calculo.totalPresentacion,
+          porcentajeImpuestoAplicado: params.configuracion.aplicaImpuesto
+            ? formatImporte(params.configuracion.porcentajeImpuesto)
+            : formatImporte(0),
+          createdById: ctx.usuarioId,
+          updatedById: ctx.usuarioId,
+        });
+        await manager.save(cotizacion);
+      }
 
       const lineasGuardadas: CotizacionLinea[] = [];
       const candidatosMap = new Map<string, CotizacionLineaCandidato[]>();
@@ -763,16 +832,35 @@ export class PrecotizacionesService {
         await manager.increment(ItemAlias, { id: aliasId }, 'vecesUsado', 1);
       }
 
-      await manager.save(
-        manager.create(CotizacionEvento, {
-          organizacionId: orgId,
-          cotizacionId: cotizacion.id,
-          tipo: TipoEventoCotizacion.CREADA,
-          descripcion: 'Cotización borrador creada por precotización',
-          datos: { solicitudId: solicitud.id, interpretacionId: interpretacion.id },
-          usuarioId: ctx.usuarioId,
-        }),
-      );
+      if (esReproceso) {
+        await manager.save(
+          manager.create(CotizacionEvento, {
+            organizacionId: orgId,
+            cotizacionId: cotizacion.id,
+            tipo: TipoEventoCotizacion.RECALCULADA,
+            descripcion: 'Cotización borrador reprocesada',
+            datos: {
+              solicitudId: solicitud.id,
+              interpretacionId: interpretacion.id,
+            },
+            usuarioId: ctx.usuarioId,
+          }),
+        );
+      } else {
+        await manager.save(
+          manager.create(CotizacionEvento, {
+            organizacionId: orgId,
+            cotizacionId: cotizacion.id,
+            tipo: TipoEventoCotizacion.CREADA,
+            descripcion: 'Cotización borrador creada por precotización',
+            datos: {
+              solicitudId: solicitud.id,
+              interpretacionId: interpretacion.id,
+            },
+            usuarioId: ctx.usuarioId,
+          }),
+        );
+      }
 
       if (extraccion.exito) {
         await manager.save(
@@ -780,7 +868,9 @@ export class PrecotizacionesService {
             organizacionId: orgId,
             cotizacionId: cotizacion.id,
             tipo: TipoEventoCotizacion.INTERPRETADA,
-            descripcion: 'Interpretación de solicitud exitosa',
+            descripcion: esReproceso
+              ? 'Interpretación de solicitud (reproceso)'
+              : 'Interpretación de solicitud exitosa',
             datos: {
               interpretacionId: interpretacion.id,
               lineas: lineasGuardadas.length,
@@ -814,6 +904,8 @@ export class PrecotizacionesService {
       resultado.lineas,
       resultado.candidatosMap,
       itemsPorId,
+      null,
+      params.textoOriginal,
     );
 
     return {
@@ -1025,6 +1117,18 @@ export class PrecotizacionesService {
         }
       : null;
 
+    let textoOriginal: string | null = null;
+    if (cotizacion.solicitudId) {
+      const solicitud = await this.solicitudRepo.findOne({
+        where: {
+          id: cotizacion.solicitudId,
+          organizacionId: orgId,
+        },
+        select: ['id', 'textoOriginal'],
+      });
+      textoOriginal = solicitud?.textoOriginal ?? null;
+    }
+
     return {
       detalle: mapCotizacionDetalle(
         cotizacion,
@@ -1032,6 +1136,7 @@ export class PrecotizacionesService {
         candidatosMap,
         itemsPorId,
         documentoGenerado,
+        textoOriginal,
       ),
       lineas,
     };

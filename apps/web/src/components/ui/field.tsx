@@ -1,12 +1,30 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+'use client';
+
+import {
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from 'react';
 import { cn } from '@/lib/cn';
+import { FieldErrorProvider } from '@/components/ui/field-error';
 import { Input, Select } from '@/components/ui/input';
+
+export function RequiredAsterisk() {
+  return (
+    <span className="text-peligro" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  );
+}
 
 export function Field({
   label,
   htmlFor,
   hint,
   error,
+  required = false,
   children,
   className,
 }: {
@@ -14,34 +32,62 @@ export function Field({
   htmlFor?: string;
   hint?: string;
   error?: string;
+  required?: boolean;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn('space-y-1.5', className)}>
-      <label htmlFor={htmlFor} className="block text-sm font-semibold text-ink">
-        {label}
-      </label>
-      {children}
-      {hint ? <p className="text-xs text-muted">{hint}</p> : null}
-      {error ? (
-        <p className="text-xs text-peligro" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <FieldErrorProvider error={error}>
+      {(shown) => (
+        <div className={cn('space-y-1.5', className)}>
+          <label htmlFor={htmlFor} className="block text-sm font-semibold text-ink">
+            {label}
+            {required ? <RequiredAsterisk /> : null}
+          </label>
+          {children}
+          {shown ? (
+            <p className="text-sm font-medium text-peligro" role="alert">
+              {shown}
+            </p>
+          ) : null}
+          {hint && !shown ? <p className="text-sm text-muted">{hint}</p> : null}
+        </div>
+      )}
+    </FieldErrorProvider>
+  );
+}
+
+export function FormRequiredLegend() {
+  return (
+    <p className="rounded-xl bg-teal/4 px-3 py-2 text-sm text-muted ring-1 ring-teal/10">
+      Los campos marcados con{' '}
+      <span className="font-semibold text-peligro">*</span> son obligatorios.
+    </p>
   );
 }
 
 export function TextField({
   label,
   className,
+  required,
+  error,
+  id: idProp,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  const id = props.id ?? props.name;
+}: InputHTMLAttributes<HTMLInputElement> & {
+  label: string;
+  error?: string;
+}) {
+  const autoId = useId();
+  const id = idProp ?? (typeof props.name === 'string' ? props.name : undefined) ?? autoId;
   return (
-    <Field label={label} htmlFor={id} className={className}>
-      <Input id={id} {...props} />
+    <Field
+      label={label}
+      htmlFor={id}
+      className={className}
+      required={Boolean(required)}
+      error={error}
+    >
+      <Input id={id} required={required} {...props} />
     </Field>
   );
 }
@@ -49,13 +95,27 @@ export function TextField({
 export function SelectField({
   label,
   className,
+  required,
+  error,
+  id: idProp,
   children,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode }) {
-  const id = props.id ?? props.name;
+}: SelectHTMLAttributes<HTMLSelectElement> & {
+  label: string;
+  children: ReactNode;
+  error?: string;
+}) {
+  const autoId = useId();
+  const id = idProp ?? (typeof props.name === 'string' ? props.name : undefined) ?? autoId;
   return (
-    <Field label={label} htmlFor={id} className={className}>
-      <Select id={id} {...props}>
+    <Field
+      label={label}
+      htmlFor={id}
+      className={className}
+      required={Boolean(required)}
+      error={error}
+    >
+      <Select id={id} required={required} {...props}>
         {children}
       </Select>
     </Field>
@@ -74,12 +134,11 @@ export function CheckField({
         className,
       )}
     >
-      <input
-        type="checkbox"
-        className="size-4 accent-teal"
-        {...props}
-      />
+      <input type="checkbox" className="size-4 accent-teal" {...props} />
       <span>{label}</span>
     </label>
   );
 }
+
+export { getControlClassName } from '@/components/ui/input';
+export { messageFromValidity, useFieldError } from '@/components/ui/field-error';

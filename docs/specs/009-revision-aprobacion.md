@@ -406,7 +406,7 @@ Consecuencias de los perfiles:
 
 | Metodo | Ruta | Permiso | Uso |
 |--------|------|---------|-----|
-| GET | `/api/cotizaciones/:id` | `cotizaciones.ver` | Detalle con líneas, candidatos y totales |
+| GET | `/api/cotizaciones/:id` | `cotizaciones.ver` | Detalle con líneas, candidatos, totales y `textoOriginal` de la solicitud si aplica |
 | PATCH | `/api/cotizaciones/:id` | `cotizaciones.editar` | Cliente, lista, observaciones, textos |
 | POST | `/api/cotizaciones/:id/lineas` | `cotizaciones.editar` | Agregar línea manual |
 | PATCH | `/api/cotizaciones/:id/lineas/:lineaId` | `cotizaciones.editar` | Item, cantidad, unidad, precio; `guardarAlias` |
@@ -513,15 +513,18 @@ Los importes y cantidades viajan como cadenas con 4 decimales.
 ### Pantalla de revision del borrador
 
 1. Cabecera con folio, cliente, lista, semáforo resumen (conteo verde / ámbar / rojo) y totales.
-2. Cada línea muestra: texto solicitado, item elegido, cantidad, unidad, precio, descuento, total de
+2. Si la cotización proviene de una precotización, se muestra el **mensaje del cliente**
+   (`textoOriginal` de la solicitud), plegado o abierto según el estado, para contrastar con las
+   líneas.
+3. Cada línea muestra: texto solicitado, item elegido, cantidad, unidad, precio, descuento, total de
    línea y el color del semáforo.
-3. En líneas ámbar y rojas, los candidatos aparecen expandidos por defecto. En verdes, plegados.
-4. Acciones por línea, en este orden de prioridad visual: elegir candidato, buscar item, editar
+4. En líneas ámbar y rojas, los candidatos aparecen expandidos por defecto. En verdes, plegados.
+5. Acciones por línea, en este orden de prioridad visual: elegir candidato, buscar item, editar
    cantidad, editar unidad, sobrescribir precio (si hay permiso), quitar.
-5. Al cambiar el item, un diálogo pregunta si se guarda el `textoSolicitado` como alias. La opción
+6. Al cambiar el item, un diálogo pregunta si se guarda el `textoSolicitado` como alias. La opción
    por defecto es no guardar; hay que confirmar explícitamente.
-6. Agregar línea manual abre un buscador de items y campos de cantidad y unidad.
-7. Los totales se actualizan al instante en el navegador; un indicador discreto señala cuando el
+7. Agregar línea manual abre un buscador de items y campos de cantidad y unidad.
+8. Los totales se actualizan al instante en el navegador; un indicador discreto señala cuando el
    servidor confirma el mismo resultado.
 
 ### Aprobacion y entrega

@@ -254,6 +254,26 @@ export class AuthService {
       throw new NotFoundError('USUARIO_NO_ENCONTRADO', 'No se encontró el usuario indicado.');
     }
 
+    let organizacion: { id: string; nombre: string } | null = null;
+    if (ctx.organizacionId) {
+      const org = await this.organizacionRepo.findOne({
+        where: { id: ctx.organizacionId },
+      });
+      if (org) {
+        organizacion = { id: org.id, nombre: org.nombre };
+      }
+    }
+
+    let sucursalActiva: { id: string; nombre: string } | null = null;
+    if (ctx.sucursalActivaId) {
+      const sucursal = await this.sucursalRepo.findOne({
+        where: { id: ctx.sucursalActivaId },
+      });
+      if (sucursal) {
+        sucursalActiva = { id: sucursal.id, nombre: sucursal.nombre };
+      }
+    }
+
     return {
       usuario: {
         id: usuario.id,
@@ -265,6 +285,8 @@ export class AuthService {
         estadoRegistro: usuario.estadoRegistro,
       },
       contexto: ctx,
+      organizacion,
+      sucursalActiva,
     };
   }
 

@@ -9,9 +9,11 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
+import { FormRequiredLegend } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 type Sucursal = {
@@ -30,9 +32,9 @@ type Listado = {
 
 export default function SucursalesPage() {
   const router = useRouter();
+  const toast = useToast();
   const [data, setData] = useState<Listado | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
 
   async function cargar() {
     const res = await apiFetch<Listado>('/sucursales?estadoRegistro=TODOS');
@@ -52,7 +54,6 @@ export default function SucursalesPage() {
   async function crear(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     try {
       await apiFetch('/sucursales', {
@@ -63,7 +64,7 @@ export default function SucursalesPage() {
         }),
       });
       (e.target as HTMLFormElement).reset();
-      setMsg('Sucursal creada.');
+      toast.success('Sucursal creada.');
       await cargar();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error');
@@ -96,18 +97,20 @@ export default function SucursalesPage() {
       <Card accent className="mb-5">
         <CardHeader title="Nueva sucursal" />
         <CardBody>
-          <form onSubmit={crear} className="flex flex-col gap-3 sm:flex-row">
-            <Input name="nombre" required placeholder="Nombre" className="flex-1" />
-            <Input name="codigo" required placeholder="Código" className="sm:w-28" />
-            <Button type="submit" className="sm:shrink-0">
-              Crear
-            </Button>
+          <form onSubmit={crear} className="space-y-3">
+            <FormRequiredLegend />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Input name="nombre" required placeholder="Nombre" className="flex-1" />
+              <Input name="codigo" required placeholder="Código" className="sm:w-28" />
+              <Button type="submit" className="sm:shrink-0">
+                Crear
+              </Button>
+            </div>
           </form>
         </CardBody>
       </Card>
 
       {error ? <div className="mb-4"><StatusBanner tone="error">{error}</StatusBanner></div> : null}
-      {msg ? <div className="mb-4"><StatusBanner tone="success">{msg}</StatusBanner></div> : null}
 
       <ul className="space-y-3">
         {data?.items.map((s) => (

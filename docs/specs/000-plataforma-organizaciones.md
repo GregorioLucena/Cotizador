@@ -382,6 +382,21 @@ type CrearOrganizacionResultado = {
     categoriasCreadas: number;
   };
 };
+
+// GET /api/organizaciones/:id
+type ObtenerOrganizacionResultado = {
+  organizacion: OrganizacionDetalle;
+  provisionamiento: CrearOrganizacionResultado['provisionamiento'];
+  usuarios: Array<{
+    id: string;
+    nombreCompleto: string;
+    email: string;
+    estadoRegistro: 'ACTIVO' | 'INACTIVO';
+    esAdministrador: boolean;
+    createdAt: string;
+  }>;
+  tieneAdministrador: boolean;
+};
 ```
 
 ### Usuario administrador inicial

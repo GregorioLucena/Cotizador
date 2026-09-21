@@ -15,9 +15,10 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextField } from '@/components/ui/field';
+import { FormRequiredLegend, SelectField, TextField } from '@/components/ui/field';
 
 type Regla = {
   id: string;
@@ -32,10 +33,10 @@ type Regla = {
 
 export default function ReglasDescuentoPage() {
   const router = useRouter();
+  const toast = useToast();
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [reglas, setReglas] = useState<Regla[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -77,7 +78,6 @@ export default function ReglasDescuentoPage() {
     e.preventDefault();
     setPending(true);
     setError(null);
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     const ambito = String(fd.get('ambito'));
     const body: Record<string, unknown> = {
@@ -96,7 +96,7 @@ export default function ReglasDescuentoPage() {
         body: JSON.stringify(body),
       });
       setShowForm(false);
-      setMsg('Regla creada.');
+      toast.success('Regla creada.');
       await cargar();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error al crear');
@@ -127,13 +127,13 @@ export default function ReglasDescuentoPage() {
       />
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
       {showForm ? (
         <form
           onSubmit={(e) => void onCrear(e)}
           className="mb-6 space-y-3 rounded-2xl border border-borde bg-surface p-4"
         >
+          <FormRequiredLegend />
           <TextField label="Nombre" name="nombre" required minLength={2} maxLength={120} />
           <SelectField label="Ámbito" name="ambito" defaultValue="GLOBAL">
             <option value="GLOBAL">GLOBAL</option>

@@ -19,6 +19,7 @@ import {
 } from '@/components/shell/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
+import { Field, FormRequiredLegend, RequiredAsterisk } from '@/components/ui/field';
 import { Input, Select, Textarea } from '@/components/ui/input';
 
 type PerfilAuth = {
@@ -178,7 +179,7 @@ function NuevoItemForm() {
   }
 
   return (
-    <AppShell nav="organizacion" maxWidth="md">
+    <AppShell nav="organizacion" maxWidth="lg">
       <BackLink href="/catalogo">Volver al catálogo</BackLink>
       <PageHeader
         title="Nuevo item"
@@ -190,11 +191,11 @@ function NuevoItemForm() {
         <p className="text-sm text-muted">Cargando…</p>
       ) : auth ? (
         <form onSubmit={onSubmit} className="space-y-4">
+          <FormRequiredLegend />
           <Card>
             <CardBody className="space-y-3">
               <h2 className="text-sm font-bold text-ink">Identificación</h2>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Nombre *</span>
+              <Field label="Nombre" required>
                 <Input
                   required
                   minLength={3}
@@ -202,32 +203,29 @@ function NuevoItemForm() {
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                 />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">SKU</span>
+              </Field>
+              <Field label="SKU">
                 <Input
                   maxLength={60}
                   value={sku}
                   onChange={(e) => setSku(e.target.value)}
                   placeholder="Opcional, único"
                 />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Descripción</span>
+              </Field>
+              <Field label="Descripción">
                 <Textarea
                   maxLength={2000}
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                 />
-              </label>
+              </Field>
             </CardBody>
           </Card>
 
           <Card>
             <CardBody className="space-y-3">
               <h2 className="text-sm font-bold text-ink">Clasificación</h2>
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted">Unidad *</span>
+              <Field label="Unidad" required>
                 <Select
                   required
                   value={unidadMedidaId}
@@ -242,7 +240,7 @@ function NuevoItemForm() {
                     </option>
                   ))}
                 </Select>
-              </label>
+              </Field>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted">Tipo</span>
                 <Select
@@ -365,13 +363,7 @@ function AtributoField({
   value: string | boolean | { desde: string; hasta: string } | undefined;
   onChange: (v: string | boolean | { desde: string; hasta: string }) => void;
 }) {
-  const label = (
-    <span className="mb-1 block text-xs font-medium text-muted">
-      {def.etiqueta}
-      {def.requerido ? ' *' : ''}
-      {def.unidadSugerida ? ` (${def.unidadSugerida})` : ''}
-    </span>
-  );
+  const labelText = `${def.etiqueta}${def.unidadSugerida ? ` (${def.unidadSugerida})` : ''}`;
 
   if (def.tipoDato === 'BOOLEANO') {
     return (
@@ -382,15 +374,14 @@ function AtributoField({
           onChange={(e) => onChange(e.target.checked)}
         />
         {def.etiqueta}
-        {def.requerido ? ' *' : ''}
+        {def.requerido ? <RequiredAsterisk /> : null}
       </label>
     );
   }
 
   if (def.tipoDato === 'LISTA') {
     return (
-      <label className="block">
-        {label}
+      <Field label={labelText} required={def.requerido}>
         <Select
           value={typeof value === 'string' ? value : ''}
           onChange={(e) => onChange(e.target.value)}
@@ -403,7 +394,7 @@ function AtributoField({
             </option>
           ))}
         </Select>
-      </label>
+      </Field>
     );
   }
 
@@ -414,9 +405,9 @@ function AtributoField({
         : { desde: '', hasta: '' };
     return (
       <fieldset className="space-y-2">
-        <legend className="text-xs font-medium text-muted">
+        <legend className="text-sm font-semibold text-ink">
           {def.etiqueta}
-          {def.requerido ? ' *' : ''}
+          {def.requerido ? <RequiredAsterisk /> : null}
         </legend>
         <div className="grid grid-cols-2 gap-2">
           <Input
@@ -437,15 +428,14 @@ function AtributoField({
   }
 
   return (
-    <label className="block">
-      {label}
+    <Field label={labelText} required={def.requerido}>
       <Input
-        type={def.tipoDato === 'ENTERO' || def.tipoDato === 'NUMERO' ? 'text' : 'text'}
+        type="text"
         inputMode={def.tipoDato === 'ENTERO' || def.tipoDato === 'NUMERO' ? 'decimal' : undefined}
         value={typeof value === 'string' ? value : ''}
         onChange={(e) => onChange(e.target.value)}
         required={def.requerido}
       />
-    </label>
+    </Field>
   );
 }

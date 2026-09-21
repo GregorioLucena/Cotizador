@@ -17,6 +17,7 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody } from '@/components/ui/card';
@@ -92,6 +93,7 @@ const OBLIGATORIOS: Record<Tipo, string[]> = {
 
 export default function ImportarCatalogoPage() {
   const router = useRouter();
+  const toast = useToast();
   const [auth, setAuth] = useState<PerfilAuth | null>(null);
   const [paso, setPaso] = useState<1 | 2 | 3>(1);
   const [tipo, setTipo] = useState<Tipo>('ITEMS');
@@ -102,7 +104,6 @@ export default function ImportarCatalogoPage() {
   const [historial, setHistorial] = useState<Importacion[]>([]);
   const [confirmarCheck, setConfirmarCheck] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const campos = useMemo(() => CAMPOS_POR_TIPO[tipo], [tipo]);
@@ -167,7 +168,9 @@ export default function ImportarCatalogoPage() {
       await leerCabecerasCsv(file);
     } else {
       setCabeceras([]);
-      setMsg('Archivo Excel: mapeará columnas por nombre tras la carga si coinciden con la plantilla.');
+      toast.info(
+        'Archivo Excel: mapeará columnas por nombre tras la carga si coinciden con la plantilla.',
+      );
       const auto: Record<string, string> = {};
       for (const campo of CAMPOS_POR_TIPO[tipo]) {
         auto[campo] = campo;
@@ -209,7 +212,6 @@ export default function ImportarCatalogoPage() {
     }
     setBusy(true);
     setError(null);
-    setMsg(null);
     try {
       const fd = new FormData();
       fd.append('tipo', tipo);
@@ -221,7 +223,7 @@ export default function ImportarCatalogoPage() {
       });
       setActual(creada);
       setPaso(2);
-      setMsg(`Archivo cargado: ${creada.filasTotales} filas.`);
+      toast.success(`Archivo cargado: ${creada.filasTotales} filas.`);
       await cargarHistorial();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo cargar.');
@@ -234,7 +236,6 @@ export default function ImportarCatalogoPage() {
     if (!actual) return;
     setBusy(true);
     setError(null);
-    setMsg(null);
     try {
       const v = await apiFetch<Importacion>(`/importaciones/${actual.id}/validar`, {
         method: 'POST',
@@ -244,11 +245,11 @@ export default function ImportarCatalogoPage() {
       setPaso(3);
       setConfirmarCheck(false);
       if (v.filasConError > 0) {
-        setMsg(
+        toast.warn(
           `Se encontraron ${v.filasConError} filas con error. Puede confirmar solo las ${v.filasValidas} válidas.`,
         );
       } else {
-        setMsg(`Validación OK: ${v.filasValidas} filas válidas.`);
+        toast.success(`Validación OK: ${v.filasValidas} filas válidas.`);
       }
       await cargarHistorial();
     } catch (err) {
@@ -266,7 +267,6 @@ export default function ImportarCatalogoPage() {
     }
     setBusy(true);
     setError(null);
-    setMsg(null);
     try {
       const r = await apiFetch<Importacion>(`/importaciones/${actual.id}/confirmar`, {
         method: 'POST',
@@ -275,11 +275,11 @@ export default function ImportarCatalogoPage() {
       setActual(r);
       const res = r.resumen;
       if (simular) {
-        setMsg(
+        toast.info(
           `Simulación completa: se crearían ${res?.altas ?? 0} y se actualizarían ${res?.actualizaciones ?? res?.filasActualizadas ?? 0}. No se guardó nada.`,
         );
       } else {
-        setMsg(
+        toast.success(
           `Importación aplicada: ${res?.altas ?? 0} altas, ${res?.actualizaciones ?? res?.filasActualizadas ?? 0} actualizaciones, ${res?.omitidas ?? res?.filasOmitidas ?? 0} omitidas.`,
         );
       }
@@ -300,7 +300,7 @@ export default function ImportarCatalogoPage() {
         body: JSON.stringify({}),
       });
       setActual(r);
-      setMsg('Importación cancelada.');
+      toast.success('Importación cancelada.');
       await cargarHistorial();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo cancelar.');
@@ -317,7 +317,6 @@ export default function ImportarCatalogoPage() {
     setMapeo({});
     setConfirmarCheck(false);
     setError(null);
-    setMsg(null);
   }
 
   if (!auth && !error) {
@@ -336,7 +335,6 @@ export default function ImportarCatalogoPage() {
         description="Cargar → validar → confirmar (o simular)."
       />
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
       <div className="mb-4 flex gap-2 text-xs font-bold uppercase tracking-wide">
         {[1, 2, 3].map((n) => (

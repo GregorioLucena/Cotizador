@@ -16,9 +16,10 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckField, TextField } from '@/components/ui/field';
+import { CheckField, FormRequiredLegend, TextField } from '@/components/ui/field';
 
 type Lista = {
   id: string;
@@ -37,11 +38,11 @@ type OrgConfig = {
 
 export default function PreciosPage() {
   const router = useRouter();
+  const toast = useToast();
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [listas, setListas] = useState<Lista[]>([]);
   const [monedaBaseId, setMonedaBaseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -100,7 +101,6 @@ export default function PreciosPage() {
     if (!monedaBaseId) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     try {
       await apiFetch('/listas-precio', {
@@ -113,7 +113,7 @@ export default function PreciosPage() {
         }),
       });
       setShowForm(false);
-      setMsg('Lista creada.');
+      toast.success('Lista creada.');
       await cargar();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error al crear');
@@ -146,7 +146,6 @@ export default function PreciosPage() {
       />
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
       <div className="mb-6 flex flex-wrap gap-3">
         {puedeReglas ? (
@@ -173,6 +172,7 @@ export default function PreciosPage() {
           onSubmit={(e) => void onCrear(e)}
           className="mb-6 space-y-3 rounded-2xl border border-borde bg-surface p-4"
         >
+          <FormRequiredLegend />
           <TextField label="Nombre" name="nombre" required minLength={2} maxLength={80} />
           <TextField
             label="Código"
@@ -193,32 +193,61 @@ export default function PreciosPage() {
       {listas.length === 0 ? (
         <StatusBanner tone="info">Aún no hay listas de precios.</StatusBanner>
       ) : (
-        <ul className="space-y-2">
-          {listas.map((l) => (
-            <li key={l.id}>
-              <Link
-                href={`/precios/${l.id}`}
-                className="group flex items-center gap-3 rounded-2xl border border-borde/80 bg-surface px-4 py-3.5 transition hover:border-teal/35"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-display text-lg font-bold text-ink">
+        <div className="overflow-hidden rounded-2xl border border-borde bg-surface">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-borde bg-paper/80 text-xs uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Nombre</th>
+                <th className="px-4 py-3 font-semibold">Código</th>
+                <th className="px-4 py-3 font-semibold">Estado</th>
+                <th className="px-4 py-3 font-semibold">
+                  <span className="sr-only">Abrir</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {listas.map((l) => (
+                <tr
+                  key={l.id}
+                  className="border-b border-borde/70 transition hover:bg-paper/50 last:border-0"
+                >
+                  <td className="px-4 py-3.5">
+                    <Link
+                      href={`/precios/${l.id}`}
+                      className="font-display text-base font-bold text-ink hover:text-teal"
+                    >
                       {l.nombre}
-                    </span>
-                    <Badge>{l.codigo}</Badge>
+                    </Link>
                     {l.esPredeterminada ? (
-                      <Badge className="bg-teal/15 text-teal-deep">Predeterminada</Badge>
+                      <Badge className="ml-2 bg-teal/15 text-teal-deep">
+                        Predeterminada
+                      </Badge>
                     ) : null}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Badge>{l.codigo}</Badge>
+                  </td>
+                  <td className="px-4 py-3.5">
                     {l.estadoRegistro === 'INACTIVO' ? (
                       <Badge className="bg-peligro/10 text-peligro">Inactiva</Badge>
-                    ) : null}
-                  </span>
-                </span>
-                <ChevronRight className="size-4 text-muted group-hover:text-teal" />
-              </Link>
-            </li>
-          ))}
-        </ul>
+                    ) : (
+                      <Badge className="bg-exito/10 text-exito">Activa</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5 text-right">
+                    <Link
+                      href={`/precios/${l.id}`}
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-teal hover:underline"
+                    >
+                      Abrir
+                      <ChevronRight className="size-4" />
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </AppShell>
   );

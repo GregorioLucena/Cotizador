@@ -25,7 +25,9 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { ProcessOverlay } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
+import { FormRequiredLegend, RequiredAsterisk } from '@/components/ui/field';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { cn } from '@/lib/cn';
 
@@ -273,6 +275,7 @@ export default function CotizarPage() {
         <p className="text-sm text-muted">Sin permiso para capturar.</p>
       ) : (
         <form onSubmit={onSubmit} className="space-y-5">
+          <FormRequiredLegend />
           {/* Contexto: cliente + lista */}
           <section className="animate-rise space-y-3">
             <div className="flex gap-2">
@@ -313,7 +316,7 @@ export default function CotizarPage() {
 
             {modoCliente === 'buscar' ? (
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wide text-muted">
+                <label className="text-sm font-semibold text-muted">
                   Buscar cliente
                 </label>
                 <Input
@@ -369,8 +372,9 @@ export default function CotizarPage() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+                  <label className="mb-1.5 block text-sm font-semibold text-ink">
                     Nombre
+                    <RequiredAsterisk />
                   </label>
                   <Input
                     value={nombreLibre}
@@ -381,7 +385,7 @@ export default function CotizarPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+                  <label className="mb-1.5 block text-sm font-semibold text-muted">
                     WhatsApp (opcional)
                   </label>
                   <Input
@@ -396,8 +400,9 @@ export default function CotizarPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+                <label className="mb-1.5 block text-sm font-semibold text-ink">
                   Lista de precios
+                  <RequiredAsterisk />
                 </label>
                 <Select
                   value={listaPrecioId}
@@ -414,7 +419,7 @@ export default function CotizarPage() {
               </div>
               {sucursales.length > 1 && (
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+                  <label className="mb-1.5 block text-sm font-semibold text-muted">
                     Sucursal
                   </label>
                   <Select
@@ -475,7 +480,7 @@ export default function CotizarPage() {
                   'hola, necesito 2 tubos de media, 10 codos y un pegamento azul'
                 }
                 rows={8}
-                className="min-h-[11rem] resize-y rounded-none border-0 bg-transparent px-4 py-3 pl-5 text-[15px] leading-relaxed shadow-none focus-visible:ring-0"
+                className="min-h-[11rem] resize-y rounded-none border-0 bg-transparent px-4 py-3 pl-5 text-base leading-relaxed shadow-none focus-visible:ring-0"
                 disabled={enviando}
               />
               <div className="h-1 bg-paper">
@@ -498,11 +503,6 @@ export default function CotizarPage() {
             >
               {enviando ? 'Generando borrador…' : 'Generar borrador'}
             </Button>
-            {enviando && (
-              <p className="mt-2 text-center text-xs text-muted">
-                Interpretando · resolviendo catálogo · calculando precios
-              </p>
-            )}
           </div>
 
           <p className="text-center text-xs text-muted">
@@ -513,6 +513,8 @@ export default function CotizarPage() {
           </p>
         </form>
       )}
+
+      <ProcessOverlay open={enviando} title="Generando borrador" />
     </AppShell>
   );
 }

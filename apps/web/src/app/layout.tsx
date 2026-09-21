@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Outfit, Source_Sans_3 } from 'next/font/google';
+import { AppProviders } from '@/components/providers';
 import './globals.css';
 
 const sourceSans = Source_Sans_3({
@@ -23,7 +24,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${sourceSans.variable} ${outfit.variable}`}>
-      <body className="app-shell-bg font-sans antialiased">{children}</body>
+      <body className="app-shell-bg font-sans antialiased">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

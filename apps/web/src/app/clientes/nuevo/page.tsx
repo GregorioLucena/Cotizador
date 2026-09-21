@@ -15,8 +15,9 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
-import { Field, SelectField, TextField } from '@/components/ui/field';
+import { Field, FormRequiredLegend, SelectField, TextField } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/input';
 
 type ListaOpcion = {
@@ -33,9 +34,9 @@ type ClienteCreado = {
 
 export default function NuevoClientePage() {
   const router = useRouter();
+  const toast = useToast();
   const [listas, setListas] = useState<ListaOpcion[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [listo, setListo] = useState(false);
 
@@ -76,7 +77,6 @@ export default function NuevoClientePage() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setMsg(null);
     setPending(true);
     const fd = new FormData(e.currentTarget);
     const listaPrecioId = String(fd.get('listaPrecioId') || '');
@@ -100,7 +100,9 @@ export default function NuevoClientePage() {
         }),
       });
       if (data.advertencias?.includes('CLIENTE_REUTILIZADO_POR_WHATSAPP')) {
-        setMsg('Se usó el cliente existente con ese WhatsApp.');
+        toast.info('Se usó el cliente existente con ese WhatsApp.');
+      } else {
+        toast.success('Cliente creado.');
       }
       router.push(`/clientes/${data.id}`);
     } catch (err) {
@@ -123,7 +125,7 @@ export default function NuevoClientePage() {
   }
 
   return (
-    <AppShell nav="organizacion" maxWidth="sm">
+    <AppShell nav="organizacion" maxWidth="lg">
       <PageHeader
         eyebrow={<BackLink href="/clientes">← Clientes</BackLink>}
         title="Nuevo cliente"
@@ -131,9 +133,9 @@ export default function NuevoClientePage() {
       />
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
       <form onSubmit={(e) => void onSubmit(e)} className="mt-5 space-y-3">
+        <FormRequiredLegend />
         <TextField
           label="Nombre"
           name="nombre"

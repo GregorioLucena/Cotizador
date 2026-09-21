@@ -279,7 +279,7 @@ export default function HistorialPage() {
                   <span className="block font-display text-base font-bold tabular-nums text-ink">
                     {c.total}
                   </span>
-                  <span className="text-[11px] uppercase tracking-wide text-muted">
+                  <span className="text-xs uppercase tracking-wide text-muted">
                     moneda base
                   </span>
                 </span>

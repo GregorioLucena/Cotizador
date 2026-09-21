@@ -15,9 +15,10 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TextField } from '@/components/ui/field';
+import { FormRequiredLegend, TextField } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 type Lista = {
@@ -42,12 +43,12 @@ export default function ListaPrecioDetallePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const listaId = params.id;
+  const toast = useToast();
 
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [lista, setLista] = useState<Lista | null>(null);
   const [precios, setPrecios] = useState<PrecioRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [itemQuery, setItemQuery] = useState('');
   const [items, setItems] = useState<ItemOpcion[]>([]);
@@ -115,7 +116,7 @@ export default function ListaPrecioDetallePage() {
         body: JSON.stringify({ esPredeterminada: true }),
       });
       setLista(updated);
-      setMsg('Lista marcada como predeterminada.');
+      toast.success('Lista marcada como predeterminada.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error');
     } finally {
@@ -128,13 +129,12 @@ export default function ListaPrecioDetallePage() {
     if (!itemId || !precio) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     try {
       await apiFetch(`/listas-precio/${listaId}/precios`, {
         method: 'PUT',
         body: JSON.stringify({ itemId, precio }),
       });
-      setMsg('Precio guardado.');
+      toast.success('Precio guardado.');
       setItemId('');
       setPrecio('');
       setItemQuery('');
@@ -158,7 +158,7 @@ export default function ListaPrecioDetallePage() {
           estadoRegistro: 'INACTIVO',
         }),
       });
-      setMsg('Precio inactivado.');
+      toast.success('Precio inactivado.');
       await cargar();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error');
@@ -202,13 +202,13 @@ export default function ListaPrecioDetallePage() {
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
       {puedeAdmin ? (
         <form
           onSubmit={(e) => void onUpsert(e)}
           className="mb-6 space-y-3 rounded-2xl border border-borde bg-surface p-4"
         >
+          <FormRequiredLegend />
           <p className="font-display text-base font-bold text-ink">Asignar precio</p>
           <div className="space-y-1.5">
             <label className="block text-sm font-semibold text-ink">Buscar item</label>
@@ -251,38 +251,66 @@ export default function ListaPrecioDetallePage() {
         </form>
       ) : null}
 
-      <ul className="space-y-2">
-        {precios.map((p) => (
-          <li
-            key={p.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-borde/80 bg-surface px-4 py-3"
-          >
-            <div className="min-w-0">
-              <p className="font-semibold text-ink">
-                {p.item?.nombre ?? p.itemId}
-              </p>
-              <p className="text-xs text-muted">
-                {p.item?.sku ? `SKU ${p.item.sku} · ` : ''}
-                {p.precio}
-                {p.estadoRegistro === 'INACTIVO' ? ' · inactivo' : ''}
-              </p>
-            </div>
-            {puedeAdmin && p.estadoRegistro === 'ACTIVO' ? (
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={pending}
-                onClick={() => void inactivarPrecio(p)}
-              >
-                Inactivar
-              </Button>
-            ) : null}
-          </li>
-        ))}
-      </ul>
       {precios.length === 0 ? (
         <StatusBanner tone="info">Esta lista aún no tiene precios.</StatusBanner>
-      ) : null}
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-borde bg-surface">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-borde bg-paper/80 text-xs uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-4 py-3 font-semibold">SKU</th>
+                <th className="px-4 py-3 font-semibold">Item</th>
+                <th className="px-4 py-3 font-semibold text-right">Precio</th>
+                <th className="px-4 py-3 font-semibold">Estado</th>
+                {puedeAdmin ? (
+                  <th className="px-4 py-3 font-semibold">Acciones</th>
+                ) : null}
+              </tr>
+            </thead>
+            <tbody>
+              {precios.map((p) => (
+                <tr
+                  key={p.id}
+                  className="border-b border-borde/70 transition hover:bg-paper/50 last:border-0"
+                >
+                  <td className="px-4 py-3.5 font-mono text-xs text-muted">
+                    {p.item?.sku ?? '—'}
+                  </td>
+                  <td className="px-4 py-3.5 font-semibold text-ink">
+                    {p.item?.nombre ?? p.itemId}
+                  </td>
+                  <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-ink">
+                    {p.precio}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    {p.estadoRegistro === 'INACTIVO' ? (
+                      <Badge className="bg-peligro/10 text-peligro">Inactivo</Badge>
+                    ) : (
+                      <Badge className="bg-exito/10 text-exito">Activo</Badge>
+                    )}
+                  </td>
+                  {puedeAdmin ? (
+                    <td className="px-4 py-3.5">
+                      {p.estadoRegistro === 'ACTIVO' ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={pending}
+                          onClick={() => void inactivarPrecio(p)}
+                        >
+                          Inactivar
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
+                      )}
+                    </td>
+                  ) : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </AppShell>
   );
 }

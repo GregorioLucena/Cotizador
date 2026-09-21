@@ -18,7 +18,7 @@ import {
 } from '@/components/shell/app-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
-import { CheckField, Field, SelectField, TextField } from '@/components/ui/field';
+import { CheckField, Field, FormRequiredLegend, SelectField, TextField } from '@/components/ui/field';
 import { Select } from '@/components/ui/input';
 
 type Vertical = {
@@ -211,7 +211,7 @@ export default function NuevaOrganizacionPage() {
 
   if (exito) {
     return (
-      <AppShell nav="plataforma" maxWidth="sm">
+      <AppShell nav="plataforma" maxWidth="lg">
         <PageHeader title="Organización creada" />
         <StatusBanner tone="success">
           Organización creada y provisionada correctamente
@@ -235,8 +235,14 @@ export default function NuevaOrganizacionPage() {
         </Card>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            href="/plataforma/organizaciones"
+            href={`/plataforma/organizaciones/${exito.organizacion.id}`}
             className="inline-flex min-h-11 items-center rounded-xl bg-brass px-4 text-sm font-bold text-ink"
+          >
+            Ver detalle y crear admin
+          </Link>
+          <Link
+            href="/plataforma/organizaciones"
+            className="inline-flex min-h-11 items-center rounded-xl border border-borde bg-surface px-4 text-sm font-semibold text-ink"
           >
             Volver al listado
           </Link>
@@ -268,11 +274,12 @@ export default function NuevaOrganizacionPage() {
       />
 
       <form onSubmit={onSubmit} className="space-y-5">
+        <FormRequiredLegend />
         <Card accent>
           <CardHeader title="Identidad" />
           <CardBody className="space-y-4">
             <TextField
-              label="Nombre comercial *"
+              label="Nombre comercial"
               value={form.nombre}
               onChange={(e) => setField('nombre', e.target.value)}
               required
@@ -316,7 +323,7 @@ export default function NuevaOrganizacionPage() {
         <Card>
           <CardHeader title="Configuración inicial" />
           <CardBody className="space-y-4">
-            <Field label="Vertical *">
+            <Field label="Vertical" required>
               <Select
                 required
                 value={form.verticalId}
@@ -346,7 +353,7 @@ export default function NuevaOrganizacionPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <SelectField
-                label="Moneda base *"
+                label="Moneda base"
                 required
                 value={form.monedaBaseId}
                 onChange={(e) => setField('monedaBaseId', e.target.value)}
@@ -375,13 +382,13 @@ export default function NuevaOrganizacionPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
-                label="Zona horaria *"
+                label="Zona horaria"
                 value={form.zonaHoraria}
                 onChange={(e) => setField('zonaHoraria', e.target.value)}
                 required
               />
               <TextField
-                label="Locale *"
+                label="Locale"
                 value={form.locale}
                 onChange={(e) => setField('locale', e.target.value)}
                 required

@@ -15,9 +15,10 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SelectField, TextField } from '@/components/ui/field';
+import { FormRequiredLegend, SelectField, TextField } from '@/components/ui/field';
 
 type Tasa = {
   id: string;
@@ -39,11 +40,11 @@ function diasDesde(fecha: string, hoy: string): number {
 
 export default function TasasCambioPage() {
   const router = useRouter();
+  const toast = useToast();
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [tasas, setTasas] = useState<Tasa[]>([]);
   const [monedas, setMonedas] = useState<Moneda[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -96,7 +97,6 @@ export default function TasasCambioPage() {
     e.preventDefault();
     setPending(true);
     setError(null);
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     try {
       await apiFetch('/tasas-cambio', {
@@ -110,7 +110,7 @@ export default function TasasCambioPage() {
         }),
       });
       setShowForm(false);
-      setMsg('Tasa creada.');
+      toast.success('Tasa creada.');
       await cargar();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error al crear');
@@ -141,7 +141,6 @@ export default function TasasCambioPage() {
       />
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
       {tasaAntigua ? (
         <StatusBanner tone="info">
           La tasa de cambio tiene más de un día; verifique antes de aprobar.
@@ -153,6 +152,7 @@ export default function TasasCambioPage() {
           onSubmit={(e) => void onCrear(e)}
           className="mb-6 space-y-3 rounded-2xl border border-borde bg-surface p-4"
         >
+          <FormRequiredLegend />
           <SelectField label="Moneda origen" name="monedaOrigenId" required>
             <option value="">Seleccione…</option>
             {monedas.map((m) => (

@@ -514,12 +514,15 @@ organización y no se reutiliza (regla 11).
 
 | Tipo | Cuando |
 |------|--------|
-| `CREADA` | Siempre, al persistir el borrador |
+| `CREADA` | Siempre, al persistir el borrador por primera vez |
+| `RECALCULADA` | Al reprocesar un borrador in-place |
 | `INTERPRETADA` | Cuando la etapa 2 completo con `exito` verdadero (aunque haya advertencias) |
 
 Reprocesar (`POST /api/precotizaciones/:solicitudId/reprocesar`) crea una **interpretación nueva**
-y un borrador nuevo según el contrato de API; no sobrescribe interpretaciones anteriores (invariante
-6 del ADR 0003).
+y **reescribe el borrador indicado** (`cotizacionId` en `BORRADOR`): conserva folio e
+identificador, desactiva las líneas previas (`activa = false`) y ensambla líneas nuevas. No
+incrementa la secuencia de folio. Las interpretaciones anteriores permanecen consultables
+(invariante 6 del ADR 0003).
 
 ### Respuesta al operador
 

@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { OrgContext } from '@cotizador/shared';
 import { ApiClientError, apiFetch, setAccessToken } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
+import { Field, FormRequiredLegend } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 
 type LoginData = {
@@ -21,6 +22,7 @@ export default function AccesoPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mostrarPassword, setMostrarPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -63,7 +65,8 @@ export default function AccesoPage() {
         onSubmit={onSubmit}
         className="animate-rise-delay w-full max-w-sm space-y-4 rounded-2xl border border-white/15 bg-white/95 p-6 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)] backdrop-blur-sm"
       >
-        <Field label="Correo" htmlFor="email">
+        <FormRequiredLegend />
+        <Field label="Correo" htmlFor="email" required>
           <Input
             id="email"
             name="email"
@@ -75,17 +78,35 @@ export default function AccesoPage() {
             placeholder="vos@negocio.com"
           />
         </Field>
-        <Field label="Contraseña" htmlFor="password">
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(ev) => setPassword(ev.target.value)}
-            placeholder="••••••••"
-          />
+        <Field label="Contraseña" htmlFor="password" required>
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={mostrarPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(ev) => setPassword(ev.target.value)}
+              placeholder="••••••••"
+              className="pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarPassword((v) => !v)}
+              className="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center rounded-r-xl text-muted transition hover:text-ink"
+              aria-label={
+                mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+              }
+              aria-pressed={mostrarPassword}
+            >
+              {mostrarPassword ? (
+                <EyeOff className="size-5" aria-hidden />
+              ) : (
+                <Eye className="size-5" aria-hidden />
+              )}
+            </button>
+          </div>
         </Field>
         {error ? (
           <p className="text-sm text-peligro" role="alert">

@@ -331,9 +331,10 @@ Estados HTTP segun `docs/06-diseno-tecnico.md`: 400 forma, 403 permiso, 404 no e
 
 ## Experiencia de usuario
 
-Las maestras viven bajo `/catalogo/maestras` con pestañas: Unidades, Categorias, Marcas y Atributos.
-Solo usuarios con `catalogo.maestras.*` ven la seccion de administracion; el cotizador consulta
-maestras embebidas en selectores del catalogo de items.
+Las maestras viven en `/maestras` como destino propio del menú (no anidado bajo Catálogo), con
+pestañas: Unidades, Categorias, Marcas y Atributos. Solo usuarios con `catalogo.maestras.*` ven la
+sección de administración; el cotizador consulta maestras embebidas en selectores del catálogo de
+items. La ruta `/catalogo/maestras` redirige a `/maestras` por compatibilidad.
 
 ### Patron ABM comun
 

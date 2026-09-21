@@ -15,9 +15,10 @@ import {
   PageHeader,
   StatusBanner,
 } from '@/components/shell/app-shell';
+import { useToast } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Field, SelectField, TextField } from '@/components/ui/field';
+import { Field, FormRequiredLegend, SelectField, TextField } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/input';
 
 type ListaOpcion = {
@@ -53,12 +54,12 @@ export default function ClienteFichaPage() {
   const router = useRouter();
   const params = useParams();
   const id = String(params.id);
+  const toast = useToast();
 
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [cliente, setCliente] = useState<ClienteDetalle | null>(null);
   const [listas, setListas] = useState<ListaOpcion[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   const puedeEditar =
@@ -109,7 +110,6 @@ export default function ClienteFichaPage() {
     if (!puedeEditar || !cliente) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     const fd = new FormData(e.currentTarget);
     const listaPrecioId = String(fd.get('listaPrecioId') || '');
     try {
@@ -130,7 +130,7 @@ export default function ClienteFichaPage() {
         ...data,
         cotizacionesRecientes: prev?.cotizacionesRecientes,
       }));
-      setMsg('Cliente actualizado.');
+      toast.success('Cliente actualizado.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo guardar.');
     } finally {
@@ -142,7 +142,6 @@ export default function ClienteFichaPage() {
     if (!puedeEditar) return;
     setPending(true);
     setError(null);
-    setMsg(null);
     try {
       const data = await apiFetch<ClienteDetalle>(`/clientes/${id}`, {
         method: 'PATCH',
@@ -152,7 +151,7 @@ export default function ClienteFichaPage() {
         ...data,
         cotizacionesRecientes: prev?.cotizacionesRecientes,
       }));
-      setMsg(
+      toast.success(
         nuevo === 'INACTIVO'
           ? 'Cliente inactivado. No aparecerá en capturas nuevas.'
           : 'Cliente reactivado.',
@@ -168,7 +167,7 @@ export default function ClienteFichaPage() {
 
   if (!cliente && !error) {
     return (
-      <AppShell nav="organizacion" maxWidth="sm">
+      <AppShell nav="organizacion" maxWidth="lg">
         <p className="py-16 text-center text-sm text-muted">Cargando…</p>
       </AppShell>
     );
@@ -176,7 +175,7 @@ export default function ClienteFichaPage() {
 
   if (error && !cliente) {
     return (
-      <AppShell nav="organizacion" maxWidth="sm">
+      <AppShell nav="organizacion" maxWidth="lg">
         <StatusBanner tone="error">{error}</StatusBanner>
         <BackLink href="/clientes">← Clientes</BackLink>
       </AppShell>
@@ -188,7 +187,7 @@ export default function ClienteFichaPage() {
   const mostrarCotizaciones = Array.isArray(cliente.cotizacionesRecientes);
 
   return (
-    <AppShell nav="organizacion" maxWidth="sm">
+    <AppShell nav="organizacion" maxWidth="lg">
       <PageHeader
         eyebrow={<BackLink href="/clientes">← Clientes</BackLink>}
         title={cliente.nombre}
@@ -201,9 +200,9 @@ export default function ClienteFichaPage() {
       />
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {msg ? <StatusBanner tone="success">{msg}</StatusBanner> : null}
 
       <form onSubmit={(e) => void onSubmit(e)} className="mt-5 space-y-3">
+        <FormRequiredLegend />
         <TextField
           label="Nombre"
           name="nombre"

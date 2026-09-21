@@ -22,6 +22,8 @@ sesiones al inactivar), usuario administrador inicial y métricas agregadas bás
 ### Web
 - `/plataforma/organizaciones` listado
 - `/plataforma/organizaciones/nueva` alta
+- `/plataforma/organizaciones/:id` detalle (provisionamiento, usuarios, admin inicial, inactivar)
+- `/plataforma/organizaciones/:id/editar` edición (vertical bloqueado)
 - Enlace desde `/panel` si `contexto.ambito === PLATAFORMA`
 
 ### Docs
@@ -44,5 +46,6 @@ Login plataforma (`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`) → panel → Admi
 - [x] Provisionamiento atómico (todo o nada)
 - [x] Códigos `ORGANIZACION_*` del catálogo en conflictos y reglas
 - [x] `ListaPrecio` sin columna `codigo` (alineado a entidad/migración)
+- [x] Detalle / edición UI (admin inicial, inactivar/reactivar)
 - [ ] Pruebas de integración HTTP listadas en la spec
-- [ ] Detalle / edición / métricas UI (diferidos; API lista)
+- [ ] Métricas UI (API lista)

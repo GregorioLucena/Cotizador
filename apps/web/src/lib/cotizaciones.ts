@@ -52,6 +52,8 @@ export type CotizacionDetalle = {
   folioNumero: number;
   estado: EstadoCotizacion | string;
   solicitudId: string | null;
+  /** Mensaje base del cliente (solicitudes.textoOriginal), si hubo precotización. */
+  textoOriginal: string | null;
   clienteId: string | null;
   nombreClienteLibre: string | null;
   telefonoClienteLibre: string | null;

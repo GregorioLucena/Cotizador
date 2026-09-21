@@ -8,7 +8,7 @@ dist
 docs
 .env
 .env.*
-!.env.development.example
+!.env.example
 coverage
 .turbo
 *.log

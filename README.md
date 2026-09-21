@@ -141,7 +141,7 @@ Requiere Node 22, pnpm y Docker. Los pasos detallados estan en `docs/12-infraest
 
 ```bash
 pnpm install
-cp .env.development.example .env.development
+cp .env.example .env.development
 pnpm docker:db          # levanta PostgreSQL
 pnpm db:migrate         # aplica migraciones
 pnpm db:seed            # permisos, perfiles y superadmin

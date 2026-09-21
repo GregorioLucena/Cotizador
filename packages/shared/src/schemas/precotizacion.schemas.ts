@@ -36,6 +36,8 @@ export const crearPrecotizacionSchema = z.object({
 export type CrearPrecotizacionInput = z.infer<typeof crearPrecotizacionSchema>;
 
 export const reprocesarPrecotizacionSchema = z.object({
+  /** Borrador a reescribir; no se crea otra cotización. */
+  cotizacionId: z.string().uuid(),
   listaPrecioId: z.string().uuid().optional(),
   sucursalId: z.string().uuid().optional(),
 });

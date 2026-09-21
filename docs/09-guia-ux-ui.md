@@ -58,6 +58,8 @@ mental de **una sola tarea**. No fragmentar en asistentes de muchos pasos.
 ### Confirmacion destructiva
 
 Toda acción irreversible o de alto impacto exige confirmación explícita con consecuencia clara.
+Se usa el diálogo propio (`ConfirmProvider` / `useConfirm`), **nunca** `window.confirm` ni
+`alert` del navegador.
 
 | Accion | Confirmacion |
 |--------|--------------|
@@ -68,6 +70,18 @@ Toda acción irreversible o de alto impacto exige confirmación explícita con c
 | Restablecer clave de usuario | Confirmacion |
 
 Las acciones reversibles (editar cantidad, elegir candidato) no abren diálogo.
+
+Componentes en `apps/web/src/components/feedback/`:
+
+| Pieza | Uso |
+|-------|-----|
+| `Dialog` | Contenedor modal con foco atrapado, Escape y backdrop |
+| `useConfirm` | Confirmaciones sí/no con título, consecuencia y tono `primary`/`danger` |
+| `ProcessOverlay` | Bloqueo amigable durante generar/reprocesar borrador |
+| `useToast` | Avisos temporales (éxito, info, warn, error corto) sin bloquear la pantalla |
+
+`StatusBanner` queda para errores de formulario, fallos de IA en contexto y avisos que deben
+permanecer mientras se resuelve la pantalla.
 
 ### Nada sin aprobacion humana
 
@@ -119,6 +133,28 @@ prioriza claridad táctil a 375px (mobile-first). Evitar temas púrpura genéric
 serif ornamental, negro+acento ácido, o estética “dashboard SaaS” saturada de tarjetas. Las
 tarjetas se usan solo cuando contienen una interacción o un bloque de estado (p. ej. resumen del
 semáforo), no como decoración.
+
+### Escala tipográfica (obligatoria)
+
+Usar **solo** clases de la escala. Prohibido `text-[Npx]` en pantallas del producto (excepciones:
+landing pública con maqueta decorativa, si se documenta).
+
+| Rol | Clase | Tamaño | Uso |
+|-----|-------|--------|-----|
+| Caption | `text-xs` | 12px | Eyebrow de sección en mayúsculas, cabecera de tabla/columna, `Badge` |
+| Secondary | `text-sm` | 14px | Meta («Pediste»), hints, errores, botones, descripción de `PageHeader`, controles |
+| Body | `text-base` | 16px | Contenido principal: nombres de ítem, importes, filas de lista |
+| Subtitle | `text-lg` + `font-display` | 18px | Título de card, títulos dentro de página |
+| Title | `text-2xl` + `font-display` | 24px | Destacados de sección (poco frecuente) |
+| Display | `text-3xl` + `font-display` | 30px | `PageHeader` (h1 de página) |
+
+Reglas:
+
+1. Los labels de formulario van en `text-sm font-semibold` (secondary), no en caption.
+2. Los eyebrows de sección (`Líneas`, `Entrega y cierre`) van en `text-xs` uppercase + tracking.
+3. Los importes y cantidades en tablas/listas van en `text-base` tabular-nums.
+4. No mezclar `text-[11px]`, `text-[13px]`, etc.: mapear al rol más cercano de la tabla.
+5. Tracking amplio (`tracking-[0.1em]`–`0.16em`) solo en caption uppercase.
 
 ### Semaforo de resolucion
 
@@ -174,6 +210,7 @@ filtradas por permiso del `OrgContext`. No se introduce otra barra de navegació
 | Cotizar | `/cotizaciones/nueva` (o equivalente) | `cotizaciones.crear` |
 | Historial | `/cotizaciones` | `cotizaciones.ver` |
 | Catalogo | `/catalogo` | `catalogo.items.ver` |
+| Maestras | `/maestras` | `catalogo.maestras.ver` (o permiso de lectura de maestras) |
 | Configuracion | `/configuracion` | `configuracion.organizacion.ver` |
 | Organizaciones | `/plataforma/organizaciones` | ambito `PLATAFORMA` |
 
@@ -213,13 +250,15 @@ configuración.
 Listado
   |-- busqueda + filtros + paginacion
   |-- accion primaria "Nuevo" (si hay permiso de crear)
-  |-- fila -> detalle / edicion
+  |-- tabla con encabezados de columna y acciones por fila (Editar / Inactivar)
+  |-- alternativa: enlace al detalle cuando la ficha es larga (items, clientes)
 Crear o editar
+  |-- dialogo o pagina de ficha; no exigir "seleccionar la fila" para editar
   |-- formulario validado con el mismo esquema Zod que la API
   |-- guardar / cancelar
-  |-- errores de campo bajo el input; errores de negocio arriba del formulario
+  |-- errores de campo bajo el input; toast de exito al guardar
 Inactivar (no borrar)
-  |-- confirmacion
+  |-- confirmacion cuando el impacto es alto
   |-- el registro desaparece de listados activos; sigue en historicos
 ```
 
@@ -230,6 +269,20 @@ Inactivar (no borrar)
 | Permisos | Ocultar botones de crear/editar sin permiso; no confiar solo en ocultar (la API rechaza) |
 | Unicidad | Conflicto 409 mostrado en lenguaje claro ("Ya existe un SKU igual") |
 | Soft delete | Nunca "Eliminar" fisico en datos de negocio; etiqueta "Inactivar" |
+
+### Campos obligatorios y mensajes
+
+Los formularios del panel siguen estas reglas:
+
+| Pieza | Comportamiento |
+|-------|----------------|
+| Asterisco | `Field` / `TextField` / `SelectField` con `required` muestran `*` en rojo (`RequiredAsterisk`) |
+| Leyenda | `FormRequiredLegend` al inicio de cada formulario con al menos un obligatorio |
+| Mensaje | Inline bajo el campo: «Este campo es obligatorio.» (`REQUIRED_FIELD_MESSAGE`). Sin tooltip nativo del navegador |
+| Hint vs error | Si hay `error`, no se muestra el `hint` debajo del control |
+| Borde | El control con error usa borde `peligro` |
+
+No hardcodear `*` dentro del texto del label (`"Nombre *"`); usar la prop `required`.
 
 ---
 
@@ -352,13 +405,15 @@ Un estado vacío explica el siguiente paso; no culpa al usuario.
 
 | Situacion | Patron |
 |-----------|--------|
-| Generar borrador | Boton en loading; area de lineas con skeleton; no se permite doble envio |
+| Generar borrador | `ProcessOverlay` a pantalla completa; boton deshabilitado; no se permite doble envio |
+| Reprocesar solicitud | Mismo overlay con mensajes de reinterpretacion |
 | Listados | Skeleton de filas o spinner de seccion; mantener cabecera visible |
 | Recalculo local | Instantaneo (shared); sin spinner de red |
 | Guardar linea | Indicador en la fila o boton; Optimistic UI solo si la spec lo autoriza |
 
-Tiempo percibido del pipeline: informar “Interpretando el pedido…” durante la espera; si supera
-unos segundos, el mensaje puede mencionar que sigue en curso sin inventar progreso falso.
+Tiempo percibido del pipeline: el overlay rota mensajes (“Interpretando el pedido…”,
+“Buscando ítems…”, “Calculando precios…”). Si supera unos 8 segundos, aclara que sigue en
+curso sin inventar progreso falso.
 
 ### Error
 
@@ -366,11 +421,14 @@ unos segundos, el mensaje puede mencionar que sigue en curso sin inventar progre
 |--------|--------------|
 | 400 validacion | Errores por campo |
 | 401 | Refresco de sesion; si falla, a login |
-| 403 | Toast o pagina "No tienes permiso" |
+| 403 | Toast "No tienes permiso" o pagina dedicada |
 | 404 | "No encontrado" (incluye dato de otra organizacion) |
 | 409 | Conflicto explicado en lenguaje de negocio |
 | 422 | Regla de negocio (p. ej. no se puede aprobar con lineas en rojo) |
 | 502 IA/PDF | Banner: se puede continuar en modo manual o reintentar documento |
+
+Exito de una accion (guardar, aprobar, copiar, alias): `useToast().success(...)`. No acumular
+banners verdes fijos en la pagina salvo que el mensaje deba quedar anclado al contexto.
 
 Los códigos técnicos (`COTIZACION_SIN_LINEAS`, etc.) no se muestran crudos al cotizador; se mapean
 en `lib` / catálogo de errores a frases en español.

@@ -19,12 +19,18 @@ solo se necesita dentro de la imagen de la API.
 
 ## Variables de entorno
 
-Todas las variables viven en un unico archivo en la raiz del monorepo. La plantilla
-`.env.development.example` se versiona; el archivo `.env.development` con los valores reales **no** se
-versiona.
+Todas las variables viven en un unico archivo en la raiz del monorepo.
 
-Los scripts de la raiz cargan ese archivo con `dotenv-cli`; los contenedores lo reciben con
+| Archivo | Versionado | Contenido |
+|---------|------------|-----------|
+| `.env.example` | Si | Lista de claves; **secretos y valores reales vacios** |
+| `.env.development` | No | Valores locales reales (nunca se sube al repositorio) |
+
+Los scripts de la raiz cargan `.env.development` con `dotenv-cli`; los contenedores lo reciben con
 `--env-file`.
+
+Los ejemplos de la tabla siguiente son orientativos para completar `.env.development`. No se copian
+con secretos a ningun archivo versionado.
 
 ### Base de datos
 
@@ -90,18 +96,25 @@ Ver `decisions/0004-proveedor-de-ia-abstraido.md`.
 |----------|-------------|---------|
 | `RUN_SEED` | Si vale `true`, el entrypoint ejecuta la semilla idempotente antes de arrancar. Debe ser `false` en produccion | `true` |
 | `SEED_ADMIN_EMAIL` | Correo del usuario administrador de plataforma que crea la semilla si no existe | `admin@cotizador.local` |
-| `SEED_ADMIN_PASSWORD` | Contraseña inicial de ese usuario. Se cambia en el primer inicio de sesion y nunca se versiona | `cambiar-en-el-primer-acceso` |
+| `SEED_ADMIN_PASSWORD` | Contraseña inicial de ese usuario. Nunca se versiona | *(solo en `.env.development`)* |
+| `SEED_DEMO` | Si vale `false`, no enriquece la organizacion demo (catalogo, cotizador, cliente, tasa). Por defecto se enriquece | `true` |
+| `SEED_DEMO_ADMIN_EMAIL` | Admin de la organizacion demo | `admin@demo.local` |
+| `SEED_DEMO_ADMIN_PASSWORD` | Contraseña del admin demo (si falta, usa `SEED_ADMIN_PASSWORD`) | *(solo local)* |
+| `SEED_DEMO_COTIZADOR_EMAIL` | Usuario con perfil Cotizador en la demo | `cotizador@demo.local` |
+| `SEED_DEMO_COTIZADOR_PASSWORD` | Contraseña del cotizador demo (si falta, usa la del admin demo) | *(solo local)* |
 
 ### Reglas sobre las variables
 
-1. `.env.development` no se versiona nunca. `.env.development.example` si, y debe mantenerse sincronizado
+1. `.env.development` no se versiona nunca. `.env.example` si, y debe mantenerse sincronizado
    con las variables que el codigo lee de verdad.
-2. Ninguna variable con valor sensible puede llevar el prefijo `NEXT_PUBLIC_`: todo lo que lo lleva viaja
+2. En `.env.example` las claves y secretos van **vacios** (`CLAVE=`). Los valores de
+   orientacion viven solo en las tablas de este documento, nunca en la plantilla.
+3. Ninguna variable con valor sensible puede llevar el prefijo `NEXT_PUBLIC_`: todo lo que lo lleva viaja
    al navegador.
-3. `JWT_SECRET`, `POSTGRES_PASSWORD`, `OPENAI_API_KEY` y `SEED_ADMIN_PASSWORD` tienen valores distintos
-   en cada entorno.
-4. Una variable nueva se agrega a la plantilla y a esta tabla en la misma peticion de integracion que el
-   codigo que la usa.
+4. `JWT_SECRET`, `POSTGRES_PASSWORD`, `OPENAI_API_KEY`, `SEED_ADMIN_PASSWORD` y
+   `SEED_DEMO_ADMIN_PASSWORD` tienen valores distintos en cada entorno y nunca se versionan.
+5. Una variable nueva se agrega a `.env.example` (clave vacia) y a esta tabla en la misma peticion de
+   integracion que el codigo que la usa.
 
 ## Servicios de Compose
 
@@ -304,28 +317,47 @@ La ultima orden debe imprimir `9.15.9`.
 ### Crear el archivo de variables
 
 ```bash
-cp .env.development.example .env.development
+cp .env.example .env.development
 ```
 
 En PowerShell:
 
 ```powershell
-Copy-Item .env.development.example .env.development
+Copy-Item .env.example .env.development
 ```
 
-Editar `.env.development` y ajustar como minimo:
+Editar `.env.development` y completar como minimo (orientacion en las tablas de arriba):
 
-- `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB`, y reflejar los mismos valores en
-  `DATABASE_URL` apuntando a `localhost`.
-- `JWT_SECRET`, con un valor generado:
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` y `DATABASE_URL` (misma clave en la URL, host
+  `localhost` en desarrollo local).
+- `DATABASE_SSL=false` en local.
+- `JWT_SECRET`, generado con:
 
 ```bash
 openssl rand -hex 32
 ```
 
-- `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD`, que seran las credenciales del primer acceso.
-- `IA_PROVEEDOR=none` para empezar. El producto funciona completo en modo manual sin ninguna credencial
-  de IA.
+- `JWT_ACCESS_EXPIRES_IN=15m`, `JWT_REFRESH_EXPIRES_DAYS=7`, `COOKIE_SAMESITE=lax`.
+- `API_PORT` / `PORT=3001`, `WEB_PORT=3000`, `CORS_ORIGIN=http://localhost:3000`,
+  `NODE_ENV=development`, `NEXT_PUBLIC_API_URL=http://localhost:3001/api`.
+- `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD` (superadmin de plataforma).
+- Opcional demo: `SEED_DEMO=true` (por defecto), `SEED_DEMO_ADMIN_EMAIL=admin@demo.local`,
+  `SEED_DEMO_COTIZADOR_EMAIL=cotizador@demo.local` y las contraseñas correspondientes (si no se
+  definen, reutilizan `SEED_ADMIN_PASSWORD`).
+- `IA_PROVEEDOR=none` para empezar sin credencial de IA. Si usas OpenAI, `IA_PROVEEDOR=openai` y
+  `OPENAI_API_KEY` solo en `.env.development`.
+- Documentos: `PDF_TIMEOUT_MS=30000`, `ALMACENAMIENTO_ARCHIVOS=local`, `UPLOAD_DIR=uploads`.
+- `RUN_SEED=true` en desarrollo.
+
+Tras `pnpm db:seed`, cuentas tipicas de revision (contraseña = la de semilla local):
+
+| Correo | Perfil | Uso |
+|--------|--------|-----|
+| `SEED_ADMIN_EMAIL` | Superadmin Plataforma | Crear organizaciones, laboratorio IA |
+| `admin@demo.local` | Administrador Organizacion | Config, catalogo, precios, usuarios |
+| `cotizador@demo.local` | Cotizador | Pegar WhatsApp, aprobar, entregar |
+
+Mensaje de prueba sugerido en Cotizar: `hola, necesito 2 tubos de media, 10 codos y un pegamento azul`.
 
 ### Instalar dependencias
 
@@ -428,7 +460,7 @@ pnpm dev:web
 - [ ] El entrypoint de la API aborta el arranque si una migracion falla.
 - [ ] La semilla se puede ejecutar dos veces seguidas sin duplicar datos.
 - [ ] Se genera un PDF desde el contenedor de la API sin dejar procesos de navegador abiertos.
-- [ ] `.env.development.example` contiene exactamente las variables que el codigo lee.
+- [ ] `.env.example` contiene exactamente las variables que el codigo lee.
 
 ## Documentos relacionados
 

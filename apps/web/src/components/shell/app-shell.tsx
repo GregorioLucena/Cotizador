@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ClipboardList,
   Home,
+  Layers,
   LogOut,
   Menu,
   MessageSquareText,
@@ -52,8 +53,14 @@ const NAV = {
     {
       href: '/catalogo',
       label: 'Catálogo',
-      desc: 'Items y maestras',
+      desc: 'Items, importación y términos',
       icon: Package,
+    },
+    {
+      href: '/maestras',
+      label: 'Maestras',
+      desc: 'Unidades, categorías, marcas y atributos',
+      icon: Layers,
     },
     {
       href: '/precios',
@@ -115,12 +122,13 @@ export function AppShell({
   nav = 'none',
   actions,
   onLogout,
-  maxWidth = 'md',
+  maxWidth: _maxWidth = 'lg',
 }: {
   children: ReactNode;
   nav?: ShellNav;
   actions?: ReactNode;
   onLogout?: () => void | Promise<void>;
+  /** Conservado por compatibilidad; el ancho unificado es siempre max-w-5xl. */
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
 }) {
   const pathname = usePathname();
@@ -129,13 +137,9 @@ export function AppShell({
   const titleId = useId();
   const items = nav === 'none' ? [] : NAV[nav];
   const showMenu = items.length > 0 || nav !== 'none';
-  const widths = {
-    sm: 'max-w-xl',
-    md: 'max-w-3xl',
-    lg: 'max-w-5xl',
-    xl: 'max-w-6xl',
-  };
-
+  // Ancho único de contenido autenticado en todas las pantallas.
+  const contentWidth = 'max-w-5xl';
+  void _maxWidth;
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -166,7 +170,7 @@ export function AppShell({
       /* idempotente */
     }
     clearSession();
-    router.replace('/acceso');
+    router.replace('/');
   }
 
   return (
@@ -175,7 +179,7 @@ export function AppShell({
         <div
           className={cn(
             'mx-auto flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2.5 md:px-6',
-            widths[maxWidth],
+            contentWidth,
           )}
         >
           <Link href="/panel" className="flex items-center gap-2.5">
@@ -203,7 +207,7 @@ export function AppShell({
         </div>
       </header>
 
-      <div className={cn('mx-auto w-full px-4 py-6 md:px-6 md:py-8', widths[maxWidth])}>
+      <div className={cn('mx-auto w-full px-4 py-6 md:px-6 md:py-8', contentWidth)}>
         {children}
       </div>
 
@@ -325,7 +329,7 @@ export function PageHeader({
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4 md:mb-8">
       <div className="min-w-0 space-y-1.5">
         {eyebrow}
-        <h1 className="font-display text-3xl font-bold tracking-tight text-ink md:text-[2.1rem]">
+        <h1 className="font-display text-3xl font-bold tracking-tight text-ink">
           {title}
         </h1>
         {description ? (

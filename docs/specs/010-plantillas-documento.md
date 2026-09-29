@@ -679,7 +679,7 @@ existencia.
 | Regeneracion de emergencia | Si un administrador de plataforma puede forzar regeneración cuando el archivo falta en almacenamiento | Pérdida de evidencia vs. imposibilidad de reentregar | MVP: `DOCUMENTO_ARCHIVO_AUSENTE` sin regeneración silenciosa. |
 | Precarga de identidad | Si al editar la plantilla los campos vacíos se rellenan siempre desde `organizaciones` o solo al provisionar | Divergencia entre ficha de organización y encabezado del documento | Solo al provisionar; el logo vivo se lee de `organizaciones.logoUrl` al renderizar si la plantilla no fija `logoUrl`. |
 | Nombre del archivo | Referencia en spec 002 a `010-plantilla-documento.md` (singular) vs este archivo `010-plantillas-documento.md` | Enlaces rotos entre documentos | Corregir enlaces en spec 002 cuando se toque ese doc. |
-| GeneradorPdf en local | ¿Mock determinista vs Chromium/puppeteer en desarrollo? | Preview HTML completa; PDF mock no refleja tipografía real | MVP: `GeneradorPdfMock` por defecto (bytes PDF mínimos válidos). Interfaz lista para adaptador Chromium. |
+| GeneradorPdf en local | ¿Mock determinista vs Chromium/puppeteer en desarrollo? | Preview HTML completa; PDF mock no refleja tipografía real | **2026-09-21:** `PDF_GENERADOR=auto` usa Chromium del sistema vía `puppeteer-core` (`GeneradorPdfChromium` en la API). `mock` queda para CI sin navegador. |
 
 ## Decisiones MVP v1
 
@@ -735,4 +735,9 @@ existencia.
 2. Arrancar API con `ALMACENAMIENTO` (o default `storage/`) y opcional `PDF_TIMEOUT_MS=30000`
 3. Aprobar una cotización → `POST /api/cotizaciones/:id/documento` → archivo en `storage/documentos/{orgId}/{cotizacionId}.pdf`
 4. Reentrega: `GET /api/cotizaciones/:id/documento`
-5. El adaptador por defecto es `GeneradorPdfMock` (PDF mínimo válido). La maquetación real se verifica con vista previa HTML.
+5. El adaptador por defecto es `PDF_GENERADOR=auto`: usa Chromium/Chrome del sistema
+   (`puppeteer-core`, sin descargar binario). Si no hay ejecutable, cae a `GeneradorPdfMock`.
+   Forzar: `PDF_GENERADOR=chromium` (falla sin binario) o `PDF_GENERADOR=mock` (CI).
+   Ruta explícita: `CHROMIUM_PATH` / `PUPPETEER_EXECUTABLE_PATH`.
+6. Si ya generaste un PDF con el mock, bórralo en BD/almacenamiento antes de regenerar
+   (`DOCUMENTO_YA_GENERADO` bloquea un segundo `POST`).

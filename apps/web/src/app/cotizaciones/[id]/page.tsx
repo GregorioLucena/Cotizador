@@ -209,6 +209,7 @@ export default function CotizacionDetallePage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [reprocesando, setReprocesando] = useState(false);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
   const [lineaBusyId, setLineaBusyId] = useState<string | null>(null);
   const [candidatosAbiertos, setCandidatosAbiertos] = useState<
     Record<string, boolean>
@@ -559,6 +560,7 @@ export default function CotizacionDetallePage() {
 
   async function generarPdf() {
     setBusy(true);
+    setGenerandoPdf(true);
     setError(null);
     try {
       await apiFetch(`/cotizaciones/${id}/documento`, { method: 'POST' });
@@ -570,6 +572,7 @@ export default function CotizacionDetallePage() {
     } catch (err) {
       setError(mensajeErrorApi(err, 'No se pudo generar el PDF.'));
     } finally {
+      setGenerandoPdf(false);
       setBusy(false);
     }
   }
@@ -1572,6 +1575,15 @@ export default function CotizacionDetallePage() {
           'Interpretando el mensaje de nuevo…',
           'Resolviendo contra el catálogo…',
           'Armando el borrador nuevo…',
+        ]}
+      />
+      <ProcessOverlay
+        open={generandoPdf}
+        title="Generando PDF"
+        messages={[
+          'Aplicando la plantilla de la organización…',
+          'Armando el documento…',
+          'Renderizando el PDF…',
         ]}
       />
     </AppShell>

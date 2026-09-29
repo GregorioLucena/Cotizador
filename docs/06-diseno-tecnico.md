@@ -614,9 +614,10 @@ El seed debe crear, de forma idempotente:
 - Monedas iniciales: USD, VES, COP, EUR.
 - Verticales: `FERRETERIA`, `REPUESTOS`, `AUTOMOTRIZ`, `GENERICO`.
 - Usuario superadmin de plataforma con credenciales tomadas de variables de entorno.
-- Organizacion de demostracion `Demo Ferretería` (vertical ferreteria). Con `SEED_DEMO` distinto de
-  `false` (por defecto): pack de maestras, lista de precios, plantilla, items de ejemplo con precios y
-  alias, cliente de mostrador, tasa USD→VES, usuarios admin y cotizador. Desactivar con `SEED_DEMO=false`.
+- Organizacion de demostracion `Demo Ferretería` (vertical ferreteria; plantilla con nombre
+  comercial Ferretería El Tornillo). Con `SEED_DEMO` distinto de `false` (por defecto): pack de
+  maestras, 3 listas de precios (General, Mayorista, Contratista), ~30 items con precios y alias,
+  3 clientes de prueba, tasa USD→VES, usuarios admin y cotizador. Desactivar con `SEED_DEMO=false`.
 
 ---
 

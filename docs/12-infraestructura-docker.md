@@ -88,6 +88,8 @@ Ver `decisions/0004-proveedor-de-ia-abstraido.md`.
 | Variable | Descripcion | Ejemplo |
 |----------|-------------|---------|
 | `PDF_TIMEOUT_MS` | Tiempo limite de la generacion de un PDF con el navegador sin interfaz. Al expirar se aborta y se cierra el proceso del navegador | `30000` |
+| `PDF_GENERADOR` | `auto` (Chromium si hay binario, si no mock), `chromium` (exige binario) o `mock` (CI) | `auto` |
+| `CHROMIUM_PATH` | Ruta al ejecutable de Chromium/Chrome/Edge. En Docker la fija la imagen; en local suele detectarse sola | (auto) |
 | `ALMACENAMIENTO_ARCHIVOS` | Destino de los documentos generados y los logotipos: `local` guarda en un volumen del contenedor, `s3` en un almacenamiento compatible con objetos | `local` |
 
 ### Semilla
@@ -356,6 +358,9 @@ Tras `pnpm db:seed`, cuentas tipicas de revision (contraseña = la de semilla lo
 | `SEED_ADMIN_EMAIL` | Superadmin Plataforma | Crear organizaciones, laboratorio IA |
 | `admin@demo.local` | Administrador Organizacion | Config, catalogo, precios, usuarios |
 | `cotizador@demo.local` | Cotizador | Pegar WhatsApp, aprobar, entregar |
+
+Organización demo: `Demo Ferretería` (PDF: Ferretería El Tornillo). Catálogo ampliado (~30 items),
+listas `GENERAL` (mostrador), `MAYOR` (−15 %) y `CONTRATISTA` (−10 %), y un cliente por lista.
 
 Mensaje de prueba sugerido en Cotizar: `hola, necesito 2 tubos de media, 10 codos y un pegamento azul`.
 

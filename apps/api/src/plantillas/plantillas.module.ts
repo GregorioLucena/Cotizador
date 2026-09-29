@@ -14,15 +14,36 @@ import {
 import {
   GENERADOR_PDF_TOKEN,
   GeneradorPdfMock,
+  PdfGeneracionError,
   type GeneradorPdf,
 } from '@cotizador/shared';
 import { ConfiguracionModule } from '../configuracion/configuracion.module';
+import {
+  GeneradorPdfChromium,
+  resolverExecutableChromium,
+} from './generador-pdf-chromium';
 import { PlantillasDocumentoController } from './plantillas-documento.controller';
 import { PlantillasDocumentoService } from './plantillas-documento.service';
 
 function crearGeneradorPdf(): GeneradorPdf {
-  // Mock determinista por defecto. Chromium/puppeteer puede enchufarse
-  // detrás de GENERADOR_PDF_TOKEN sin tocar el dominio.
+  const modo = (process.env.PDF_GENERADOR ?? 'auto').toLowerCase();
+
+  if (modo === 'mock') {
+    return new GeneradorPdfMock();
+  }
+
+  const executablePath = resolverExecutableChromium();
+  if (executablePath) {
+    return new GeneradorPdfChromium(executablePath);
+  }
+
+  if (modo === 'chromium') {
+    throw new PdfGeneracionError(
+      'No se encontró Chromium/Chrome. Defina CHROMIUM_PATH o use PDF_GENERADOR=mock.',
+    );
+  }
+
+  // auto sin binario: mock (CI / entornos sin navegador)
   return new GeneradorPdfMock();
 }
 

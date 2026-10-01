@@ -27,7 +27,7 @@ Cerrada — implementada (2026-09-18)
 | CA-005…009 Atributos | `validarAtributos` acumula errores `ITEM_ATRIBUTO_*` |
 | CA-010 Definición inactiva | Conserva atributos al editar; regeneración al cambiar `usarEnBusqueda`. Inactivar definición en uso sigue bloqueada por maestras (003) |
 | CA-011…014 Alias | Normalización, duplicado, compartido con `itemsCompartidos`, soft-delete |
-| CA-015 vecesUsado | Contador listo; incremento en resolución diferido a spec 008 |
+| CA-015 vecesUsado | Contador listo; incremento en `PrecotizacionesService` al resolver por alias |
 | CA-016 Aplicación + año | Expansión de rango + búsqueda por `item_aplicaciones.textoNormalizado` |
 | CA-017 Aplicación duplicada | `APLICACION_DUPLICADA` |
 | CA-018 Rename marca | Regeneración en `ItemsUsoHelper` sin tocar `updatedAt` en reindex masivo |
@@ -884,7 +884,7 @@ respuesta revela su existencia.
 - [x] La función de normalización tiene pruebas unitarias (acentos, `ñ`, signos, medidas).
 - [x] La unicidad de alias por item usa `normalizado` único por `itemId`.
 - [x] La depuración de alias y la eliminación de aplicaciones son inactivaciones lógicas.
-- [ ] El contador `vecesUsado` se incrementa al resolver una línea *(diferido a spec 008)*.
+- [x] El contador `vecesUsado` se incrementa al resolver una línea *(spec 008)*.
 - [x] `textoBusqueda` se regenera en los eventos de item, alias y maestras; reindexación disponible.
 - [x] La expansión del rango de años y la búsqueda por aplicaciones están implementadas.
 - [x] La búsqueda respeta umbral 0.30 y límite 25; UI consume `/items/buscar`.

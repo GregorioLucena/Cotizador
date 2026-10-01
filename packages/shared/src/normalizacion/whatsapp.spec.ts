@@ -33,6 +33,32 @@ describe('normalizarTelefonoWhatsapp', () => {
     }
   });
 
+  it('antepone codigoPaisDefault y quita el 0 troncal', () => {
+    expect(
+      normalizarTelefonoWhatsapp('0414-1234567', { codigoPaisDefault: '58' }),
+    ).toBe('+584141234567');
+    expect(
+      normalizarTelefonoWhatsapp('4141234567', { codigoPaisDefault: '58' }),
+    ).toBe('+584141234567');
+  });
+
+  it('ignora codigoPaisDefault si el número ya trae +', () => {
+    expect(
+      normalizarTelefonoWhatsapp('+57 300 1234567', {
+        codigoPaisDefault: '58',
+      }),
+    ).toBe('+573001234567');
+  });
+
+  it('rechaza codigoPaisDefault inválido igual que sin código', () => {
+    try {
+      normalizarTelefonoWhatsapp('04141234567', { codigoPaisDefault: '0' });
+      expect.unreachable();
+    } catch (err) {
+      expect((err as AppError).code).toBe('WHATSAPP_SIN_CODIGO_PAIS');
+    }
+  });
+
   it('rechaza formato inválido', () => {
     try {
       normalizarTelefonoWhatsapp('abc');

@@ -65,6 +65,13 @@ export class Organizacion extends BaseEntity {
   @Column({ default: 'es-VE' })
   locale!: string;
 
+  /**
+   * Código telefónico de país (solo dígitos, sin `+`) para aceptar WhatsApp locales.
+   * Ej. `58` → `0414…` se normaliza a `+58414…`. Null = exigir E.164 con `+`.
+   */
+  @Column({ type: 'varchar', length: 3, nullable: true })
+  codigoPaisWhatsapp?: string | null;
+
   @Column({ type: 'boolean', default: true })
   usaIa!: boolean;
 

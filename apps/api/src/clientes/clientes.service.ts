@@ -4,6 +4,7 @@ import {
   Cliente,
   EstadoRegistro,
   ListaPrecio,
+  Organizacion,
 } from '@cotizador/database';
 import {
   CLIENTE_REUTILIZADO_POR_WHATSAPP,
@@ -36,8 +37,18 @@ export class ClientesService {
     private readonly clienteRepo: Repository<Cliente>,
     @InjectRepository(ListaPrecio)
     private readonly listaRepo: Repository<ListaPrecio>,
+    @InjectRepository(Organizacion)
+    private readonly organizacionRepo: Repository<Organizacion>,
     private readonly dataSource: DataSource,
   ) {}
+
+  private async codigoPaisOrg(organizacionId: string): Promise<string | null> {
+    const org = await this.organizacionRepo.findOne({
+      where: { id: organizacionId },
+      select: ['id', 'codigoPaisWhatsapp'],
+    });
+    return org?.codigoPaisWhatsapp ?? null;
+  }
 
   async listar(ctx: OrgContext, query: unknown) {
     requireOrganizacionContext(ctx);
@@ -59,21 +70,27 @@ export class ClientesService {
 
     if (search) {
       const term = `%${search}%`;
-      const whatsappNorm = intentarNormalizarTelefonoWhatsapp(search);
+      const codigoPais = await this.codigoPaisOrg(ctx.organizacionId!);
+      const whatsappNorm = intentarNormalizarTelefonoWhatsapp(search, {
+        codigoPaisDefault: codigoPais,
+      });
       const digitsOnly = search.replace(/\D/g, '');
-      qb.andWhere(
-        `(c.nombre ILIKE :term
-          OR c.identificacionFiscal ILIKE :term
-          OR c.telefonoWhatsapp ILIKE :term
-          OR (:whatsappNorm IS NOT NULL AND c.telefonoWhatsapp = :whatsappNorm)
-          OR (:digits <> '' AND c.telefonoWhatsapp ILIKE :digitsLike))`,
-        {
-          term,
-          whatsappNorm: whatsappNorm ?? null,
-          digits: digitsOnly,
-          digitsLike: digitsOnly ? `%${digitsOnly}%` : '',
-        },
-      );
+      const partes = [
+        'c.nombre ILIKE :term',
+        'c.identificacionFiscal ILIKE :term',
+        'c.telefonoWhatsapp ILIKE :term',
+      ];
+      const params: Record<string, string> = { term };
+      // No pasar NULL a Postgres: no puede inferir el tipo del parámetro.
+      if (whatsappNorm) {
+        partes.push('c.telefonoWhatsapp = :whatsappNorm');
+        params.whatsappNorm = whatsappNorm;
+      }
+      if (digitsOnly) {
+        partes.push('c.telefonoWhatsapp ILIKE :digitsLike');
+        params.digitsLike = `%${digitsOnly}%`;
+      }
+      qb.andWhere(`(${partes.join(' OR ')})`, params);
     }
 
     if (orden === 'nombre') {
@@ -124,7 +141,10 @@ export class ClientesService {
     requirePermission(ctx, PERMISOS.CLIENTES_CREAR);
 
     const input = crearClienteSchema.parse(body);
-    const telefono = normalizarTelefonoWhatsapp(input.telefonoWhatsapp);
+    const codigoPais = await this.codigoPaisOrg(ctx.organizacionId!);
+    const telefono = normalizarTelefonoWhatsapp(input.telefonoWhatsapp, {
+      codigoPaisDefault: codigoPais,
+    });
     const reutilizar =
       input.ocasional === true || input.reutilizar === true;
 
@@ -187,7 +207,10 @@ export class ClientesService {
     if (input.nombre !== undefined) cliente.nombre = input.nombre;
 
     if (input.telefonoWhatsapp !== undefined) {
-      const telefono = normalizarTelefonoWhatsapp(input.telefonoWhatsapp);
+      const codigoPais = await this.codigoPaisOrg(ctx.organizacionId!);
+      const telefono = normalizarTelefonoWhatsapp(input.telefonoWhatsapp, {
+        codigoPaisDefault: codigoPais,
+      });
       if (telefono) {
         await this.asegurarWhatsappUnico(
           ctx.organizacionId!,

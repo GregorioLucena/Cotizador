@@ -26,6 +26,7 @@ export type OrganizacionConfiguracionDto = {
   monedaPresentacion: MonedaLabel | null;
   zonaHoraria: string;
   locale: string;
+  codigoPaisWhatsapp: string | null;
   usaIa: boolean;
   umbralAutomatico: string;
   umbralDescarte: string;
@@ -101,6 +102,7 @@ export function mapOrganizacionConfiguracion(
       : null,
     zonaHoraria: org.zonaHoraria,
     locale: org.locale,
+    codigoPaisWhatsapp: org.codigoPaisWhatsapp ?? null,
     usaIa: org.usaIa,
     umbralAutomatico: String(org.umbralAutomatico),
     umbralDescarte: String(org.umbralDescarte),

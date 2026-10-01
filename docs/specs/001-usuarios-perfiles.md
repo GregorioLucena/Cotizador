@@ -858,10 +858,12 @@ Pruebas manuales:
 
 ## Preguntas abiertas
 
-1. No hay recuperacion de contraseña autogestionada. Hoy depende de que exista otro administrador
-   activo en la organizacion; si el unico administrador pierde su contraseña, la unica salida es que
-   el proveedor intervenga. Falta decidir si eso se resuelve con un endpoint de plataforma auditado o
-   con envio de correo en una version posterior.
+1. ~~No hay recuperacion de contraseña autogestionada~~ **Resuelto (2026-09-30):** sin correo
+   en el MVP. Si el unico administrador pierde la clave, un usuario de plataforma con
+   `plataforma.usuarios.administrar` restablece desde
+   `POST /api/organizaciones/:id/usuarios/:usuarioId/restablecer-password` (UI en detalle de
+   organización). Un segundo administrador de la organización también puede restablecer con el
+   endpoint org-scoped existente.
 2. No hay limitacion de intentos de inicio de sesion. Queda por decidir si se implementa por origen,
    por cuenta o en la capa de infraestructura antes de salir a produccion.
 3. Queda por definir si el usuario debe poder ver y cerrar sus sesiones activas. El modelo de datos

@@ -26,6 +26,7 @@ export type OrganizacionDetalle = {
   } | null;
   zonaHoraria: string;
   locale: string;
+  codigoPaisWhatsapp: string | null;
   usaIa: boolean;
   umbralAutomatico: string;
   umbralDescarte: string;

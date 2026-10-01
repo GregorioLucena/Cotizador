@@ -184,10 +184,11 @@ export class PlantillasDocumentoService {
       };
     }
     if (input.formato === 'TEXTO') {
+      // El logo solo aplica al PDF/HTML; el mensaje de WhatsApp es texto plano.
       return {
         formato: 'TEXTO' as const,
         texto: render.textoWhatsapp,
-        advertencias: render.advertencias,
+        advertencias: render.advertencias.filter((a) => a !== 'LOGO_AUSENTE'),
       };
     }
 

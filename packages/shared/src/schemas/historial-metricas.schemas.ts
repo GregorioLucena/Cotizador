@@ -104,6 +104,29 @@ export type TerminoFallido = {
   resueltoConItemId: string | null;
 };
 
+/** Consumo de IA agregado (técnico; no es facturación comercial). */
+export type ConsumoIaAgregado = {
+  interpretaciones: number;
+  interpretacionesExitosas: number;
+  interpretacionesFallidas: number;
+  tokensEntrada: number;
+  tokensSalida: number;
+  /** Suma de costoEstimado; cadena decimal. */
+  costoEstimado: string;
+};
+
+export type MetricasOrganizacionFila = {
+  organizacionId: string;
+  nombre: string;
+  cotizaciones: number;
+  porEstado: CantidadPorEstado;
+  /** Eventos APROBADA distintos en el periodo (histórico). */
+  aprobadas: number;
+  ganadas: number;
+  perdidas: number;
+  ia: ConsumoIaAgregado;
+};
+
 export type MetricasPlataforma = {
   periodo: { desde: string; hasta: string };
   organizacionesActivas: number;
@@ -113,15 +136,21 @@ export type MetricasPlataforma = {
   tiempoMedianoGlobalMs: number | null;
   ganadasTotales: number;
   perdidasTotales: number;
-  porOrganizacion?: Array<{
-    organizacionId: string;
-    nombre: string;
-    cotizaciones: number;
-    aprobadas: number;
-    ganadas: number;
-    perdidas: number;
-  }>;
+  porEstado: CantidadPorEstado;
+  ia: ConsumoIaAgregado;
+  porOrganizacion?: MetricasOrganizacionFila[];
 };
+
+export function consumoIaVacio(): ConsumoIaAgregado {
+  return {
+    interpretaciones: 0,
+    interpretacionesExitosas: 0,
+    interpretacionesFallidas: 0,
+    tokensEntrada: 0,
+    tokensSalida: 0,
+    costoEstimado: '0.000000',
+  };
+}
 
 /** Mapa vacío con ceros para todos los estados del glosario. */
 export function cantidadPorEstadoVacia(): CantidadPorEstado {

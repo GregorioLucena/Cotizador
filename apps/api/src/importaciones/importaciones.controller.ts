@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -25,11 +24,12 @@ export class ImportacionesController {
   constructor(private readonly importaciones: ImportacionesService) {}
 
   @Get('plantilla')
-  @Header('Content-Type', 'text/csv; charset=utf-8')
   async plantilla(@OrgCtx() ctx: OrgContext, @Query() query: unknown) {
     const { filename, content } = await this.importaciones.plantilla(ctx, query);
+    const type =
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     return new StreamableFile(content, {
-      type: 'text/csv; charset=utf-8',
+      type,
       disposition: `attachment; filename="${filename}"`,
     });
   }

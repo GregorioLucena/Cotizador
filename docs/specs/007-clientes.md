@@ -89,14 +89,12 @@ las cotizaciones del cliente se consultan via `cotizaciones.clienteId` con indic
 | 1 | Recortar espacios |
 | 2 | Eliminar espacios, guiones, parentesis y puntos |
 | 3 | Si comienza con `00`, reemplazar por `+` |
-| 4 | Si no tiene `+` y es solo digitos, anteponer `+` solo cuando el pais esta configurado; en MVP se exige codigo de pais con `+` o se asume el codigo por defecto de la organizacion si se declara en preguntas abiertas |
+| 4 | Si no tiene `+` y es solo digitos, anteponer el `codigoPaisWhatsapp` de la organizacion (sin el `+`); si ese campo es nulo, rechazar con `WHATSAPP_SIN_CODIGO_PAIS`. Al anteponer, se elimina un `0` inicial de la parte nacional si existe (troncal local). |
 | 5 | Validar forma E.164: `+` seguido de 8 a 15 digitos |
 | 6 | Persistir el valor normalizado; la interfaz puede mostrar formato local |
 
 Decision MVP v1 operativa: el valor almacenado debe coincidir con el patron `^\+[1-9]\d{7,14}$`.
-Entradas como `0414-1234567` sin codigo de pais se rechazan con `WHATSAPP_SIN_CODIGO_PAIS` salvo que
-la organizacion tenga un codigo pais por defecto (pregunta abierta). Hasta resolverlo, la interfaz
-guia a ingresar con `+58...`.
+Entradas como `0414-1234567` se aceptan cuando la organizacion tiene `codigoPaisWhatsapp` (ej. `58` → `+584141234567`). Sin codigo configurado se rechazan con `WHATSAPP_SIN_CODIGO_PAIS` y la interfaz guia a ingresar con `+…`.
 
 ## Reglas de negocio
 
@@ -386,7 +384,9 @@ Dados homónimos en A y B, cuando un usuario de A busca ese nombre, entonces sol
 
 ## Preguntas abiertas
 
-1. Codigo de pais por defecto por organizacion para aceptar numeros locales sin `+`.
+1. ~~Codigo de pais por defecto por organizacion~~ **Resuelto (2026-09-30):** campo
+   `organizaciones.codigoPaisWhatsapp` (1–3 digitos, sin `+`), editable en Configuración → Identidad.
+   Orgs con `locale` `es-VE*` se inicializan en `58`. Null = exigir E.164 con `+`.
 2. ¿Bloquear aprobacion si el cliente fue inactivado despues de crear el borrador? MVP: no.
 3. ¿Unicidad de `identificacionFiscal` dentro de la organizacion?
 4. Respuesta HTTP exacta al reutilizar cliente por WhatsApp (200 vs 201).
@@ -397,6 +397,7 @@ Dados homónimos en A y B, cuando un usuario de A busca ese nombre, entonces sol
 | Decision | Motivo |
 |----------|--------|
 | WhatsApp unico parcial por organizacion | Evita duplicar el mismo chat como dos fichas |
+| `codigoPaisWhatsapp` por organizacion | Permite alta con numeros locales (0414…) sin friccion en el mostrador |
 | Lista nula usa la predeterminada al cotizar | Menos friccion en el alta ocasional |
 | Nombre libre no crea cliente | Evita contaminar el maestro con textos de una sola vez |
 | Reutilizar por WhatsApp en ocasional | Evita 409 en el mostrador cuando el cliente ya existe |

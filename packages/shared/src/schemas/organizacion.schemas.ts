@@ -30,6 +30,12 @@ export const crearOrganizacionSchema = z
     monedaPresentacionId: z.string().uuid().optional(),
     zonaHoraria: z.string().trim().min(3).max(80).default('America/Caracas'),
     locale: z.string().trim().min(2).max(20).default('es-VE'),
+    codigoPaisWhatsapp: z
+      .string()
+      .trim()
+      .regex(/^[1-9]\d{0,2}$/, 'Código de país: 1 a 3 dígitos sin cero inicial')
+      .nullable()
+      .optional(),
     usaIa: z.boolean().default(true),
     umbralAutomatico: umbralSchema.default('0.8000'),
     umbralDescarte: umbralSchema.default('0.4500'),
@@ -78,6 +84,12 @@ export const editarOrganizacionSchema = z
     monedaPresentacionId: z.string().uuid().nullable().optional(),
     zonaHoraria: z.string().trim().min(3).max(80).optional(),
     locale: z.string().trim().min(2).max(20).optional(),
+    codigoPaisWhatsapp: z
+      .string()
+      .trim()
+      .regex(/^[1-9]\d{0,2}$/, 'Código de país: 1 a 3 dígitos sin cero inicial')
+      .nullable()
+      .optional(),
     usaIa: z.boolean().optional(),
     umbralAutomatico: umbralSchema.optional(),
     umbralDescarte: umbralSchema.optional(),
@@ -132,6 +144,12 @@ export const editarConfiguracionOrganizacionSchema = z
     monedaPresentacionId: z.string().uuid().nullable().optional(),
     zonaHoraria: z.string().trim().min(3).max(80).optional(),
     locale: z.string().trim().min(2).max(20).optional(),
+    codigoPaisWhatsapp: z
+      .string()
+      .trim()
+      .regex(/^[1-9]\d{0,2}$/, 'Código de país: 1 a 3 dígitos sin cero inicial')
+      .nullable()
+      .optional(),
     usaIa: z.boolean().optional(),
     umbralAutomatico: umbralSchema.optional(),
     umbralDescarte: umbralSchema.optional(),

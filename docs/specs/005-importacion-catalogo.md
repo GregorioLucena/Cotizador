@@ -223,9 +223,16 @@ type ErrorFilaImportacion = {
 
 ### Plantilla por vertical
 
-29. `GET` de plantilla (ruta adicional) genera un archivo con columnas base del tipo mas una columna
-    por cada definicion de atributo activa de la organizacion. No ramifica por codigo de vertical:
-    usa las definiciones ya materializadas.
+29. `GET` de plantilla genera un archivo **Excel (`.xlsx`)** segun el `tipo`:
+    - hoja **Instrucciones** especifica del tipo (pasos previos y columnas),
+    - hoja **Plantilla** con las columnas de ese tipo (+ `atributo:<codigo>` solo en `ITEMS`),
+    - hojas de referencia no importables solo si aplican:
+      - `ITEMS`: Unidades, Listas, Marcas, Categorias;
+      - `PRECIOS`: solo Listas;
+      - `ALIAS`: sin hojas de maestras (el SKU debe existir en el catalogo).
+    No ramifica por codigo de vertical: usa las definiciones y maestras ya materializadas.
+    Se elige `.xlsx` (y no CSV) porque Excel en locales hispanos abre el CSV con comas en una sola
+    celda y confunde al usuario.
 30. La plantilla de `ALIAS` puede incluir una hoja o seccion de sinonimos sugeridos del pack como
     referencia no importable, si estan disponibles en codigo; no es obligatorio persistirlos.
 
@@ -423,7 +430,10 @@ Dada una importacion `CONFIRMADA`, cuando se intenta confirmar de nuevo, entonce
 #### CA-015: Plantilla incluye atributos de la organizacion
 
 Dada una organizacion con definiciones `diametro` y `material` activas, cuando descarga la plantilla
-tipo `ITEMS`, entonces el archivo incluye columnas para esos codigos ademas de las columnas base.
+tipo `ITEMS`, entonces el archivo es `.xlsx`, la hoja Plantilla incluye columnas para esos codigos
+ademas de las columnas base, y existen hojas de referencia Unidades, Listas, Marcas y Categorias.
+Cuando descarga `PRECIOS`, solo incluye referencia de Listas (sin Unidades ni Marcas). Cuando
+descarga `ALIAS`, no incluye hojas de maestras.
 
 #### CA-016: Cotizador no puede importar
 

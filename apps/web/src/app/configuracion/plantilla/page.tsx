@@ -224,8 +224,17 @@ export default function PlantillaDocumentoPage() {
       });
       if (formato === 'HTML') setPreviewHtml(data.html ?? null);
       if (formato === 'TEXTO') setPreviewTexto(data.texto ?? null);
-      if (data.advertencias?.length) {
-        toast.warn(`Advertencias: ${data.advertencias.join(', ')}`);
+      // LOGO_AUSENTE solo importa para PDF/HTML; en WhatsApp no se muestra.
+      const avisos = (data.advertencias ?? []).filter(
+        (a) => !(formato === 'TEXTO' && a === 'LOGO_AUSENTE'),
+      );
+      if (avisos.length) {
+        const etiquetas: Record<string, string> = {
+          LOGO_AUSENTE: 'Sin logo (opcional para el PDF)',
+        };
+        toast.warn(
+          avisos.map((a) => etiquetas[a] ?? a).join(' · '),
+        );
       }
     } catch (err) {
       setError(
@@ -726,7 +735,7 @@ export default function PlantillaDocumentoPage() {
         <Card>
           <CardHeader
             title="WhatsApp"
-            description="El mismo motor arma el texto plano para pegar al cliente."
+            description="El mismo motor arma el texto plano para pegar al cliente. Si edita la plantilla después de emitir un PDF, el mensaje nuevo puede diferir del documento ya generado (el PDF no cambia)."
           />
           <CardBody className="grid gap-3 sm:grid-cols-2">
             {(

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Copy, Pencil, UserPlus } from 'lucide-react';
+import { Copy, KeyRound, Pencil, UserPlus } from 'lucide-react';
 import {
   ApiClientError,
   apiFetch,
@@ -65,6 +65,12 @@ export default function OrganizacionDetallePage() {
     null,
   );
   const [passwordCopiada, setPasswordCopiada] = useState(false);
+  const [resetResult, setResetResult] = useState<{
+    passwordTemporal: string;
+    nombreCompleto: string;
+    email: string;
+  } | null>(null);
+  const [resetCopiada, setResetCopiada] = useState(false);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -184,6 +190,52 @@ export default function OrganizacionDetallePage() {
     if (!adminResult) return;
     await navigator.clipboard.writeText(adminResult.passwordTemporal);
     setPasswordCopiada(true);
+  }
+
+  async function restablecerUsuario(u: {
+    id: string;
+    nombreCompleto: string;
+    email: string;
+  }) {
+    const ok = await confirm({
+      title: 'Restablecer contraseña',
+      description: `Se generará una contraseña temporal para ${u.nombreCompleto} (${u.email}) y se cerrarán sus sesiones. Úselo si el administrador quedó bloqueado.`,
+      confirmLabel: 'Restablecer',
+    });
+    if (!ok) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await apiFetch<{
+        passwordTemporal: string;
+        sesionesRevocadas: number;
+        usuario: { id: string; email: string; nombreCompleto: string };
+      }>(`/organizaciones/${id}/usuarios/${u.id}/restablecer-password`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setResetResult({
+        passwordTemporal: data.passwordTemporal,
+        nombreCompleto: data.usuario.nombreCompleto,
+        email: data.usuario.email,
+      });
+      setResetCopiada(false);
+      toast.success('Contraseña restablecida. Cópiela: no se volverá a mostrar.');
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : 'No se pudo restablecer la contraseña.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copiarResetPassword() {
+    if (!resetResult) return;
+    await navigator.clipboard.writeText(resetResult.passwordTemporal);
+    setResetCopiada(true);
   }
 
   function cerrarAdminDialog() {
@@ -346,7 +398,7 @@ export default function OrganizacionDetallePage() {
             title="Usuarios"
             description={
               tieneAdministrador
-                ? 'Esta organización ya tiene un administrador. Los usuarios se administran desde la organización.'
+                ? 'Puede restablecer la contraseña de un usuario si quedó bloqueado. El resto de la administración de usuarios se hace dentro de la organización.'
                 : 'Crea el administrador inicial para que el negocio pueda entrar.'
             }
             action={
@@ -393,6 +445,19 @@ export default function OrganizacionDetallePage() {
                       >
                         {u.estadoRegistro}
                       </Badge>
+                      {activa && u.estadoRegistro === 'ACTIVO' ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={busy}
+                          className="min-h-9 px-2"
+                          title="Restablecer contraseña"
+                          onClick={() => void restablecerUsuario(u)}
+                        >
+                          <KeyRound className="size-4" aria-hidden />
+                          <span className="sr-only">Restablecer contraseña</span>
+                        </Button>
+                      ) : null}
                     </div>
                   </li>
                 ))}
@@ -492,6 +557,52 @@ export default function OrganizacionDetallePage() {
             </div>
           </form>
         )}
+      </Dialog>
+
+      <Dialog
+        open={Boolean(resetResult)}
+        title="Contraseña restablecida"
+        description="Copie la contraseña temporal. No se volverá a mostrar. El usuario deberá cambiarla al ingresar."
+        onClose={() => {
+          if (resetResult && !resetCopiada) return;
+          setResetResult(null);
+          setResetCopiada(false);
+        }}
+        blocking={Boolean(resetResult) && !resetCopiada}
+        hideClose={Boolean(resetResult) && !resetCopiada}
+      >
+        {resetResult ? (
+          <div className="space-y-4">
+            <p className="text-sm text-slate">
+              {resetResult.nombreCompleto} ·{' '}
+              <span className="font-semibold text-ink">{resetResult.email}</span>
+            </p>
+            <div className="flex items-center gap-2 rounded-xl border border-borde bg-paper px-3 py-2.5">
+              <code className="flex-1 break-all text-sm font-semibold text-ink">
+                {resetResult.passwordTemporal}
+              </code>
+              <Button variant="secondary" onClick={() => void copiarResetPassword()}>
+                <Copy className="size-4" aria-hidden />
+                Copiar
+              </Button>
+            </div>
+            <CheckField
+              label="Ya copié la contraseña temporal"
+              checked={resetCopiada}
+              onChange={(e) => setResetCopiada(e.target.checked)}
+            />
+            <Button
+              className="w-full"
+              disabled={!resetCopiada}
+              onClick={() => {
+                setResetResult(null);
+                setResetCopiada(false);
+              }}
+            >
+              Cerrar
+            </Button>
+          </div>
+        ) : null}
       </Dialog>
     </AppShell>
   );

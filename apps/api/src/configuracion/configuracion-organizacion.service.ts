@@ -77,6 +77,9 @@ export class ConfiguracionOrganizacionService {
     if (input.direccion !== undefined) org.direccion = input.direccion;
     if (input.zonaHoraria !== undefined) org.zonaHoraria = input.zonaHoraria;
     if (input.locale !== undefined) org.locale = input.locale;
+    if (input.codigoPaisWhatsapp !== undefined) {
+      org.codigoPaisWhatsapp = input.codigoPaisWhatsapp;
+    }
     if (input.usaIa !== undefined) org.usaIa = input.usaIa;
 
     const monedaBaseAnterior = org.monedaBaseId;

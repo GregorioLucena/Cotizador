@@ -223,14 +223,16 @@ Cada ítem devuelve `textoNormalizado`, `ejemploOriginal`, `vecesVisto` y, si ex
 |-------|---------|
 | `organizacionesActivas` | COUNT organizaciones con al menos una cotización creada en el periodo |
 | `cotizacionesTotales` | COUNT cotizaciones creadas en el periodo en toda la plataforma |
-| `aprobadasTotales` | COUNT con evento `COTIZACION_APROBADA` en el periodo |
+| `aprobadasTotales` | COUNT con evento `APROBADA` en el periodo |
 | `tasaAprobacionGlobal` | `aprobadasTotales / cotizacionesTotales` (4 decimales) |
 | `tiempoMedianoGlobalMs` | Mediana de duraciones captura→aprobación de todas las organizaciones |
 | `ganadasTotales` / `perdidasTotales` | Conteos globales de estados en el periodo |
+| `porEstado` | Conteo por estado (`BORRADOR`…`ANULADA`); anuladas incluyen `anulado` |
+| `ia` | Agregado de `interpretaciones_solicitud` en el periodo: conteos, tokens y `costoEstimado` |
 
-Prohibido en esta vista: nombres de cliente, folios, textos de solicitud, líneas, importes por
-organización identificable, alias o catálogo. Si se lista por organización, solo se exponen
-`organizacionId`, `nombre` de la organización y los conteos agregados anteriores.
+Prohibido en esta vista: nombres de cliente, folios, textos de solicitud, líneas, importes de venta
+por organización, alias o catálogo. Si se lista por organización, solo se exponen `organizacionId`,
+`nombre` de la organización, conteos por estado y consumo de IA (metadato técnico).
 
 ## Reglas de negocio
 
@@ -387,7 +389,21 @@ type TerminoFallido = {
 ### Metricas de plataforma
 
 ```typescript
-// GET /api/plataforma/metricas?desde=&hasta=
+// GET /api/plataforma/metricas?desde=&hasta=&detalle=true
+type ConsumoIaAgregado = {
+  interpretaciones: number;
+  interpretacionesExitosas: number;
+  interpretacionesFallidas: number;
+  tokensEntrada: number;
+  tokensSalida: number;
+  costoEstimado: string; // suma USD estimado
+};
+
+type CantidadPorEstado = Record<
+  'BORRADOR' | 'APROBADA' | 'ENVIADA' | 'GANADA' | 'PERDIDA' | 'VENCIDA' | 'ANULADA',
+  number
+>;
+
 type MetricasPlataforma = {
   periodo: { desde: string; hasta: string };
   organizacionesActivas: number;
@@ -397,13 +413,17 @@ type MetricasPlataforma = {
   tiempoMedianoGlobalMs: number | null;
   ganadasTotales: number;
   perdidasTotales: number;
+  porEstado: CantidadPorEstado;
+  ia: ConsumoIaAgregado;
   porOrganizacion?: Array<{
     organizacionId: string;
     nombre: string;
     cotizaciones: number;
+    porEstado: CantidadPorEstado;
     aprobadas: number;
     ganadas: number;
     perdidas: number;
+    ia: ConsumoIaAgregado;
   }>;
 };
 ```
@@ -447,8 +467,8 @@ type MetricasPlataforma = {
 2. El tiempo mediano se muestra en minutos u horas legibles, además del valor en milisegundos en la
    API.
 3. Los términos fallidos enlazan a la curación del catálogo cuando el usuario tiene permiso.
-4. La vista plataforma es una pantalla separada, solo para superadmin, con agregados y sin drill-down
-   a cotizaciones.
+4. La vista plataforma tiene filtro **General** / **Por organización**. En organizaciones se
+   elige una con un selector y se muestra la misma distribución que General (sin drill-down).
 
 ## Criterios de aceptacion
 
@@ -575,8 +595,9 @@ Dado un periodo sin líneas ni resultados, cuando se consultan los reportes, ent
 #### CA-020: Vista plataforma sin detalle de negocio
 
 Dado un usuario con `plataforma.metricas.ver`, cuando consulta `/api/plataforma/metricas`, entonces
-recibe agregados globales y, si pide desglose, solo `organizacionId`, `nombre` y conteos; el
-payload no incluye clientes, folios, textos de solicitud, líneas ni importes por cotización.
+recibe agregados globales (`porEstado`, `ia`) y, con `detalle=true`, filas por organización con
+conteos y consumo IA; el payload no incluye clientes, folios, textos de solicitud, líneas ni
+importes de venta.
 
 #### CA-021: Organizacion no accede a metricas de plataforma
 
@@ -657,17 +678,17 @@ ningún campo de la salida del modelo de lenguaje.
 
 ## Cierre de implementación
 
-**Fecha:** 2026-09-19
+**Fecha:** 2026-09-19 (ampliado 2026-09-29: dashboard plataforma con `porEstado` + `ia`)
 
 ### Entregables
 
 | Área | Archivos / rutas |
 |------|------------------|
-| Shared | `schemas/historial-metricas.schemas.ts`, `errors/reportes.errors.ts`, helpers `medianaMs` / `tasaComoCadena`, tests |
+| Shared | `schemas/historial-metricas.schemas.ts`, `errors/reportes.errors.ts`, helpers `medianaMs` / `tasaComoCadena` / `consumoIaVacio`, tests |
 | API cotizaciones | `GET /api/cotizaciones` con filtros; vencimiento perezoso en listado, detalle y acciones; bitácora ASC en detalle y `/eventos` |
 | API reportes | Módulo `reportes`: `GET /api/reportes/cotizaciones-resumen`, `desempeno-reconocimiento`, `terminos-fallidos` |
-| API plataforma | `GET /api/plataforma/metricas` (agregados; `detalle=true` → `porOrganizacion`) |
-| Web | `/historial`, `/reportes`, `/plataforma/metricas`; nav AppShell Historial + Métricas |
+| API plataforma | `GET /api/plataforma/metricas` (incluye `porEstado` e `ia`; `detalle=true` → `porOrganizacion` con los mismos campos) |
+| Web | `/historial`, `/reportes`, `/plataforma/metricas` (tabs General / Por organización); nav AppShell Historial + Métricas |
 | Docs | `08-catalogo-errores.md` (`PERIODO_INVALIDO`, `SUCURSAL_NO_ENCONTRADA`) |
 
 ### Verificación de criterios de aceptación
@@ -685,7 +706,7 @@ ningún campo de la salida del modelo de lenguaje.
 | CA-010/011 Vencimiento perezoso | `cotizacion-vencimiento.ts` en GET listado/detalle/acciones |
 | CA-012 Sin cron | Sin job; `vencidasPendientesDeMarca` en resumen |
 | CA-013–019 Métricas | Fórmulas en `ReportesService` + tests de mediana/tasas |
-| CA-020/021 Plataforma | Agregados + 403 sin permiso/ámbito |
+| CA-020/021 Plataforma | Agregados (`porEstado`, `ia`) + 403 sin permiso/ámbito |
 | CA-022 Aislamiento | `organizacionId` en todas las consultas |
 | CA-023/024 Bitácora y montos | Eventos con usuario; montos desde `cotizaciones.total` |
 
@@ -695,4 +716,4 @@ ningún campo de la salida del modelo de lenguaje.
 2. Abrir `/historial`, filtrar por estado y fechas; abrir detalle y revisar bitácora
 3. Marcar una `ENVIADA` con `vigenciaHasta` pasado → al listar o abrir detalle pasa a `VENCIDA`
 4. Abrir `/reportes` y comprobar resumen, desempeño y términos
-5. Con usuario plataforma + `plataforma.metricas.ver`: `/plataforma/metricas?detalle=true`
+5. Con usuario plataforma + `plataforma.metricas.ver`: `/plataforma/metricas` (tabs General y Por organización; siempre pide `detalle=true`)

@@ -64,4 +64,20 @@ export class OrganizacionesController {
     );
     return { data };
   }
+
+  @Post(':id/usuarios/:usuarioId/restablecer-password')
+  async restablecerPasswordUsuario(
+    @OrgCtx() ctx: OrgContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('usuarioId', ParseUUIDPipe) usuarioId: string,
+    @Body() body: unknown,
+  ) {
+    const data = await this.organizacionesService.restablecerPasswordUsuario(
+      ctx,
+      id,
+      usuarioId,
+      body,
+    );
+    return { data };
+  }
 }

@@ -6,11 +6,14 @@ import {
   CotizacionLinea,
   EstadoCotizacion,
   EstadoResolucionLinea,
+  InterpretacionSolicitud,
   Organizacion,
   TerminoNoResuelto,
   TipoEventoCotizacion,
 } from '@cotizador/database';
 import {
+  type CantidadPorEstado,
+  type ConsumoIaAgregado,
   type CotizacionesResumen,
   type DesempenoReconocimiento,
   type MetricasPlataforma,
@@ -18,6 +21,7 @@ import {
   type TerminoFallido,
   PERMISOS,
   cantidadPorEstadoVacia,
+  consumoIaVacio,
   formatImporte,
   medianaMs,
   normalizarTexto,
@@ -47,6 +51,8 @@ export class ReportesService {
     private readonly lineaRepo: Repository<CotizacionLinea>,
     @InjectRepository(CotizacionEvento)
     private readonly eventoRepo: Repository<CotizacionEvento>,
+    @InjectRepository(InterpretacionSolicitud)
+    private readonly interpretacionRepo: Repository<InterpretacionSolicitud>,
     @InjectRepository(TerminoNoResuelto)
     private readonly terminoRepo: Repository<TerminoNoResuelto>,
     @InjectRepository(Organizacion)
@@ -297,12 +303,17 @@ export class ReportesService {
       eventosAprobacion.map((e) => e.cotizacionId),
     ).size;
 
-    const ganadasTotales = cotizaciones.filter(
-      (c) => !c.anulado && c.estado === EstadoCotizacion.GANADA,
-    ).length;
-    const perdidasTotales = cotizaciones.filter(
-      (c) => !c.anulado && c.estado === EstadoCotizacion.PERDIDA,
-    ).length;
+    const porEstado = this.contarPorEstado(cotizaciones);
+    const ganadasTotales = porEstado.GANADA;
+    const perdidasTotales = porEstado.PERDIDA;
+
+    const interpretaciones = await this.interpretacionRepo
+      .createQueryBuilder('i')
+      .where('i.createdAt >= :desde', { desde })
+      .andWhere('i.createdAt <= :hasta', { hasta })
+      .getMany();
+
+    const ia = this.agregarConsumoIa(interpretaciones);
 
     const tiempoMedianoGlobalMs = await this.medianaCapturaAprobacion(
       null,
@@ -322,6 +333,8 @@ export class ReportesService {
       tiempoMedianoGlobalMs,
       ganadasTotales,
       perdidasTotales,
+      porEstado,
+      ia,
     };
 
     if (input.detalle) {
@@ -335,29 +348,77 @@ export class ReportesService {
         aprobadasPorOrg.set(e.organizacionId, set);
       }
 
+      const interpsPorOrg = new Map<string, InterpretacionSolicitud[]>();
+      for (const i of interpretaciones) {
+        const list = interpsPorOrg.get(i.organizacionId) ?? [];
+        list.push(i);
+        interpsPorOrg.set(i.organizacionId, list);
+      }
+
       result.porOrganizacion = orgs
         .map((org) => {
           const delOrg = cotizaciones.filter(
             (c) => c.organizacionId === org.id,
           );
-          if (delOrg.length === 0) return null;
+          const interpsOrg = interpsPorOrg.get(org.id) ?? [];
+          if (delOrg.length === 0 && interpsOrg.length === 0) return null;
+          const estadosOrg = this.contarPorEstado(delOrg);
           return {
             organizacionId: org.id,
             nombre: org.nombre,
             cotizaciones: delOrg.length,
+            porEstado: estadosOrg,
             aprobadas: aprobadasPorOrg.get(org.id)?.size ?? 0,
-            ganadas: delOrg.filter(
-              (c) => !c.anulado && c.estado === EstadoCotizacion.GANADA,
-            ).length,
-            perdidas: delOrg.filter(
-              (c) => !c.anulado && c.estado === EstadoCotizacion.PERDIDA,
-            ).length,
+            ganadas: estadosOrg.GANADA,
+            perdidas: estadosOrg.PERDIDA,
+            ia: this.agregarConsumoIa(interpsOrg),
           };
         })
-        .filter((x): x is NonNullable<typeof x> => x != null);
+        .filter((x): x is NonNullable<typeof x> => x != null)
+        .sort((a, b) => {
+          const costoA = Number(a.ia.costoEstimado);
+          const costoB = Number(b.ia.costoEstimado);
+          if (costoB !== costoA) return costoB - costoA;
+          return b.cotizaciones - a.cotizaciones;
+        });
     }
 
     return result;
+  }
+
+  private contarPorEstado(cotizaciones: Cotizacion[]): CantidadPorEstado {
+    const cantidad = cantidadPorEstadoVacia();
+    for (const c of cotizaciones) {
+      if (c.anulado || c.estado === EstadoCotizacion.ANULADA) {
+        cantidad.ANULADA += 1;
+        continue;
+      }
+      const key = c.estado as keyof CantidadPorEstado;
+      if (key in cantidad) {
+        cantidad[key] += 1;
+      }
+    }
+    return cantidad;
+  }
+
+  private agregarConsumoIa(
+    interpretaciones: InterpretacionSolicitud[],
+  ): ConsumoIaAgregado {
+    const base = consumoIaVacio();
+    let costo = 0;
+    for (const i of interpretaciones) {
+      base.interpretaciones += 1;
+      if (i.exito) base.interpretacionesExitosas += 1;
+      else base.interpretacionesFallidas += 1;
+      base.tokensEntrada += i.tokensEntrada ?? 0;
+      base.tokensSalida += i.tokensSalida ?? 0;
+      if (i.costoEstimado != null) {
+        const n = Number(i.costoEstimado);
+        if (Number.isFinite(n)) costo += n;
+      }
+    }
+    base.costoEstimado = costo.toFixed(6);
+    return base;
   }
 
   private parsePeriodoQuery(query: unknown) {

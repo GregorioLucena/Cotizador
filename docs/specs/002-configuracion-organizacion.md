@@ -110,6 +110,7 @@ Subconjunto de la tabla `organizaciones` que se administra desde dentro de la or
 | `monedaPresentacionId` | No | Moneda activa distinta de la base. Nulo desactiva la presentacion dual |
 | `zonaHoraria` | Si | Identificador IANA. Determina el dia de las fechas mostradas y de los informes |
 | `locale` | Si | Codigo de idioma y region. Determina el formato de numeros y fechas |
+| `codigoPaisWhatsapp` | No | Digitos de pais sin `+` (1–3). Si esta presente, los WhatsApp locales sin `+` se normalizan anteponiendolo. Null = exigir E.164 |
 | `usaIa` | Si | Booleano. Falso deshabilita la interpretacion automatica sin romper el flujo manual |
 | `umbralAutomatico` | Si | `numeric(5,4)` entre 0 y 1. Debe ser mayor que `umbralDescarte` |
 | `umbralDescarte` | Si | `numeric(5,4)` entre 0 y 1. Debe ser menor que `umbralAutomatico` |

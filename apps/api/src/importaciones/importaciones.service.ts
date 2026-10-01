@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import ExcelJS from 'exceljs';
 import {
   Categoria,
   DefinicionAtributo,
@@ -442,24 +443,345 @@ export class ImportacionesService {
     requirePermission(ctx, PERMISOS.CATALOGO_ITEMS_IMPORTAR);
 
     const { tipo } = plantillaImportacionQuerySchema.parse(query);
-    const columnas = [...COLUMNAS_BASE[tipo as TipoImportacion]];
+    const tipoImp = tipo as TipoImportacion;
+    const orgId = ctx.organizacionId!;
+    const columnas = [...COLUMNAS_BASE[tipoImp]];
 
-    if (tipo === 'ITEMS') {
-      const defs = await this.definicionRepo.find({
+    let definiciones: DefinicionAtributo[] = [];
+    if (tipoImp === TipoImportacion.ITEMS) {
+      definiciones = await this.definicionRepo.find({
         where: {
-          organizacionId: ctx.organizacionId!,
+          organizacionId: orgId,
           estadoRegistro: EstadoRegistro.ACTIVO,
         },
         order: { orden: 'ASC', codigo: 'ASC' },
       });
-      for (const d of defs) {
+      for (const d of definiciones) {
         columnas.push(`atributo:${d.codigo}`);
       }
     }
 
-    const csv = `${columnas.join(',')}\n`;
-    const filename = `plantilla-importacion-${tipo.toLowerCase()}.csv`;
-    return { filename, content: Buffer.from(csv, 'utf-8') };
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Cotizador';
+
+    this.agregarHojaInstrucciones(workbook, tipoImp, definiciones);
+
+    const sheet = workbook.addWorksheet('Plantilla', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+    const header = sheet.addRow(columnas);
+    header.font = { bold: true };
+    header.alignment = { vertical: 'middle', wrapText: true };
+    header.height = 28;
+    for (let i = 1; i <= columnas.length; i += 1) {
+      const col = sheet.getColumn(i);
+      col.width = Math.min(28, Math.max(14, columnas[i - 1]!.length + 2));
+    }
+
+    // Hojas de referencia solo con lo que ese tipo de importación necesita.
+    if (tipoImp === TipoImportacion.ITEMS) {
+      const [unidades, marcas, categorias, listas] = await Promise.all([
+        this.unidadRepo.find({
+          where: {
+            organizacionId: orgId,
+            estadoRegistro: EstadoRegistro.ACTIVO,
+          },
+          order: { codigo: 'ASC' },
+        }),
+        this.marcaRepo.find({
+          where: {
+            organizacionId: orgId,
+            estadoRegistro: EstadoRegistro.ACTIVO,
+          },
+          order: { nombre: 'ASC' },
+        }),
+        this.categoriaRepo.find({
+          where: {
+            organizacionId: orgId,
+            estadoRegistro: EstadoRegistro.ACTIVO,
+          },
+          order: { nombre: 'ASC' },
+        }),
+        this.listaRepo.find({
+          where: {
+            organizacionId: orgId,
+            estadoRegistro: EstadoRegistro.ACTIVO,
+          },
+          order: { codigo: 'ASC' },
+        }),
+      ]);
+      this.agregarHojaReferencia(
+        workbook,
+        'Unidades',
+        ['codigo', 'nombre'],
+        unidades.map((u) => [u.codigo, u.nombre]),
+        'Use la columna codigo en unidadCodigo de la Plantilla.',
+      );
+      this.agregarHojaReferencia(
+        workbook,
+        'Listas',
+        ['codigo', 'nombre'],
+        listas.map((l) => [l.codigo, l.nombre]),
+        'Use la columna codigo en listaPrecioCodigo si informa precioLista.',
+      );
+      this.agregarHojaReferencia(
+        workbook,
+        'Marcas',
+        ['nombre'],
+        marcas.map((m) => [m.nombre]),
+        'Copie el nombre exacto en la columna marca.',
+      );
+      this.agregarHojaReferencia(
+        workbook,
+        'Categorias',
+        ['nombre'],
+        categorias.map((c) => [c.nombre]),
+        'Copie el nombre exacto en la columna categoria.',
+      );
+    } else if (tipoImp === TipoImportacion.PRECIOS) {
+      const listas = await this.listaRepo.find({
+        where: {
+          organizacionId: orgId,
+          estadoRegistro: EstadoRegistro.ACTIVO,
+        },
+        order: { codigo: 'ASC' },
+      });
+      this.agregarHojaReferencia(
+        workbook,
+        'Listas',
+        ['codigo', 'nombre'],
+        listas.map((l) => [l.codigo, l.nombre]),
+        'Use la columna codigo en listaPrecioCodigo de la Plantilla.',
+      );
+    }
+    // ALIAS: no requiere hojas de maestras; el SKU debe existir en el catálogo.
+
+    const content = Buffer.from(await workbook.xlsx.writeBuffer());
+    const filename = `plantilla-importacion-${tipoImp.toLowerCase()}.xlsx`;
+    return { filename, content };
+  }
+
+  private agregarHojaInstrucciones(
+    workbook: ExcelJS.Workbook,
+    tipo: TipoImportacion,
+    definiciones: DefinicionAtributo[],
+  ) {
+    const sheet = workbook.addWorksheet('Instrucciones', {
+      properties: { tabColor: { argb: 'FF0B5F56' } },
+    });
+    sheet.getColumn(1).width = 22;
+    sheet.getColumn(2).width = 72;
+
+    const filas: Array<[string, string]> = [];
+    const titulos = new Set<string>();
+
+    const pushTitulo = (t: string) => {
+      titulos.add(t);
+      filas.push([t, '']);
+    };
+    const pushPaso = (k: string, v: string) => filas.push([k, v]);
+    const pushSep = () => filas.push(['', '']);
+
+    if (tipo === TipoImportacion.ITEMS) {
+      pushTitulo('Antes de importar ítems');
+      pushPaso(
+        'A',
+        'Cree o revise las unidades de medida en Maestras (cada una con su código, p. ej. UND, KG).',
+      );
+      pushPaso(
+        'B',
+        'Cree las marcas y categorías que vaya a usar (se referencian por nombre exacto).',
+      );
+      pushPaso(
+        'C',
+        'Cree al menos una lista de precios activa si va a informar precioLista.',
+      );
+      pushPaso(
+        'D',
+        'Si usa atributos (atributo:…), asegúrese de que las definiciones estén activas en Maestras.',
+      );
+      pushPaso(
+        'E',
+        'Descargue de nuevo esta plantilla después de cargar maestras: las hojas de referencia se actualizan.',
+      );
+      pushSep();
+      pushTitulo('Cómo usar esta plantilla');
+      pushPaso(
+        '1',
+        'Complete filas en la hoja «Plantilla». No borre la fila de encabezados.',
+      );
+      pushPaso(
+        '2',
+        'unidadCodigo: copie el código desde la hoja «Unidades».',
+      );
+      pushPaso(
+        '3',
+        'marca y categoria: use el nombre exacto de las hojas «Marcas» y «Categorias».',
+      );
+      pushPaso(
+        '4',
+        'listaPrecioCodigo (opcional, con precioLista): copie el código desde «Listas».',
+      );
+      pushPaso(
+        '5',
+        'Las hojas Instrucciones y de referencia son solo guía: el importador usa «Plantilla».',
+      );
+      pushPaso(
+        '6',
+        'Suba el archivo en Importar catálogo. Primero se valida; nada se guarda hasta que confirme.',
+      );
+    } else if (tipo === TipoImportacion.PRECIOS) {
+      pushTitulo('Antes de importar precios');
+      pushPaso(
+        'A',
+        'Los ítems deben existir ya en el catálogo (con su SKU). Esta plantilla no crea productos.',
+      );
+      pushPaso(
+        'B',
+        'Cree o revise las listas de precios activas en Precios (cada una con su código).',
+      );
+      pushPaso(
+        'C',
+        'Descargue de nuevo esta plantilla si agregó listas: la hoja «Listas» se actualiza.',
+      );
+      pushSep();
+      pushTitulo('Cómo usar esta plantilla');
+      pushPaso(
+        '1',
+        'Complete filas en la hoja «Plantilla». No borre la fila de encabezados.',
+      );
+      pushPaso(
+        '2',
+        'sku: el SKU exacto de un ítem ya cargado.',
+      );
+      pushPaso(
+        '3',
+        'listaPrecioCodigo: copie el código desde la hoja «Listas».',
+      );
+      pushPaso(
+        '4',
+        'precio: importe decimal mayor que cero (hasta 4 decimales).',
+      );
+      pushPaso(
+        '5',
+        'Las hojas Instrucciones y Listas son solo guía: el importador usa «Plantilla».',
+      );
+      pushPaso(
+        '6',
+        'Suba el archivo en Importar catálogo. Primero se valida; nada se guarda hasta que confirme.',
+      );
+    } else {
+      // ALIAS
+      pushTitulo('Antes de importar alias');
+      pushPaso(
+        'A',
+        'Los ítems deben existir ya en el catálogo (con su SKU). Esta plantilla no crea productos.',
+      );
+      pushPaso(
+        'B',
+        'Defina los nombres alternativos con los que el cliente pide el ítem (p. ej. «tornillo 1/4»).',
+      );
+      pushSep();
+      pushTitulo('Cómo usar esta plantilla');
+      pushPaso(
+        '1',
+        'Complete filas en la hoja «Plantilla». No borre la fila de encabezados.',
+      );
+      pushPaso(
+        '2',
+        'sku: el SKU exacto de un ítem ya cargado.',
+      );
+      pushPaso(
+        '3',
+        'alias: un texto de 2 a 200 caracteres por fila (un alias por fila).',
+      );
+      pushPaso(
+        '4',
+        'No hace falta hoja de maestras: solo SKU + alias. El importador usa «Plantilla».',
+      );
+      pushPaso(
+        '5',
+        'Suba el archivo en Importar catálogo. Primero se valida; nada se guarda hasta que confirme.',
+      );
+    }
+
+    pushSep();
+    pushTitulo('Columnas de la plantilla');
+
+    const ayudaItems: Record<string, string> = {
+      sku: 'Código único del ítem (opcional: si existe, actualiza; si no, es alta).',
+      nombre: 'Nombre visible del ítem (obligatorio).',
+      descripcion: 'Texto opcional largo.',
+      categoria: 'Nombre de categoría activo (ver hoja Categorias).',
+      marca: 'Nombre de marca activo (ver hoja Marcas).',
+      unidadCodigo: 'Código de unidad (ver hoja Unidades), p. ej. UND o KG.',
+      tipoItem: 'FUNGIBLE, SERIALIZADO o SERVICIO.',
+      controlaStock: 'true/false o sí/no.',
+      stockAproximado: 'Número opcional si controla stock.',
+      precioLista: 'Precio decimal opcional al crear/actualizar el ítem.',
+      listaPrecioCodigo:
+        'Código de lista donde aplicar precioLista (ver hoja Listas).',
+      alias: 'Alias separados por | o ; (opcional, en la misma fila del ítem).',
+    };
+    const ayudaPrecios: Record<string, string> = {
+      sku: 'SKU de un ítem existente (obligatorio).',
+      listaPrecioCodigo: 'Código de lista activa (ver hoja Listas).',
+      precio: 'Precio decimal mayor que cero (hasta 4 decimales).',
+    };
+    const ayudaAlias: Record<string, string> = {
+      sku: 'SKU de un ítem existente (obligatorio).',
+      alias: 'Texto del alias a asociar (obligatorio, una fila = un alias).',
+    };
+
+    const ayuda =
+      tipo === TipoImportacion.ITEMS
+        ? ayudaItems
+        : tipo === TipoImportacion.PRECIOS
+          ? ayudaPrecios
+          : ayudaAlias;
+
+    for (const col of COLUMNAS_BASE[tipo]) {
+      filas.push([col, ayuda[col] ?? 'Ver documentación de importación.']);
+    }
+    if (tipo === TipoImportacion.ITEMS) {
+      for (const d of definiciones) {
+        filas.push([
+          `atributo:${d.codigo}`,
+          `Atributo «${d.etiqueta}» (${d.tipoDato}). Según la definición de la organización.`,
+        ]);
+      }
+    }
+
+    for (const [a, b] of filas) {
+      const row = sheet.addRow([a, b]);
+      if (titulos.has(a)) {
+        row.font = { bold: true, size: 12 };
+      }
+    }
+  }
+
+  private agregarHojaReferencia(
+    workbook: ExcelJS.Workbook,
+    nombre: string,
+    cabeceras: string[],
+    filas: string[][],
+    nota: string,
+  ) {
+    const sheet = workbook.addWorksheet(nombre, {
+      views: [{ state: 'frozen', ySplit: 2 }],
+    });
+    sheet.addRow([nota]).font = { italic: true, color: { argb: 'FF6A7F7A' } };
+    const header = sheet.addRow(cabeceras);
+    header.font = { bold: true };
+    for (const fila of filas) {
+      sheet.addRow(fila);
+    }
+    cabeceras.forEach((_, i) => {
+      sheet.getColumn(i + 1).width = 22;
+    });
+    if (filas.length === 0) {
+      sheet.addRow(['(Sin registros activos en esta organización)']);
+    }
   }
 
   private assertMapeoCompleto(tipo: TipoImportacion, mapeo: MapeoColumnas) {

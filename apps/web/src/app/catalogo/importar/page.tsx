@@ -196,7 +196,7 @@ export default function ImportarCatalogoPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `plantilla-${tipo.toLowerCase()}.csv`;
+    a.download = `plantilla-${tipo.toLowerCase()}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -371,7 +371,7 @@ export default function ImportarCatalogoPage() {
               </label>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="secondary" onClick={() => void descargarPlantilla()}>
-                  Descargar plantilla
+                  Descargar plantilla Excel
                 </Button>
               </div>
               <label className="block">

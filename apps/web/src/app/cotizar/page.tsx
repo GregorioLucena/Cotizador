@@ -7,11 +7,10 @@ import {
   useCallback,
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
 } from 'react';
-import { MessageSquareText, Search, UserRound } from 'lucide-react';
+import { Check, MessageSquareText, Search, UserRound, X } from 'lucide-react';
 import { PERMISOS, hasPermission, type OrgContext } from '@cotizador/shared';
 import {
   ApiClientError,
@@ -60,21 +59,20 @@ export default function CotizarPage() {
   const [modoCliente, setModoCliente] = useState<ModoCliente>('buscar');
   const [clienteQuery, setClienteQuery] = useState('');
   const [clientes, setClientes] = useState<ClienteOpcion[]>([]);
-  const [clienteId, setClienteId] = useState<string | null>(null);
+  const [clienteElegido, setClienteElegido] = useState<ClienteOpcion | null>(
+    null,
+  );
+  const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [nombreLibre, setNombreLibre] = useState('');
   const [telefonoLibre, setTelefonoLibre] = useState('');
   const [listas, setListas] = useState<ListaOpcion[]>([]);
   const [listaPrecioId, setListaPrecioId] = useState('');
   const [sucursales, setSucursales] = useState<SucursalOpcion[]>([]);
   const [sucursalId, setSucursalId] = useState('');
+  const clienteInputRef = useRef<HTMLInputElement>(null);
 
   const puedeCrear =
     contexto && hasPermission(contexto, PERMISOS.COTIZACIONES_CREAR);
-
-  const clienteSeleccionado = useMemo(
-    () => clientes.find((c) => c.id === clienteId) ?? null,
-    [clienteId, clientes],
-  );
 
   const charsLeft = MAX_TEXTO - texto.length;
   const charsPct = Math.min(100, (texto.length / MAX_TEXTO) * 100);
@@ -156,36 +154,48 @@ export default function CotizarPage() {
   }, [cargarListasYSucursales, router]);
 
   useEffect(() => {
-    if (modoCliente !== 'buscar' || !contexto) return;
+    if (modoCliente !== 'buscar' || !contexto || clienteElegido) {
+      setClientes([]);
+      setBuscandoClientes(false);
+      return;
+    }
+    const q = clienteQuery.trim();
+    if (!q) {
+      setClientes([]);
+      setBuscandoClientes(false);
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    setBuscandoClientes(true);
     debounceRef.current = setTimeout(() => {
       void (async () => {
         try {
-          const q = clienteQuery.trim();
           const params = new URLSearchParams({
             page: '1',
             limit: '8',
             estadoRegistro: 'ACTIVO',
+            search: q,
           });
-          if (q) params.set('search', q);
           const data = await apiFetch<{ items: ClienteOpcion[] }>(
             `/clientes?${params.toString()}`,
           );
           setClientes(data.items);
         } catch {
-          /* silencioso en búsqueda */
+          setClientes([]);
+        } finally {
+          setBuscandoClientes(false);
         }
       })();
     }, 280);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [clienteQuery, contexto, modoCliente]);
+  }, [clienteQuery, contexto, modoCliente, clienteElegido]);
 
   useEffect(() => {
-    if (!clienteSeleccionado?.listaPrecio) return;
-    setListaPrecioId(clienteSeleccionado.listaPrecio.id);
-  }, [clienteSeleccionado]);
+    if (!clienteElegido?.listaPrecio) return;
+    setListaPrecioId(clienteElegido.listaPrecio.id);
+  }, [clienteElegido]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -201,7 +211,7 @@ export default function CotizarPage() {
       setError('El texto supera el máximo de 4000 caracteres.');
       return;
     }
-    if (modoCliente === 'buscar' && !clienteId) {
+    if (modoCliente === 'buscar' && !clienteElegido) {
       setError('Elegí un cliente o usá nombre libre.');
       return;
     }
@@ -216,7 +226,9 @@ export default function CotizarPage() {
         textoOriginal: trimmed,
         canal: 'WHATSAPP_PEGADO',
       };
-      if (modoCliente === 'buscar' && clienteId) body.clienteId = clienteId;
+      if (modoCliente === 'buscar' && clienteElegido) {
+        body.clienteId = clienteElegido.id;
+      }
       if (modoCliente === 'libre') {
         body.nombreClienteLibre = nombreLibre.trim();
         if (telefonoLibre.trim()) body.telefonoClienteLibre = telefonoLibre.trim();
@@ -300,7 +312,9 @@ export default function CotizarPage() {
                 type="button"
                 onClick={() => {
                   setModoCliente('libre');
-                  setClienteId(null);
+                  setClienteElegido(null);
+                  setClienteQuery('');
+                  setClientes([]);
                 }}
                 className={cn(
                   'inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold transition',
@@ -316,58 +330,119 @@ export default function CotizarPage() {
 
             {modoCliente === 'buscar' ? (
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-muted">
-                  Buscar cliente
-                </label>
-                <Input
-                  value={clienteQuery}
-                  onChange={(e) => setClienteQuery(e.target.value)}
-                  placeholder="Nombre o WhatsApp"
-                  autoComplete="off"
-                />
-                <ul className="max-h-40 space-y-1 overflow-y-auto rounded-xl border border-borde bg-surface p-1.5">
-                  {clientes.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-muted">
-                      Sin resultados.{' '}
-                      <button
-                        type="button"
-                        className="font-semibold text-teal underline"
-                        onClick={() => setModoCliente('libre')}
+                {clienteElegido ? (
+                  <div className="animate-rise flex items-center gap-3 rounded-2xl border border-teal/25 bg-gradient-to-br from-teal/[0.07] to-surface px-4 py-3.5 shadow-[0_12px_28px_-22px_rgba(11,95,86,0.55)]">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal text-white">
+                      <Check className="size-5" strokeWidth={2.5} aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-teal">
+                        Cliente elegido
+                      </p>
+                      <p className="truncate font-display text-base font-bold text-ink">
+                        {clienteElegido.nombre}
+                      </p>
+                      {clienteElegido.telefonoWhatsapp ? (
+                        <p className="truncate text-xs text-muted">
+                          {clienteElegido.telefonoWhatsapp}
+                        </p>
+                      ) : null}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="shrink-0 gap-1.5 text-slate"
+                      onClick={() => {
+                        setClienteElegido(null);
+                        setClienteQuery('');
+                        setClientes([]);
+                        requestAnimationFrame(() =>
+                          clienteInputRef.current?.focus(),
+                        );
+                      }}
+                    >
+                      <X className="size-4" aria-hidden />
+                      Cambiar
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <label className="text-sm font-semibold text-muted">
+                      Buscar cliente
+                    </label>
+                    <div className="relative">
+                      <Search
+                        className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted"
+                        aria-hidden
+                      />
+                      <Input
+                        ref={clienteInputRef}
+                        value={clienteQuery}
+                        onChange={(e) => setClienteQuery(e.target.value)}
+                        placeholder="Nombre o WhatsApp"
+                        autoComplete="off"
+                        className="pl-10"
+                      />
+                    </div>
+                    {clienteQuery.trim() ? (
+                      <ul
+                        className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-borde bg-surface p-1.5 shadow-[0_16px_36px_-28px_rgba(18,32,30,0.5)]"
+                        role="listbox"
+                        aria-label="Resultados de clientes"
                       >
-                        Usar nombre libre
-                      </button>
-                    </li>
-                  ) : (
-                    clientes.map((c) => (
-                      <li key={c.id}>
-                        <button
-                          type="button"
-                          onClick={() => setClienteId(c.id)}
-                          className={cn(
-                            'flex w-full items-start justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition',
-                            clienteId === c.id
-                              ? 'bg-teal/12 text-teal'
-                              : 'hover:bg-paper',
-                          )}
-                        >
-                          <span>
-                            <span className="font-semibold text-ink">{c.nombre}</span>
-                            {c.telefonoWhatsapp && (
-                              <span className="mt-0.5 block text-xs text-muted">
-                                {c.telefonoWhatsapp}
-                              </span>
-                            )}
-                          </span>
-                          {clienteId === c.id && (
-                            <span className="text-xs font-bold uppercase tracking-wide">
-                              Elegido
-                            </span>
-                          )}
-                        </button>
-                      </li>
-                    ))
-                  )}
-                </ul>
+                        {buscandoClientes ? (
+                          <li className="px-3 py-3 text-sm text-muted">
+                            Buscando…
+                          </li>
+                        ) : clientes.length === 0 ? (
+                          <li className="px-3 py-3 text-sm text-muted">
+                            Sin resultados.{' '}
+                            <button
+                              type="button"
+                              className="font-semibold text-teal underline"
+                              onClick={() => setModoCliente('libre')}
+                            >
+                              Usar nombre libre
+                            </button>
+                          </li>
+                        ) : (
+                          clientes.map((c) => (
+                            <li key={c.id} role="none">
+                              <button
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                  setClienteElegido(c);
+                                  setClienteQuery('');
+                                  setClientes([]);
+                                }}
+                                className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-teal/8"
+                              >
+                                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-paper text-teal ring-1 ring-borde/80">
+                                  <UserRound className="size-4" aria-hidden />
+                                </span>
+                                <span className="min-w-0">
+                                  <span className="block font-semibold text-ink">
+                                    {c.nombre}
+                                  </span>
+                                  {c.telefonoWhatsapp ? (
+                                    <span className="mt-0.5 block text-xs text-muted">
+                                      {c.telefonoWhatsapp}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted">
+                        Escribí un nombre o WhatsApp para ver coincidencias.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">

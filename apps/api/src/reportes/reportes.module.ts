@@ -4,6 +4,7 @@ import {
   Cotizacion,
   CotizacionEvento,
   CotizacionLinea,
+  InterpretacionSolicitud,
   Organizacion,
   TerminoNoResuelto,
 } from '@cotizador/database';
@@ -16,6 +17,7 @@ import { ReportesService } from './reportes.service';
       Cotizacion,
       CotizacionLinea,
       CotizacionEvento,
+      InterpretacionSolicitud,
       TerminoNoResuelto,
       Organizacion,
     ]),

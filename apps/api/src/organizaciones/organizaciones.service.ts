@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In, IsNull, Repository } from 'typeorm';
 import {
   Categoria,
   DefinicionAtributo,
@@ -33,6 +33,7 @@ import {
   crearOrganizacionSchema,
   editarOrganizacionSchema,
   crearUsuarioInicialSchema,
+  restablecerPasswordSchema,
   organizacionNoEncontrada,
   organizacionNombreDuplicado,
   organizacionIdentificacionDuplicada,
@@ -262,6 +263,12 @@ export class OrganizacionesService {
             monedaPresentacionId,
             zonaHoraria: input.zonaHoraria,
             locale: input.locale,
+            codigoPaisWhatsapp:
+              input.codigoPaisWhatsapp !== undefined
+                ? input.codigoPaisWhatsapp
+                : input.locale.startsWith('es-VE')
+                  ? '58'
+                  : null,
             usaIa: input.usaIa,
             umbralAutomatico: input.umbralAutomatico,
             umbralDescarte: input.umbralDescarte,
@@ -439,6 +446,9 @@ export class OrganizacionesService {
     }
     if (input.locale !== undefined) {
       org.locale = input.locale;
+    }
+    if (input.codigoPaisWhatsapp !== undefined) {
+      org.codigoPaisWhatsapp = input.codigoPaisWhatsapp;
     }
     if (input.usaIa !== undefined) {
       org.usaIa = input.usaIa;
@@ -645,6 +655,68 @@ export class OrganizacionesService {
       debeCambiarPassword: true as const,
       perfiles: [perfilAdmin.nombre],
       sucursalIds: [sucursalPrincipal.id],
+    };
+  }
+
+  /**
+   * Restablece la contraseña de un usuario de organización desde ámbito plataforma
+   * (p. ej. único administrador bloqueado). Revoca sesiones y exige cambio al ingresar.
+   */
+  async restablecerPasswordUsuario(
+    ctx: OrgContext,
+    organizacionId: string,
+    usuarioId: string,
+    body: unknown,
+  ) {
+    requirePlataformaContext(ctx);
+    requirePermission(ctx, PERMISOS.PLATAFORMA_USUARIOS_ADMINISTRAR);
+
+    await this.cargarOrganizacion(organizacionId);
+
+    const input = restablecerPasswordSchema.parse(body ?? {});
+
+    const usuario = await this.usuarioRepo.findOne({
+      where: { id: usuarioId, organizacionId },
+    });
+    if (!usuario) {
+      throw new NotFoundError(
+        'USUARIO_NO_ENCONTRADO',
+        'Usuario no encontrado en esta organización.',
+      );
+    }
+
+    const passwordTemporal =
+      input.passwordTemporal ??
+      this.passwordTemporalPara({
+        email: usuario.email,
+        nombreCompleto: usuario.nombreCompleto,
+      });
+
+    validarPoliticaPassword(passwordTemporal, {
+      email: usuario.email,
+      nombreCompleto: usuario.nombreCompleto,
+    });
+
+    usuario.passwordHash = await bcrypt.hash(passwordTemporal, BCRYPT_ROUNDS);
+    usuario.debeCambiarPassword = true;
+    usuario.updatedById = ctx.usuarioId;
+    await this.usuarioRepo.save(usuario);
+
+    const result = await this.dataSource
+      .getRepository(Sesion)
+      .update(
+        { usuarioId, revocadaAt: IsNull() },
+        { revocadaAt: new Date() },
+      );
+
+    return {
+      passwordTemporal,
+      sesionesRevocadas: result.affected ?? 0,
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        nombreCompleto: usuario.nombreCompleto,
+      },
     };
   }
 

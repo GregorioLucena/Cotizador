@@ -248,6 +248,7 @@ Sin columna de organizacion.
 **`organizaciones`**
 `id`, `nombre`, `razonSocial`, `identificacionFiscal`, `verticalId`, `telefono`, `email`, `direccion`,
 `logoUrl`, `monedaBaseId`, `monedaPresentacionId` (nulable), `zonaHoraria`, `locale`,
+`codigoPaisWhatsapp` (nulable; digitos de pais para normalizar WhatsApp locales),
 `usaIa` (booleano), `umbralAutomatico numeric(5,4)`, `umbralDescarte numeric(5,4)`, `notasInternas`,
 `estadoRegistro`, auditoria.
 Unico: `nombre`. Unico parcial: `identificacionFiscal` cuando no es nulo.

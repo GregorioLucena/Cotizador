@@ -459,8 +459,9 @@ Los importes en cualquier payload auxiliar viajan como cadenas con 4 decimales.
 | `PDF_TIMEOUT` | La generación supera `PDF_TIMEOUT_MS`. Responde 502 |
 | `PDF_GENERACION_FALLIDA` | El adaptador falla por causa distinta al timeout. Responde 502 |
 
-La advertencia `LOGO_AUSENTE` no es error: viaja en `advertencias` de una vista previa o generación
-exitosa cuando no hay logo usable.
+La advertencia `LOGO_AUSENTE` no es error: viaja en `advertencias` de una vista previa HTML/PDF o
+generación exitosa cuando no hay logo usable. En vista previa `TEXTO` (mensaje de WhatsApp) no se
+incluye: el mensaje es plano y el logo no aplica.
 
 ## Experiencia de usuario
 

@@ -576,8 +576,7 @@ async function asegurarUsuarioDemo(params: {
         nombreCompleto,
         email,
         passwordHash,
-        // Acceso inmediato para revisión local; en producción se crea vía panel.
-        debeCambiarPassword: false,
+        debeCambiarPassword: true,
         estadoRegistro: EstadoRegistro.ACTIVO,
       }),
     );

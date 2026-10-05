@@ -14,6 +14,7 @@
     "format": "prettier --write \"apps/**/*.{ts,tsx}\" \"packages/**/*.ts\"",
     "typecheck": "pnpm --filter @cotizador/shared typecheck && pnpm --filter @cotizador/database typecheck && pnpm --filter @cotizador/api typecheck && pnpm --filter @cotizador/web typecheck",
     "test": "pnpm --filter @cotizador/shared test",
+    "test:e2e": "dotenv -e .env.development -- pnpm --filter @cotizador/api test:e2e",
     "db:migrate": "dotenv -e .env.development -- pnpm --filter @cotizador/database db:migration:run",
     "db:migration:generate": "dotenv -e .env.development -- pnpm --filter @cotizador/database db:migration:generate",
     "db:migration:revert": "dotenv -e .env.development -- pnpm --filter @cotizador/database db:migration:revert",

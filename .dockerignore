@@ -9,6 +9,12 @@ docs
 .env
 .env.*
 !.env.example
+!.env.testing.example
 coverage
 .turbo
 *.log
+apps/api/storage
+apps/api/uploads
+uploads
+**/*.pdf
+agent-transcripts

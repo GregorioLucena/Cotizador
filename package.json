@@ -23,7 +23,10 @@
     "docker:db:down": "docker compose --env-file .env.development -f docker-compose.dev.yml down",
     "docker:dev": "docker compose --env-file .env.development -f docker-compose.dev.yml --profile full up --build",
     "docker:down": "docker compose --env-file .env.development -f docker-compose.dev.yml --profile full down",
-    "docker:logs": "docker compose --env-file .env.development -f docker-compose.dev.yml logs -f"
+    "docker:logs": "docker compose --env-file .env.development -f docker-compose.dev.yml logs -f",
+    "docker:testing:up": "docker compose --env-file .env.testing -f docker-compose.yml up --build -d",
+    "docker:testing:down": "docker compose --env-file .env.testing -f docker-compose.yml down",
+    "docker:testing:logs": "docker compose --env-file .env.testing -f docker-compose.yml logs -f"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",

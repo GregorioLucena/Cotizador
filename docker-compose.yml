@@ -1,0 +1,84 @@
+# Stack testing / production (imágenes construidas).
+# Uso:
+#   cp .env.testing.example .env.testing   # completar secretos
+#   docker compose --env-file .env.testing -f docker-compose.yml up --build -d
+#
+# testing y production comparten este archivo; se diferencian por el env
+# (p. ej. RUN_SEED=true en testing, false en production).
+
+name: cotizador
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cotizador-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cotizador}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido}
+      POSTGRES_DB: ${POSTGRES_DB:-cotizador}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-cotizador}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cotizador-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: cotizador-api
+    restart: unless-stopped
+    env_file:
+      - ${ENV_FILE:-.env.testing}
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cotizador}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cotizador}
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-cotizador}
+      PORT: 3001
+      NODE_ENV: production
+      ALMACENAMIENTO_ARCHIVOS: local
+      UPLOAD_DIR: /app/uploads
+      PDF_GENERADOR: ${PDF_GENERADOR:-chromium}
+      CHROMIUM_PATH: ${CHROMIUM_PATH:-/usr/bin/chromium-browser}
+    ports:
+      - '${API_PORT:-3001}:3001'
+    volumes:
+      - archivos_generados:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cotizador-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Debe ser la URL pública de la API (la resuelve el navegador).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
+    container_name: cotizador-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - cotizador-network
+
+volumes:
+  postgres_data:
+  archivos_generados:
+
+networks:
+  cotizador-network:
+    name: cotizador-network

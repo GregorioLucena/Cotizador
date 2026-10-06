@@ -35,25 +35,23 @@ export function getControlClassName(hasError?: boolean) {
   return cn(controlClass, hasError && controlErrorClass);
 }
 
-function useInlineValidity(
-  onInvalid?: (e: FormEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void,
-  onInput?: (e: FormEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void,
+function useInlineValidity<
+  T extends HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+>(
+  onInvalid?: (e: FormEvent<T>) => void,
+  onInput?: (e: FormEvent<T>) => void,
 ) {
   const fieldError = useFieldError();
 
   return {
-    onInvalid: (
-      e: FormEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-    ) => {
+    onInvalid: (e: FormEvent<T>) => {
       if (fieldError) {
         e.preventDefault();
         fieldError.setError(messageFromValidity(e.currentTarget));
       }
       onInvalid?.(e);
     },
-    onInput: (
-      e: FormEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
-    ) => {
+    onInput: (e: FormEvent<T>) => {
       fieldError?.setError(undefined);
       onInput?.(e);
     },
@@ -88,7 +86,10 @@ function parseSelectOptions(children: ReactNode): SelectOption[] {
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className, required, onInvalid, onInput, ...props }, ref) {
-    const validity = useInlineValidity(onInvalid, onInput);
+    const validity = useInlineValidity<HTMLInputElement>(
+      onInvalid,
+      onInput as ((e: FormEvent<HTMLInputElement>) => void) | undefined,
+    );
     return (
       <input
         ref={ref}
@@ -121,7 +122,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
     },
     ref,
   ) {
-    const validity = useInlineValidity(onInvalid, onInput);
+    const validity = useInlineValidity<HTMLSelectElement>(
+      onInvalid,
+      onInput as ((e: FormEvent<HTMLSelectElement>) => void) | undefined,
+    );
     const options = useMemo(() => parseSelectOptions(children), [children]);
     const listId = useId();
     const rootRef = useRef<HTMLDivElement>(null);
@@ -238,7 +242,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
           timeStamp: Date.now(),
         } as ChangeEvent<HTMLSelectElement>;
         onChange?.(event);
-        onInput?.(event as unknown as FormEvent<HTMLSelectElement>);
+        onInput?.(event as never);
       }
     }
 
@@ -362,7 +366,10 @@ export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement>
 >(function Textarea({ className, required, onInvalid, onInput, ...props }, ref) {
-  const validity = useInlineValidity(onInvalid, onInput);
+  const validity = useInlineValidity<HTMLTextAreaElement>(
+    onInvalid,
+    onInput as ((e: FormEvent<HTMLTextAreaElement>) => void) | undefined,
+  );
   return (
     <textarea
       ref={ref}

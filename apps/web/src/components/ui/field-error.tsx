@@ -32,10 +32,14 @@ export function messageFromValidity(
     return getEmailFieldError(el.value) ?? 'Ingresa un correo válido.';
   }
   if (el.validity.tooShort) {
-    return `Mínimo ${el.minLength} caracteres.`;
+    const min =
+      'minLength' in el && typeof el.minLength === 'number' ? el.minLength : 0;
+    return `Mínimo ${min} caracteres.`;
   }
   if (el.validity.tooLong) {
-    return `Máximo ${el.maxLength} caracteres.`;
+    const max =
+      'maxLength' in el && typeof el.maxLength === 'number' ? el.maxLength : 0;
+    return `Máximo ${max} caracteres.`;
   }
   if (el.validity.patternMismatch) {
     return 'El formato no es válido.';

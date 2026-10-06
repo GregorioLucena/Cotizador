@@ -428,15 +428,26 @@ pnpm dev:web
 | Acceso | Iniciar sesion con `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD` | Entra al area de plataforma |
 | Base de datos | `docker compose --env-file .env.development -f docker-compose.dev.yml exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB -c '\dt'` | Lista las tablas creadas por las migraciones |
 
+Los servicios `api` y `web` de `docker-compose.yml` usan `apps/api/Dockerfile` y
+`apps/web/Dockerfile`. El entrypoint de la API espera Postgres (`POSTGRES_HOST`, por defecto
+`postgres`), aplica migraciones y, si `RUN_SEED=true`, la semilla.
+
+Para un despliegue en un PaaS, reutilice las mismas imágenes: configure `DATABASE_URL`,
+`POSTGRES_HOST` (si aplica), `CORS_ORIGIN`, `NEXT_PUBLIC_API_URL` (build-arg de la web) y un
+volumen persistente en `UPLOAD_DIR`.
+
 ## Operacion corriente
 
 | Necesidad | Orden |
 |-----------|-------|
 | Trabajo diario | `pnpm dev` |
 | Solo la base de datos | `pnpm docker:db` |
-| Stack completo en contenedores | `pnpm docker:dev` |
-| Detener los contenedores | `pnpm docker:down` |
-| Ver la salida de los contenedores | `pnpm docker:logs` |
+| Stack completo en contenedores (desarrollo) | `pnpm docker:dev` |
+| Detener los contenedores de desarrollo | `pnpm docker:down` |
+| Ver la salida de los contenedores de desarrollo | `pnpm docker:logs` |
+| Stack testing (imágenes prod) | Copiar `.env.testing.example` → `.env.testing`, completar secretos, luego `pnpm docker:testing:up` |
+| Detener testing | `pnpm docker:testing:down` |
+| Logs testing | `pnpm docker:testing:logs` |
 | Aplicar migraciones pendientes | `pnpm db:migrate` |
 | Generar una migracion tras cambiar entidades | `pnpm db:migration:generate` |
 | Revertir la ultima migracion | `pnpm db:migration:revert` |

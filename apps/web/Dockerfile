@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Imagen de la web (testing / production). Contexto: raíz del monorepo.
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN pnpm install --frozen-lockfile \
   && pnpm --filter @cotizador/shared build \
   && pnpm --filter @cotizador/web build
 
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 RUN addgroup -S cotizador \

@@ -11,7 +11,7 @@ sustentan estan en `decisions/0012-infraestructura-y-entornos.md`. La estructura
 |-------------|---------|----------|
 | Docker Desktop o Docker Engine | Con Compose v2 | PostgreSQL y, opcionalmente, el stack completo |
 | Node.js | 22 | Ejecutar la API y la web en la maquina local |
-| Corepack | Incluido en Node 22 | Activar pnpm 9.15.9 con la version del proyecto |
+| Corepack | Incluido en Node 24 | Activar pnpm 9.15.9 con la version del proyecto |
 | Git | Cualquiera reciente | Clonar el repositorio |
 
 No hace falta instalar PostgreSQL ni chromium en la maquina: el primero corre en contenedor y el segundo
@@ -149,7 +149,7 @@ red interna.
 | Campo | Valor |
 |-------|-------|
 | Imagen de desarrollo | `Dockerfile.dev`, contexto la raiz del monorepo |
-| Imagen de produccion | `apps/api/Dockerfile`, multi etapa sobre `node:22-alpine` |
+| Imagen de produccion | `apps/api/Dockerfile`, multi etapa sobre `node:24-alpine` |
 | Puerto publicado | `${API_PORT}` hacia el `3001` del contenedor |
 | Depende de | `postgres` con condicion `service_healthy` |
 | Entrypoint | `scripts/docker-entrypoint-api.sh` |
@@ -172,7 +172,7 @@ local y el incorrecto dentro de un contenedor.
 | Campo | Valor |
 |-------|-------|
 | Imagen de desarrollo | `Dockerfile.dev`, contexto la raiz del monorepo |
-| Imagen de produccion | `apps/web/Dockerfile`, multi etapa sobre `node:22-alpine` |
+| Imagen de produccion | `apps/web/Dockerfile`, multi etapa sobre `node:24-alpine` |
 | Puerto publicado | `${WEB_PORT}` hacia el `3000` del contenedor |
 | Depende de | `api` |
 | Perfil en desarrollo | `full` |
@@ -196,7 +196,7 @@ direccion publica de la API, `http://localhost:3001/api` en desarrollo, y nunca 
 
 Una unica imagen compartida por la API y la web, sin optimizacion de tamaño.
 
-- Base `node:22-alpine`, Corepack activado, pnpm como unico gestor.
+- Base `node:24-alpine`, Corepack activado, pnpm como unico gestor.
 - Contexto de construccion: la raiz del monorepo, porque el workspace lo necesita.
 - El codigo se monta como volumen para el recargado en caliente.
 - `node_modules` y los directorios de compilacion usan volumenes propios, no el montaje de la maquina
@@ -214,7 +214,7 @@ Multi etapa, tres etapas:
 |-------|----------|
 | `deps` | Copia `package.json` de la raiz y de cada paquete, mas `pnpm-lock.yaml` y `pnpm-workspace.yaml`; ejecuta `pnpm install --frozen-lockfile` |
 | `build` | Copia el codigo, compila `@cotizador/shared`, luego `@cotizador/database` y luego la aplicacion |
-| `runner` | `node:22-alpine` con los artefactos compilados, dependencias de produccion y un usuario sin privilegios |
+| `runner` | `node:24-alpine` con los artefactos compilados, dependencias de produccion y un usuario sin privilegios |
 
 Reglas:
 

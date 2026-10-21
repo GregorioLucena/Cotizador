@@ -37,7 +37,7 @@ PostgreSQL como unica base de datos y Zod como lenguaje comun de validacion entr
 |------|-----------|---------|--------|
 | Gestor de paquetes | pnpm | 9.15.9 | Workspaces nativos, instalacion rapida y enlaces deterministas entre paquetes internos |
 | Resolucion de modulos | node-linker=hoisted | — | Compatibilidad con decoradores y carga de entidades de TypeORM dentro de contenedores |
-| Entorno de ejecucion | Node.js | 22 (`node:22-alpine` en Docker) | Version con soporte a largo plazo, misma version en desarrollo y en produccion |
+| Entorno de ejecucion | Node.js | 24 (`node:24-alpine` en Docker) | Version con soporte a largo plazo, misma version en desarrollo y en produccion |
 | Lenguaje | TypeScript | ^5.9.2 | `strict: true`, objetivo ES2022 en backend y ES2017 en web, decoradores habilitados en backend |
 | Framework backend | NestJS | ^11.1.6 | Modulos, inyeccion de dependencias, guards e interceptores; estructura impuesta que hace evidente donde se autoriza y donde se filtra por organizacion |
 | Acceso a datos | TypeORM | ^0.3.26 | Entidades con decoradores, `QueryBuilder` para las consultas de similitud y migraciones explicitas; `synchronize: false` siempre |
@@ -52,7 +52,7 @@ PostgreSQL como unica base de datos y Zod como lenguaje comun de validacion entr
 | Estado de servidor | @tanstack/react-query | ^5.90.2 | Cache, invalidacion y estados de carga sin escribir un gestor de estado propio |
 | Iconos | lucide-react | — | Conjunto unico y coherente, importable por icono |
 | Composicion de clases | clsx + tailwind-merge | — | Resolucion de conflictos de clases utilitarias en componentes con variantes |
-| Cliente HTTP | `fetch` nativo | — | Disponible en Node 22 y en el navegador; no se agrega una dependencia para lo que el entorno ya provee |
+| Cliente HTTP | `fetch` nativo | — | Disponible en Node 24 y en el navegador; no se agrega una dependencia para lo que el entorno ya provee |
 | Validacion | Zod | ^3.25.76 | Esquema unico compartido entre backend y frontend, en `@cotizador/shared` |
 | Generacion de PDF | Navegador sin interfaz grafica | — | Detras de la interfaz `GeneradorPdf`; requiere chromium en la imagen de la API |
 | Formato | Prettier | ^3.6.2 | Configurado una sola vez en la raiz del monorepo |

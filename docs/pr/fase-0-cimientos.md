@@ -19,7 +19,7 @@
 
 ## Test plan
 
-- [ ] `nvm use 22` (o Node 22+)
+- [ ] Node 24+ (`nvm install 24` / `nvm use 24`)
 - [ ] `pnpm install`
 - [ ] Copiar `.env.example` → `.env.development`
 - [ ] `pnpm docker:db`

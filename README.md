@@ -137,7 +137,7 @@ Detalle en `docs/11-arquitectura-monorepo.md`.
 
 ## Puesta en marcha
 
-Requiere Node 22, pnpm y Docker. Los pasos detallados estan en `docs/12-infraestructura-docker.md`.
+Requiere Node 24 (≥ 24.22.1), pnpm y Docker. Los pasos detallados estan en `docs/12-infraestructura-docker.md`.
 
 ```bash
 pnpm install

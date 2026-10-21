@@ -2,6 +2,9 @@
   "name": "cotizador",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24.22.1"
+  },
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "predev": "pnpm run docker:db",
@@ -29,6 +32,7 @@
     "docker:testing:logs": "docker compose --env-file .env.testing -f docker-compose.yml logs -f"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
     "dotenv-cli": "^8.0.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2"

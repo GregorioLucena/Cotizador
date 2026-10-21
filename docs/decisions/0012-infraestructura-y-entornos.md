@@ -6,7 +6,7 @@ Aceptada — 2026-09-17
 
 ## Contexto
 
-El producto necesita PostgreSQL 16 con las extensiones `pg_trgm` y `unaccent`, Node 22, y un navegador
+El producto necesita PostgreSQL 16 con las extensiones `pg_trgm` y `unaccent`, Node 24, y un navegador
 sin interfaz grafica para generar el PDF. Esas tres dependencias tienen que estar disponibles de la
 misma forma en la maquina de cada persona que desarrolla, en el entorno donde se valida y en
 produccion, porque las diferencias entre entornos son la fuente habitual del defecto que solo aparece
@@ -70,7 +70,7 @@ docker compose --env-file .env.development -f docker-compose.dev.yml --profile f
 Los servicios `api` y `web` de `docker-compose.dev.yml` declaran `profiles: [full]`, de modo que no
 arrancan salvo que se pidan de forma explicita.
 
-### Imagenes multi etapa sobre node:22-alpine
+### Imagenes multi etapa sobre node:24-alpine
 
 Cada aplicacion tiene su propio `Dockerfile` con al menos tres etapas:
 
@@ -78,7 +78,7 @@ Cada aplicacion tiene su propio `Dockerfile` con al menos tres etapas:
 |-------|----------|
 | `deps` | Copia los manifiestos y el lockfile, ejecuta `pnpm install --frozen-lockfile` |
 | `build` | Copia el codigo, compila los paquetes internos y luego la aplicacion |
-| `runner` | Imagen final con Node 22 alpine, solo artefactos compilados y dependencias de produccion |
+| `runner` | Imagen final con Node 24 alpine, solo artefactos compilados y dependencias de produccion |
 
 Reglas:
 
@@ -249,7 +249,7 @@ la base de datos de produccion.
 
 ## Consecuencias
 
-- La unica dependencia previa para trabajar en el proyecto es Docker, Node 22 y Corepack. Con eso,
+- La unica dependencia previa para trabajar en el proyecto es Docker, Node 24 y Corepack. Con eso,
   `pnpm install` y `pnpm dev` bastan.
 - El esquema de la base de datos solo cambia con migraciones revisadas. Nadie puede modificarlo por
   accidente al arrancar la aplicacion.

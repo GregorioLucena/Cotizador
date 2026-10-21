@@ -18,6 +18,7 @@ import {
   normalizarTexto,
 } from '@cotizador/shared';
 import { EntityManager, Repository } from 'typeorm';
+import { sqlSimTrgm, sqlSimTrgmItem } from '../common/sql/similitud-trgm';
 
 const UMBRAL_SIM_MIN = 0.3;
 const LIMITE_POR_ESTRATEGIA = 10;
@@ -103,13 +104,13 @@ export class ResolucionCatalogoService {
     const aliasSim = await aliasRepo
       .createQueryBuilder('a')
       .innerJoinAndSelect('a.item', 'i')
-      .addSelect('similarity(a.normalizado, :qNorm)', 'sim')
+      .addSelect(sqlSimTrgm('a.normalizado'), 'sim')
       .where('a.organizacionId = :organizacionId', { organizacionId })
       .andWhere('a.estadoRegistro = :estadoAlias', {
         estadoAlias: EstadoRegistro.ACTIVO,
       })
       .andWhere('i.estadoRegistro = :estado', { estado: EstadoRegistro.ACTIVO })
-      .andWhere('similarity(a.normalizado, :qNorm) >= :umbral', {
+      .andWhere(`${sqlSimTrgm('a.normalizado')} >= :umbral`, {
         qNorm,
         umbral: UMBRAL_SIM_MIN,
       })
@@ -134,10 +135,10 @@ export class ResolucionCatalogoService {
 
     const textoSim = await itemRepo
       .createQueryBuilder('i')
-      .addSelect('similarity(i.textoBusqueda, :qNorm)', 'sim')
+      .addSelect(sqlSimTrgmItem('i'), 'sim')
       .where('i.organizacionId = :organizacionId', { organizacionId })
       .andWhere('i.estadoRegistro = :estado', { estado: EstadoRegistro.ACTIVO })
-      .andWhere('similarity(i.textoBusqueda, :qNorm) >= :umbral', {
+      .andWhere(`${sqlSimTrgmItem('i')} >= :umbral`, {
         qNorm,
         umbral: UMBRAL_SIM_MIN,
       })
@@ -165,12 +166,12 @@ export class ResolucionCatalogoService {
       if (tokens.length > 0) {
         const attrQb = itemRepo
           .createQueryBuilder('i')
-          .addSelect('similarity(i.textoBusqueda, :qNorm)', 'sim')
+          .addSelect(sqlSimTrgmItem('i'), 'sim')
           .where('i.organizacionId = :organizacionId', { organizacionId })
           .andWhere('i.estadoRegistro = :estado', {
             estado: EstadoRegistro.ACTIVO,
           })
-          .andWhere('similarity(i.textoBusqueda, :qNorm) >= :umbral', {
+          .andWhere(`${sqlSimTrgmItem('i')} >= :umbral`, {
             qNorm,
             umbral: Math.max(UMBRAL_SIM_MIN - 0.05, 0.2),
           })

@@ -397,7 +397,11 @@ por lo que el texto "pastillas delanteras corolla 2017" alcanza al item por simi
 ### Busqueda del catalogo
 
 1. La búsqueda recibe un texto libre, lo normaliza con la misma función que indexa y compara por
-   similitud de trigramas contra `items.textoBusqueda` y contra `item_alias.normalizado`.
+   similitud de trigramas contra `items.textoBusqueda`, `item.nombre` (vía `unaccent`) y
+   `item_alias.normalizado`. El puntaje es
+   `GREATEST(similarity(col, q), word_similarity(q, col)[, word_similarity(q, nombre)])`:
+   `similarity` sola deja fuera consultas cortas contra nombres largos
+   (p. ej. «tiza» vs «tiza para herrero…» ≈ 0.10).
 2. Toda consulta filtra por `organizacionId` del contexto antes de cualquier otro criterio.
 3. El texto de consulta debe tener al menos 2 caracteres después de normalizar. Menos responde 400
    con `ITEM_BUSQUEDA_CONSULTA_MUY_CORTA`.
@@ -899,7 +903,7 @@ respuesta revela su existencia.
 |------|----------|--------------------------|
 | Rutas de detalle | Las rutas `GET /api/items/:id`, la edición de aplicaciones y la reindexación no están en `docs/06-diseno-tecnico.md` y esta especificación las introduce. Confirmar que se incorporan al contrato maestro | Divergencia entre el documento maestro y la implementación |
 | Limite de reindexacion sincronica | Cuál es el número de items a partir del cual la regeneración masiva deja de hacerse en línea | Bloqueos largos al renombrar una categoría muy usada |
-| Umbral de similitud del catalogo | Si 0.30 es el valor correcto para la búsqueda de administración, distinto del umbral de resolución del pipeline | Resultados ruidosos o ausencia de resultados útiles |
+| Umbral de similitud del catalogo | Cerrado: se mantiene 0.30, pero el puntaje combina `similarity` y `word_similarity` para no perder consultas cortas | — |
 | Alias en el alta de items | Si el arreglo `alias` del alta debe exigir el permiso `catalogo.alias.administrar` además de `catalogo.items.crear` | Un perfil podría crear alias sin el permiso específico |
 | Aplicaciones estructuradas | Si conviene declarar un esquema por vertical para `item_aplicaciones.datos` en lugar de aceptar claves libres | Datos de compatibilidad heterogéneos y difíciles de consultar |
 | Depuracion asistida de alias | Si se necesita una vista de alias con cero usos en toda la organización, además del contador en la ficha | Alias basura acumulados que degradan el reconocimiento |

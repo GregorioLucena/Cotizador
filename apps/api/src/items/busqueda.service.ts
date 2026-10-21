@@ -16,6 +16,7 @@ import {
   requirePermission,
 } from '@cotizador/shared';
 import { Repository } from 'typeorm';
+import { sqlSimTrgm, sqlSimTrgmItem } from '../common/sql/similitud-trgm';
 
 const UMBRAL_SIMILITUD = 0.3;
 
@@ -114,13 +115,13 @@ export class BusquedaService {
       .leftJoinAndSelect('i.marca', 'marca')
       .leftJoinAndSelect('i.categoria', 'categoria')
       .leftJoinAndSelect('i.unidadMedida', 'unidad')
-      .addSelect('similarity(a.normalizado, :qNorm)', 'sim')
+      .addSelect(sqlSimTrgm('a.normalizado'), 'sim')
       .where('a.organizacionId = :orgId', { orgId })
       .andWhere('a.estadoRegistro = :estadoAlias', {
         estadoAlias: EstadoRegistro.ACTIVO,
       })
       .andWhere('i.estadoRegistro = :estado', { estado })
-      .andWhere('similarity(a.normalizado, :qNorm) >= :umbral', {
+      .andWhere(`${sqlSimTrgm('a.normalizado')} >= :umbral`, {
         qNorm,
         umbral: UMBRAL_SIMILITUD,
       })
@@ -145,10 +146,10 @@ export class BusquedaService {
       .leftJoinAndSelect('i.marca', 'marca')
       .leftJoinAndSelect('i.categoria', 'categoria')
       .leftJoinAndSelect('i.unidadMedida', 'unidad')
-      .addSelect('similarity(i.textoBusqueda, :qNorm)', 'sim')
+      .addSelect(sqlSimTrgmItem('i'), 'sim')
       .where('i.organizacionId = :orgId', { orgId })
       .andWhere('i.estadoRegistro = :estado', { estado })
-      .andWhere('similarity(i.textoBusqueda, :qNorm) >= :umbral', {
+      .andWhere(`${sqlSimTrgmItem('i')} >= :umbral`, {
         qNorm,
         umbral: UMBRAL_SIMILITUD,
       });
@@ -173,13 +174,13 @@ export class BusquedaService {
       .leftJoinAndSelect('i.marca', 'marca')
       .leftJoinAndSelect('i.categoria', 'categoria')
       .leftJoinAndSelect('i.unidadMedida', 'unidad')
-      .addSelect('similarity(ap.textoNormalizado, :qNorm)', 'sim')
+      .addSelect(sqlSimTrgm('ap.textoNormalizado'), 'sim')
       .where('ap.organizacionId = :orgId', { orgId })
       .andWhere('ap.estadoRegistro = :estadoApp', {
         estadoApp: EstadoRegistro.ACTIVO,
       })
       .andWhere('i.estadoRegistro = :estado', { estado })
-      .andWhere('similarity(ap.textoNormalizado, :qNorm) >= :umbral', {
+      .andWhere(`${sqlSimTrgm('ap.textoNormalizado')} >= :umbral`, {
         qNorm,
         umbral: UMBRAL_SIMILITUD,
       })

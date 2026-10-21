@@ -8,10 +8,9 @@ import {
   UseInterceptors,
   Body,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
 import type { OrgContext } from '@cotizador/shared';
 import { OrgCtx } from '../common/decorators/org-ctx.decorator';
+import { MultipartArchivoInterceptor } from '../common/interceptors/multipart-archivo.interceptor';
 import { ConfiguracionOrganizacionService } from './configuracion-organizacion.service';
 import { LogoService } from './logo.service';
 
@@ -35,12 +34,7 @@ export class ConfiguracionOrganizacionController {
   }
 
   @Post('logo')
-  @UseInterceptors(
-    FileInterceptor('archivo', {
-      storage: memoryStorage(),
-      limits: { fileSize: 2 * 1024 * 1024 },
-    }),
-  )
+  @UseInterceptors(MultipartArchivoInterceptor('archivo', 2 * 1024 * 1024))
   async subirLogo(
     @OrgCtx() ctx: OrgContext,
     @UploadedFile() file: Express.Multer.File,

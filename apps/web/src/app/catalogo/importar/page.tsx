@@ -3,7 +3,12 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { PERMISOS, hasPermission, type OrgContext } from '@cotizador/shared';
+import {
+  LOTE_CONFIRMACION_DEFAULT,
+  PERMISOS,
+  hasPermission,
+  type OrgContext,
+} from '@cotizador/shared';
 import {
   ApiClientError,
   apiBaseUrl,
@@ -37,6 +42,7 @@ type Importacion = {
   id: string;
   tipo: Tipo;
   nombreArchivo: string;
+  nombreHoja?: string | null;
   estado: string;
   filasTotales: number;
   filasValidas: number;
@@ -52,8 +58,21 @@ type Importacion = {
     filasActualizadas?: number;
     advertencias?: string[];
     simulado?: boolean;
+    confirmOffset?: number;
+    progreso?: {
+      procesadas: number;
+      total: number;
+      porcentaje: number;
+      terminado: boolean;
+    };
   } | null;
   createdAt: string;
+};
+
+type InspeccionArchivo = {
+  formato: 'csv' | 'xlsx';
+  hojas: Array<{ nombre: string; cabeceras: string[] }>;
+  sugerida: string | null;
 };
 
 type Listado = {
@@ -98,6 +117,10 @@ export default function ImportarCatalogoPage() {
   const [paso, setPaso] = useState<1 | 2 | 3>(1);
   const [tipo, setTipo] = useState<Tipo>('ITEMS');
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [hojas, setHojas] = useState<Array<{ nombre: string; cabeceras: string[] }>>(
+    [],
+  );
+  const [nombreHoja, setNombreHoja] = useState('');
   const [cabeceras, setCabeceras] = useState<string[]>([]);
   const [mapeo, setMapeo] = useState<Record<string, string>>({});
   const [actual, setActual] = useState<Importacion | null>(null);
@@ -105,6 +128,12 @@ export default function ImportarCatalogoPage() {
   const [confirmarCheck, setConfirmarCheck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progreso, setProgreso] = useState<{
+    procesadas: number;
+    total: number;
+    porcentaje: number;
+    etiqueta: string;
+  } | null>(null);
 
   const campos = useMemo(() => CAMPOS_POR_TIPO[tipo], [tipo]);
 
@@ -142,13 +171,7 @@ export default function ImportarCatalogoPage() {
     })();
   }, [cargarHistorial, router]);
 
-  async function leerCabecerasCsv(file: File) {
-    const text = await file.text();
-    const primera = text.split(/\r?\n/).find((l) => l.trim()) ?? '';
-    const cols = primera
-      .split(',')
-      .map((c) => c.replace(/^"|"$/g, '').trim())
-      .filter(Boolean);
+  function aplicarCabeceras(cols: string[]) {
     setCabeceras(cols);
     const auto: Record<string, string> = {};
     for (const campo of CAMPOS_POR_TIPO[tipo]) {
@@ -163,20 +186,44 @@ export default function ImportarCatalogoPage() {
   async function onArchivo(file: File | null) {
     setArchivo(file);
     setCabeceras([]);
+    setHojas([]);
+    setNombreHoja('');
+    setMapeo({});
+    setError(null);
     if (!file) return;
-    if (file.name.toLowerCase().endsWith('.csv')) {
-      await leerCabecerasCsv(file);
-    } else {
-      setCabeceras([]);
-      toast.info(
-        'Archivo Excel: mapeará columnas por nombre tras la carga si coinciden con la plantilla.',
-      );
-      const auto: Record<string, string> = {};
-      for (const campo of CAMPOS_POR_TIPO[tipo]) {
-        auto[campo] = campo;
+
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append('archivo', file);
+      const insp = await apiFetch<InspeccionArchivo>('/importaciones/inspeccionar', {
+        method: 'POST',
+        body: fd,
+      });
+      setHojas(insp.hojas);
+      const elegida = insp.sugerida ?? insp.hojas[0]?.nombre ?? '';
+      setNombreHoja(elegida);
+      const hoja = insp.hojas.find((h) => h.nombre === elegida) ?? insp.hojas[0];
+      aplicarCabeceras(hoja?.cabeceras ?? []);
+      if (insp.formato === 'xlsx') {
+        toast.info(`Hoja sugerida: «${elegida}». Puede cambiarla si lo necesita.`);
       }
-      setMapeo(auto);
+    } catch (err) {
+      setArchivo(null);
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : 'No se pudo leer el archivo.',
+      );
+    } finally {
+      setBusy(false);
     }
+  }
+
+  function onCambiarHoja(nombre: string) {
+    setNombreHoja(nombre);
+    const hoja = hojas.find((h) => h.nombre === nombre);
+    aplicarCabeceras(hoja?.cabeceras ?? []);
   }
 
   async function descargarPlantilla() {
@@ -216,6 +263,9 @@ export default function ImportarCatalogoPage() {
       const fd = new FormData();
       fd.append('tipo', tipo);
       fd.append('mapeoColumnas', JSON.stringify(mapeo));
+      if (nombreHoja && !archivo.name.toLowerCase().endsWith('.csv')) {
+        fd.append('nombreHoja', nombreHoja);
+      }
       fd.append('archivo', archivo);
       const creada = await apiFetch<Importacion>('/importaciones', {
         method: 'POST',
@@ -223,7 +273,8 @@ export default function ImportarCatalogoPage() {
       });
       setActual(creada);
       setPaso(2);
-      toast.success(`Archivo cargado: ${creada.filasTotales} filas.`);
+      const hojaMsg = creada.nombreHoja ? ` · hoja «${creada.nombreHoja}»` : '';
+      toast.success(`Archivo cargado: ${creada.filasTotales} filas${hojaMsg}.`);
       await cargarHistorial();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo cargar.');
@@ -267,27 +318,69 @@ export default function ImportarCatalogoPage() {
     }
     setBusy(true);
     setError(null);
+    const totalEstimado = actual.filasValidas || 1;
+    setProgreso({
+      procesadas: actual.resumen?.confirmOffset ?? 0,
+      total: totalEstimado,
+      porcentaje: 0,
+      etiqueta: simular ? 'Simulando…' : 'Importando al catálogo…',
+    });
     try {
-      const r = await apiFetch<Importacion>(`/importaciones/${actual.id}/confirmar`, {
-        method: 'POST',
-        body: JSON.stringify({ simular }),
-      });
-      setActual(r);
-      const res = r.resumen;
       if (simular) {
+        const r = await apiFetch<Importacion>(`/importaciones/${actual.id}/confirmar`, {
+          method: 'POST',
+          body: JSON.stringify({ simular: true }),
+        });
+        setActual(r);
+        setProgreso({
+          procesadas: r.filasValidas,
+          total: r.filasValidas,
+          porcentaje: 100,
+          etiqueta: 'Simulación completa',
+        });
         toast.info(
-          `Simulación completa: se crearían ${res?.altas ?? 0} y se actualizarían ${res?.actualizaciones ?? res?.filasActualizadas ?? 0}. No se guardó nada.`,
+          `Simulación completa: se crearían ${r.resumen?.altas ?? 0} y se actualizarían ${r.resumen?.actualizaciones ?? r.resumen?.filasActualizadas ?? 0}. No se guardó nada.`,
         );
-      } else {
-        toast.success(
-          `Importación aplicada: ${res?.altas ?? 0} altas, ${res?.actualizaciones ?? res?.filasActualizadas ?? 0} actualizaciones, ${res?.omitidas ?? res?.filasOmitidas ?? 0} omitidas.`,
-        );
+        await cargarHistorial();
+        return;
       }
+
+      let actualLocal = actual;
+      let terminado = false;
+      while (!terminado) {
+        const r = await apiFetch<Importacion>(
+          `/importaciones/${actualLocal.id}/confirmar`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              simular: false,
+              loteTamano: LOTE_CONFIRMACION_DEFAULT,
+            }),
+          },
+        );
+        actualLocal = r;
+        setActual(r);
+        const p = r.resumen?.progreso;
+        const procesadas = p?.procesadas ?? r.resumen?.confirmOffset ?? 0;
+        const total = p?.total ?? r.filasValidas;
+        setProgreso({
+          procesadas,
+          total,
+          porcentaje: p?.porcentaje ?? Math.round((procesadas * 100) / Math.max(total, 1)),
+          etiqueta: `Importando… ${procesadas} de ${total}`,
+        });
+        terminado = Boolean(p?.terminado) || r.estado === 'CONFIRMADA';
+      }
+
+      toast.success(
+        `Importación aplicada: ${actualLocal.resumen?.altas ?? 0} altas, ${actualLocal.resumen?.actualizaciones ?? actualLocal.resumen?.filasActualizadas ?? 0} actualizaciones, ${actualLocal.resumen?.omitidas ?? actualLocal.resumen?.filasOmitidas ?? 0} omitidas.`,
+      );
       await cargarHistorial();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'No se pudo confirmar.');
     } finally {
       setBusy(false);
+      setProgreso(null);
     }
   }
 
@@ -313,11 +406,17 @@ export default function ImportarCatalogoPage() {
     setPaso(1);
     setActual(null);
     setArchivo(null);
+    setHojas([]);
+    setNombreHoja('');
     setCabeceras([]);
     setMapeo({});
     setConfirmarCheck(false);
     setError(null);
+    setProgreso(null);
   }
+
+  const importacionParcial =
+    actual?.estado === 'VALIDADA' && (actual.resumen?.confirmOffset ?? 0) > 0;
 
   if (!auth && !error) {
     return (
@@ -335,6 +434,31 @@ export default function ImportarCatalogoPage() {
         description="Cargar → validar → confirmar (o simular)."
       />
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
+
+      {progreso ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-borde bg-white p-6 shadow-lg">
+            <p className="text-sm font-bold text-ink">{progreso.etiqueta}</p>
+            <p className="mt-1 text-xs text-muted">
+              {progreso.procesadas} / {progreso.total} filas · {progreso.porcentaje}%
+            </p>
+            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-paper">
+              <div
+                className="h-full rounded-full bg-teal transition-[width] duration-300 ease-out"
+                style={{ width: `${Math.min(100, Math.max(0, progreso.porcentaje))}%` }}
+              />
+            </div>
+            <p className="mt-3 text-xs text-muted">
+              No cierre esta ventana hasta que termine.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mb-4 flex gap-2 text-xs font-bold uppercase tracking-wide">
         {[1, 2, 3].map((n) => (
@@ -361,6 +485,8 @@ export default function ImportarCatalogoPage() {
                     setTipo(e.target.value as Tipo);
                     setMapeo({});
                     setCabeceras([]);
+                    setHojas([]);
+                    setNombreHoja('');
                     setArchivo(null);
                   }}
                 >
@@ -382,8 +508,35 @@ export default function ImportarCatalogoPage() {
                   type="file"
                   accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   onChange={(e) => void onArchivo(e.target.files?.[0] ?? null)}
+                  disabled={busy}
                 />
               </label>
+              {hojas.length > 1 ? (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-muted">
+                    Hoja a importar
+                  </span>
+                  <Select
+                    value={nombreHoja}
+                    onChange={(e) => onCambiarHoja(e.target.value)}
+                    required
+                  >
+                    {hojas.map((h) => (
+                      <option key={h.nombre} value={h.nombre}>
+                        {h.nombre}
+                        {h.cabeceras.length
+                          ? ` (${h.cabeceras.slice(0, 3).join(', ')}${
+                              h.cabeceras.length > 3 ? '…' : ''
+                            })`
+                          : ''}
+                      </option>
+                    ))}
+                  </Select>
+                  <span className="mt-1 block text-xs text-muted">
+                    Se sugiere «Plantilla». No use Instrucciones ni hojas de referencia.
+                  </span>
+                </label>
+              ) : null}
             </CardBody>
           </Card>
 
@@ -436,7 +589,8 @@ export default function ImportarCatalogoPage() {
         <Card>
           <CardBody className="space-y-3">
             <p className="text-sm">
-              <strong>{actual.nombreArchivo}</strong> · {actual.tipo} ·{' '}
+              <strong>{actual.nombreArchivo}</strong> · {actual.tipo}
+              {actual.nombreHoja ? ` · hoja «${actual.nombreHoja}»` : ''} ·{' '}
               {actual.filasTotales} filas · estado {actual.estado}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -467,6 +621,13 @@ export default function ImportarCatalogoPage() {
               </p>
               {actual.estado === 'VALIDADA' ? (
                 <>
+                  {importacionParcial ? (
+                    <StatusBanner tone="info">
+                      Importación parcial: ya se aplicaron{' '}
+                      {actual.resumen?.confirmOffset ?? 0} de {actual.filasValidas}{' '}
+                      filas. Puede continuar desde donde quedó.
+                    </StatusBanner>
+                  ) : null}
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -479,7 +640,7 @@ export default function ImportarCatalogoPage() {
                     <Button
                       type="button"
                       variant="secondary"
-                      disabled={busy}
+                      disabled={busy || importacionParcial}
                       onClick={() => void confirmar(true)}
                     >
                       Simular
@@ -489,7 +650,7 @@ export default function ImportarCatalogoPage() {
                       disabled={busy || !confirmarCheck}
                       onClick={() => void confirmar(false)}
                     >
-                      Confirmar
+                      {importacionParcial ? 'Continuar importación' : 'Confirmar'}
                     </Button>
                     <Button
                       type="button"

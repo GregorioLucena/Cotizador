@@ -31,6 +31,10 @@ export class ImportacionCatalogo extends BaseEntity {
   @Column()
   archivoPath!: string;
 
+  /** Hoja Excel elegida para importar; null en CSV. */
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  nombreHoja?: string | null;
+
   @Column({ type: 'jsonb' })
   mapeoColumnas!: Record<string, string | number>;
 

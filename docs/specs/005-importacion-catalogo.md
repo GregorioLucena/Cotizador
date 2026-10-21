@@ -75,6 +75,7 @@ No incluye en esta version:
 | `organizacionId` | Si | Del `OrgContext` |
 | `tipo` | Si | `ITEMS`, `PRECIOS` o `ALIAS` |
 | `nombreArchivo` | Si | Nombre original del archivo subido |
+| `nombreHoja` | No | Nombre de la hoja Excel importada; null en CSV |
 | `mapeoColumnas` | Si | JSON que asocia columna del archivo a campo del sistema |
 | `estado` | Si | `CARGADA`, `VALIDADA`, `CONFIRMADA`, `FALLIDA` o `CANCELADA` |
 | `filasTotales` | Si | Entero. Incluye cabecera excluida del conteo de datos |
@@ -163,7 +164,7 @@ type ErrorFilaImportacion = {
 | (nuevo) | Cargar archivo | `CARGADA` |
 | `CARGADA` | Validar | `VALIDADA` o `FALLIDA` |
 | `CARGADA` | Cancelar | `CANCELADA` |
-| `VALIDADA` | Confirmar (con o sin simulacion) | `CONFIRMADA` si persiste; permanece `VALIDADA` si solo simula |
+| `VALIDADA` | Confirmar (con o sin simulacion) | `CONFIRMADA` al terminar todos los lotes; permanece `VALIDADA` si simula o si quedan lotes pendientes |
 | `VALIDADA` | Cancelar | `CANCELADA` |
 | `FALLIDA` | Cancelar | `CANCELADA` |
 | `CONFIRMADA`, `CANCELADA` | — | Terminales |
@@ -210,12 +211,14 @@ type ErrorFilaImportacion = {
 
 21. Confirmar con `simular: true` ejecuta el plan de altas y actualizaciones, devuelve el `resumen`
     completo y **no** muta catalogo ni cambia el estado a `CONFIRMADA`; permanece `VALIDADA`.
-22. Confirmar con `simular: false` (o omitido) persiste en una transaccion por lotes y deja estado
-    `CONFIRMADA`.
+22. Confirmar con `simular: false` (o omitido) persiste por **lotes** (`loteTamano`, default 40):
+    cada peticion escribe un lote en transaccion, actualiza `resumen.progreso` /
+    `resumen.confirmOffset` y solo pasa a `CONFIRMADA` cuando `progreso.terminado` es verdadero.
+    Mientras haya lotes pendientes el estado permanece `VALIDADA` para poder continuar.
 23. Politica de persistencia: solo se escriben las filas validas. Las filas con error se omiten. El
-    resumen indica `filasAplicadas`, `filasOmitidas` y `filasActualizadas`.
-24. Si durante la confirmacion ocurre un error de integridad no previsto, se revierte el lote
-    afectado, el estado pasa a `FALLIDA` y `erroresDetalle` se amplía.
+    resumen indica `filasAplicadas`, `filasOmitidas`, `filasActualizadas` y `progreso`.
+24. Si durante un lote ocurre un error de integridad no previsto, se revierte **ese** lote; los lotes
+    ya confirmados permanecen. El cliente puede reintentar Continuar desde `confirmOffset`.
 25. Los alias creados por importacion llevan `origen` `IMPORTADO`.
 26. Tras confirmar items, se regenera `textoBusqueda` de cada item tocado.
 27. Confirmar precios hace UPSERT sobre `precios_item` por (`listaPrecioId`, `itemId`).
@@ -235,6 +238,10 @@ type ErrorFilaImportacion = {
     celda y confunde al usuario.
 30. La plantilla de `ALIAS` puede incluir una hoja o seccion de sinonimos sugeridos del pack como
     referencia no importable, si estan disponibles en codigo; no es obligatorio persistirlos.
+30bis. En Excel, el usuario elige la **hoja a importar**. `POST /inspeccionar` lista las hojas con
+    sus cabeceras y sugiere `Plantilla` cuando existe. La carga acepta `nombreHoja` (opcional); si
+    falta, se resuelve igual que la sugerencia (nunca Instrucciones ni hojas de referencia). El
+    valor queda persistido en `importaciones_catalogo.nombreHoja` para validar y confirmar.
 
 ### Aislamiento
 
@@ -254,9 +261,9 @@ importa.
 
 | Metodo | Ruta | Permiso | Uso |
 |--------|------|---------|-----|
-| POST | `/api/importaciones` | `catalogo.items.importar` | Cargar archivo, tipo y mapeo |
+| POST | `/api/importaciones` | `catalogo.items.importar` | Cargar archivo, tipo, mapeo y hoja opcional |
 | POST | `/api/importaciones/:id/validar` | `catalogo.items.importar` | Validar filas |
-| POST | `/api/importaciones/:id/confirmar` | `catalogo.items.importar` | Confirmar o simular |
+| POST | `/api/importaciones/:id/confirmar` | `catalogo.items.importar` | Confirmar (por lotes) o simular |
 
 Rutas adicionales que esta spec introduce siguiendo convenciones de `docs/06-diseno-tecnico.md`:
 
@@ -266,19 +273,29 @@ Rutas adicionales que esta spec introduce siguiendo convenciones de `docs/06-dis
 | GET | `/api/importaciones/:id` | `catalogo.items.importar` | Detalle, resumen y errores |
 | POST | `/api/importaciones/:id/cancelar` | `catalogo.items.importar` | Cancelar |
 | GET | `/api/importaciones/plantilla` | `catalogo.items.importar` | Descargar plantilla por `tipo` |
+| POST | `/api/importaciones/inspeccionar` | `catalogo.items.importar` | Listar hojas y cabeceras de un Excel/CSV |
 
 ```typescript
+// POST /api/importaciones/inspeccionar (multipart)
+type InspeccionArchivo = {
+  formato: 'csv' | 'xlsx';
+  hojas: Array<{ nombre: string; cabeceras: string[] }>;
+  sugerida: string | null; // normalmente «Plantilla»
+};
+
 // POST /api/importaciones (multipart)
 type CrearImportacionInput = {
   tipo: 'ITEMS' | 'PRECIOS' | 'ALIAS';
   archivo: File;
   mapeoColumnas: MapeoColumnas;  // JSON en campo de formulario
+  nombreHoja?: string;           // Excel: hoja de datos; omitir en CSV
 };
 
 type ImportacionDetalle = {
   id: string;
   tipo: 'ITEMS' | 'PRECIOS' | 'ALIAS';
   nombreArchivo: string;
+  nombreHoja: string | null;
   estado: 'CARGADA' | 'VALIDADA' | 'CONFIRMADA' | 'FALLIDA' | 'CANCELADA';
   filasTotales: number;
   filasValidas: number;
@@ -296,7 +313,16 @@ type ImportacionDetalle = {
 
 // POST /api/importaciones/:id/confirmar
 type ConfirmarImportacionInput = {
-  simular?: boolean;  // true = no persiste; default false
+  simular?: boolean;     // true = no persiste; default false
+  loteTamano?: number;   // 1–200; default 40 (ignorado en simulación)
+};
+
+// resumen.progreso (tras cada lote de confirmación)
+type ProgresoConfirmacion = {
+  procesadas: number;
+  total: number;
+  porcentaje: number;
+  terminado: boolean;
 };
 ```
 
@@ -329,7 +355,8 @@ Flujo en tres pasos bajo `/catalogo/importar`:
 2. **Validar**: tabla de errores por fila, contadores de validas y con error, descarga del informe.
 3. **Confirmar**: boton primario Confirmar y secundario Simular. La simulacion muestra el resumen
    propuesto sin escribir. Confirmar pide una casilla de confirmacion con el numero de filas a
-   aplicar.
+   aplicar. Durante la confirmacion real se muestra un overlay con barra de progreso
+   (`procesadas / total`). Si se interrumpe, al reabrir se ofrece Continuar importacion.
 
 El historial lista importaciones previas con tipo, archivo, estado, fechas y enlace al detalle de
 errores. Una importacion `CONFIRMADA` es de solo lectura.

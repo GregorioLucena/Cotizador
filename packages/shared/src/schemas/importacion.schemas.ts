@@ -15,8 +15,20 @@ export const mapeoColumnasSchema = z
     message: 'El mapeo debe tener al menos un campo',
   });
 
+/** Filas por petición al confirmar (permite barra de progreso en el cliente). */
+export const LOTE_CONFIRMACION_DEFAULT = 40;
+export const LOTE_CONFIRMACION_MAX = 200;
+
 export const confirmarImportacionSchema = z.object({
   simular: z.boolean().optional().default(false),
+  /** Tamaño del lote a persistir en esta petición (omitir/igual en simulación). */
+  loteTamano: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(LOTE_CONFIRMACION_MAX)
+    .optional()
+    .default(LOTE_CONFIRMACION_DEFAULT),
 });
 
 export const listarImportacionesQuerySchema = z.object({

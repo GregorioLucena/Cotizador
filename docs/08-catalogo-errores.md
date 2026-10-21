@@ -184,6 +184,7 @@ Códigos adicionales de aplicaciones y términos (mismo módulo de catálogo):
 | `IMPORTACION_NO_ENCONTRADA` | 404 | No se encontró la importación indicada. | Id inexistente o de otra organización |
 | `IMPORTACION_ARCHIVO_INVALIDO` | 400 | El archivo no se pudo leer o no es un formato admitido. | CSV/Excel ilegible o extensión no soportada |
 | `IMPORTACION_ARCHIVO_VACIO` | 400 | El archivo no contiene filas de datos. | Sin filas útiles tras el encabezado |
+| `IMPORTACION_HOJA_NO_ENCONTRADA` | 400 | No se encontró la hoja indicada en el archivo Excel. | `nombreHoja` inexistente o sin hoja de datos |
 | `IMPORTACION_MAPEO_INVALIDO` | 400 | El mapeo de columnas es incompleto o incorrecto. | Columnas obligatorias sin mapear |
 | `IMPORTACION_ESTADO_INVALIDO` | 422 | La importación no admite esta acción en su estado actual. | Validar/confirmar fuera de la secuencia `CARGADA` → `VALIDADA` → `CONFIRMADA` |
 | `IMPORTACION_SIN_FILAS_VALIDAS` | 422 | No hay filas válidas para confirmar. | Tras validar, `filasValidas` es cero |

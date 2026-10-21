@@ -8,16 +8,41 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
   StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import type { OrgContext } from '@cotizador/shared';
 import { LIMITE_TAMANO_ARCHIVO_BYTES } from '@cotizador/shared';
-import { memoryStorage } from 'multer';
+import type { Request } from 'express';
 import { OrgCtx } from '../common/decorators/org-ctx.decorator';
+import { MultipartArchivoInterceptor } from '../common/interceptors/multipart-archivo.interceptor';
 import { ImportacionesService } from './importaciones.service';
+
+type CargarImportacionBody = {
+  tipo?: string;
+  mapeoColumnas?: string;
+  nombreHoja?: string;
+};
+
+function cuerpoCarga(body: unknown, req: Request): CargarImportacionBody {
+  const raw =
+    (body && typeof body === 'object'
+      ? (body as Record<string, unknown>)
+      : null) ??
+    (req.body && typeof req.body === 'object'
+      ? (req.body as Record<string, unknown>)
+      : {}) ??
+    {};
+  return {
+    tipo: typeof raw.tipo === 'string' ? raw.tipo : undefined,
+    mapeoColumnas:
+      typeof raw.mapeoColumnas === 'string' ? raw.mapeoColumnas : undefined,
+    nombreHoja:
+      typeof raw.nombreHoja === 'string' ? raw.nombreHoja : undefined,
+  };
+}
 
 @Controller('importaciones')
 export class ImportacionesController {
@@ -49,20 +74,35 @@ export class ImportacionesController {
     return { data };
   }
 
+  @Post('inspeccionar')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    MultipartArchivoInterceptor('archivo', LIMITE_TAMANO_ARCHIVO_BYTES),
+  )
+  async inspeccionar(
+    @OrgCtx() ctx: OrgContext,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const data = await this.importaciones.inspeccionar(ctx, file);
+    return { data };
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
-    FileInterceptor('archivo', {
-      storage: memoryStorage(),
-      limits: { fileSize: LIMITE_TAMANO_ARCHIVO_BYTES },
-    }),
+    MultipartArchivoInterceptor('archivo', LIMITE_TAMANO_ARCHIVO_BYTES),
   )
   async cargar(
     @OrgCtx() ctx: OrgContext,
-    @Body() body: { tipo?: string; mapeoColumnas?: string },
+    @Body() body: unknown,
     @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
   ) {
-    const data = await this.importaciones.cargar(ctx, body, file);
+    const data = await this.importaciones.cargar(
+      ctx,
+      cuerpoCarga(body, req),
+      file,
+    );
     return { data };
   }
 

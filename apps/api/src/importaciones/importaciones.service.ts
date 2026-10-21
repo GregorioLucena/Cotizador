@@ -211,14 +211,43 @@ export class ImportacionesService {
     return mapImportacion(imp);
   }
 
+  async inspeccionar(ctx: OrgContext, file: Express.Multer.File | undefined) {
+    requireOrganizacionContext(ctx);
+    requirePermission(ctx, PERMISOS.CATALOGO_ITEMS_IMPORTAR);
+
+    if (!file?.buffer?.length) {
+      throw importacionArchivoInvalido({ motivo: 'archivo_ausente' });
+    }
+    if (
+      file.size > LIMITE_TAMANO_ARCHIVO_BYTES ||
+      file.buffer.length > LIMITE_TAMANO_ARCHIVO_BYTES
+    ) {
+      throw importacionArchivoDemasiadoGrande();
+    }
+
+    const nombreArchivo = file.originalname || 'archivo';
+    const ext = this.parser.extension(nombreArchivo);
+    if (ext !== 'csv' && ext !== 'xlsx') {
+      throw importacionFormatoNoSoportado();
+    }
+
+    return this.parser.inspeccionar(file.buffer, nombreArchivo);
+  }
+
   async cargar(
     ctx: OrgContext,
-    body: { tipo?: string; mapeoColumnas?: string },
+    body:
+      | { tipo?: string; mapeoColumnas?: string; nombreHoja?: string }
+      | null
+      | undefined,
     file: Express.Multer.File | undefined,
   ) {
     requireOrganizacionContext(ctx);
     requirePermission(ctx, PERMISOS.CATALOGO_ITEMS_IMPORTAR);
 
+    if (!body?.tipo) {
+      throw importacionMapeoIncompleto(['tipo']);
+    }
     const tipo = tipoImportacionSchema.parse(body.tipo) as TipoImportacion;
     let mapeoRaw: unknown;
     try {
@@ -227,6 +256,9 @@ export class ImportacionesService {
           ? JSON.parse(body.mapeoColumnas)
           : body.mapeoColumnas;
     } catch {
+      throw importacionMapeoIncompleto(['mapeoColumnas']);
+    }
+    if (mapeoRaw == null) {
       throw importacionMapeoIncompleto(['mapeoColumnas']);
     }
     const mapeo = mapeoColumnasSchema.parse(mapeoRaw) as MapeoColumnas;
@@ -248,7 +280,14 @@ export class ImportacionesService {
       throw importacionFormatoNoSoportado();
     }
 
-    const parseado = await this.parser.parsear(file.buffer, nombreArchivo);
+    const nombreHoja =
+      ext === 'xlsx' && typeof body.nombreHoja === 'string' && body.nombreHoja.trim()
+        ? body.nombreHoja.trim()
+        : undefined;
+
+    const parseado = await this.parser.parsear(file.buffer, nombreArchivo, {
+      nombreHoja,
+    });
     if (parseado.filas.length > LIMITE_FILAS_IMPORTACION) {
       throw importacionLimiteFilas();
     }
@@ -264,6 +303,7 @@ export class ImportacionesService {
       tipo,
       nombreArchivo,
       archivoPath,
+      nombreHoja: parseado.nombreHoja ?? nombreHoja ?? null,
       mapeoColumnas: mapeo,
       estado: EstadoImportacion.CARGADA,
       filasTotales: parseado.filas.length,
@@ -295,7 +335,9 @@ export class ImportacionesService {
 
     try {
       const buffer = await this.almacenamiento.leer(imp.archivoPath);
-      const parseado = await this.parser.parsear(buffer, imp.nombreArchivo);
+      const parseado = await this.parser.parsear(buffer, imp.nombreArchivo, {
+        nombreHoja: imp.nombreHoja,
+      });
 
       if (parseado.filas.length > LIMITE_FILAS_IMPORTACION) {
         imp.estado = EstadoImportacion.FALLIDA;
@@ -363,6 +405,7 @@ export class ImportacionesService {
     const orgId = ctx.organizacionId!;
     const input = confirmarImportacionSchema.parse(body ?? {});
     const simular = input.simular === true;
+    const loteTamano = input.loteTamano;
     const imp = await this.buscar(orgId, id);
 
     if (imp.estado === EstadoImportacion.CONFIRMADA) {
@@ -376,46 +419,115 @@ export class ImportacionesService {
     }
 
     const buffer = await this.almacenamiento.leer(imp.archivoPath);
-    const parseado = await this.parser.parsear(buffer, imp.nombreArchivo);
+    const parseado = await this.parser.parsear(buffer, imp.nombreArchivo, {
+      nombreHoja: imp.nombreHoja,
+    });
     const resultado = await this.validarFilas(orgId, imp, parseado);
 
     if (resultado.filasValidas === 0) {
       throw importacionSinFilasValidas();
     }
 
-    const resumen = this.construirResumenConfirmacion(resultado, simular);
-
     if (simular) {
+      const resumen = this.construirResumenConfirmacion(resultado, true);
+      resumen.progreso = {
+        procesadas: resultado.filasValidas,
+        total: resultado.filasValidas,
+        porcentaje: 100,
+        terminado: true,
+      };
       imp.resumen = resumen;
       imp.updatedById = ctx.usuarioId;
       await this.importacionRepo.save(imp);
       return mapImportacion(imp);
     }
 
+    const filasAplicables =
+      imp.tipo === TipoImportacion.ITEMS
+        ? resultado.items
+        : imp.tipo === TipoImportacion.PRECIOS
+          ? resultado.precios
+          : resultado.alias;
+    const total = filasAplicables.length;
+    const prev = (imp.resumen ?? {}) as NonNullable<ResumenImportacionDto>;
+    const offset = Math.max(0, Number(prev.confirmOffset ?? 0));
+    if (offset >= total) {
+      imp.estado = EstadoImportacion.CONFIRMADA;
+      imp.updatedById = ctx.usuarioId;
+      await this.importacionRepo.save(imp);
+      return mapImportacion(imp);
+    }
+
+    const lote = filasAplicables.slice(offset, offset + loteTamano);
+    let altasLote = 0;
+    let actualizacionesLote = 0;
+    if (imp.tipo === TipoImportacion.ITEMS) {
+      for (const f of lote as FilaItemsResuelta[]) {
+        if (f.esActualizacion) actualizacionesLote += 1;
+        else altasLote += 1;
+      }
+    } else {
+      altasLote = lote.length;
+    }
+
     await this.dataSource.transaction(async (manager) => {
       if (imp.tipo === TipoImportacion.ITEMS) {
-        await this.persistirItems(manager, orgId, ctx.usuarioId, resultado.items);
+        await this.persistirItems(
+          manager,
+          orgId,
+          ctx.usuarioId,
+          lote as FilaItemsResuelta[],
+        );
       } else if (imp.tipo === TipoImportacion.PRECIOS) {
         await this.persistirPrecios(
           manager,
           orgId,
           ctx.usuarioId,
-          resultado.precios,
+          lote as FilaPreciosResuelta[],
         );
       } else {
-        await this.persistirAlias(manager, orgId, ctx.usuarioId, resultado.alias);
+        await this.persistirAlias(
+          manager,
+          orgId,
+          ctx.usuarioId,
+          lote as FilaAliasResuelta[],
+        );
       }
 
-      imp.estado = EstadoImportacion.CONFIRMADA;
+      const procesadas = offset + lote.length;
+      const terminado = procesadas >= total;
+      const altas = Number(prev.altas ?? 0) + altasLote;
+      const actualizaciones =
+        Number(prev.actualizaciones ?? 0) + actualizacionesLote;
+
       imp.filasValidas = resultado.filasValidas;
       imp.filasConError = resultado.filasConError;
       imp.erroresDetalle = resultado.errores;
-      imp.resumen = resumen;
+      imp.resumen = {
+        altas,
+        actualizaciones,
+        omitidas: resultado.filasConError,
+        filasAplicadas: procesadas,
+        filasOmitidas: resultado.filasConError,
+        filasActualizadas: actualizaciones,
+        advertencias: resultado.resumen?.advertencias,
+        simulado: false,
+        confirmOffset: procesadas,
+        progreso: {
+          procesadas,
+          total,
+          porcentaje: total === 0 ? 100 : Math.round((procesadas * 100) / total),
+          terminado,
+        },
+      };
+      if (terminado) {
+        imp.estado = EstadoImportacion.CONFIRMADA;
+      }
       imp.updatedById = ctx.usuarioId;
       await manager.save(ImportacionCatalogo, imp);
     });
 
-    return mapImportacion(imp);
+    return mapImportacion(await this.buscar(orgId, id));
   }
 
   async cancelar(ctx: OrgContext, id: string) {
@@ -464,6 +576,7 @@ export class ImportacionesService {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Cotizador';
 
+    // Instrucciones primero (guía visual); el parser lee solo la hoja «Plantilla».
     this.agregarHojaInstrucciones(workbook, tipoImp, definiciones);
 
     const sheet = workbook.addWorksheet('Plantilla', {

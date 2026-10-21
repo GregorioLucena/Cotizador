@@ -83,6 +83,17 @@ export function importacionCabeceraInvalida(): AppError {
   );
 }
 
+export function importacionHojaNoEncontrada(nombreHoja?: string): AppError {
+  return new AppError(
+    'IMPORTACION_HOJA_NO_ENCONTRADA',
+    nombreHoja
+      ? `No se encontró la hoja «${nombreHoja}» en el archivo Excel.`
+      : 'No se encontró una hoja de datos importable en el archivo Excel.',
+    400,
+    nombreHoja ? { nombreHoja } : undefined,
+  );
+}
+
 export function importacionLimiteFilas(): AppError {
   return new AppError(
     'IMPORTACION_LIMITE_FILAS',

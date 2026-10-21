@@ -38,6 +38,9 @@ de candidatos alternativos.
 
 - Extensiones de PostgreSQL: `pg_trgm` para similitud de trigramas y `unaccent` para normalizar
   acentos. Se habilitan en la primera migracion.
+- Puntaje de texto/alias:
+  `GREATEST(similarity(col, q), word_similarity(q, col))`. Sin `word_similarity`, una consulta corta
+  contra un `textoBusqueda` largo cae bajo el umbral 0.30 aunque la palabra este en el nombre.
 - Columna derivada `textoBusqueda` en `items`, mantenida por la aplicacion al guardar, que concatena
   nombre, SKU, marca, categoria, alias activos y atributos marcados como buscables, todo normalizado.
 - Indices GIN con `gin_trgm_ops` sobre `items.textoBusqueda` y sobre `item_alias.normalizado`, ambos

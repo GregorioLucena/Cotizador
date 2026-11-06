@@ -38,6 +38,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/cn';
 import { etiquetaEstadoCotizacion } from '@/lib/cotizaciones';
+import { useImporteOrganizacion } from '@/lib/formato';
 
 const COLOR_ESTADO: Record<EstadoCotizacionCodigo, string> = {
   BORRADOR: '#8b9a96',
@@ -67,15 +68,6 @@ function tasaPct(cadena: string): string {
 function tasaNumero(cadena: string): number {
   const n = Number(cadena);
   return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0;
-}
-
-function formatearMonto(valor: string): string {
-  const n = Number(valor);
-  if (!Number.isFinite(n)) return valor;
-  return n.toLocaleString('es-VE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 function formatearEntero(n: number): string {
@@ -111,6 +103,7 @@ function lecturaReconocimiento(auto: number, correccion: number): string {
 }
 
 export default function ReportesPage() {
+  const formatearImporte = useImporteOrganizacion();
   const router = useRouter();
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [desde, setDesde] = useState('');
@@ -328,7 +321,7 @@ export default function ReportesPage() {
                 Monto ganado
               </p>
               <p className="mt-2 font-display text-2xl font-bold tabular-nums text-exito">
-                {formatearMonto(resumen.montoGanado)}
+                {formatearImporte(resumen.montoGanado)}
               </p>
               <p className="mt-1 text-xs text-muted">Cotizaciones ganadas</p>
             </div>
@@ -337,7 +330,7 @@ export default function ReportesPage() {
                 Monto perdido
               </p>
               <p className="mt-2 font-display text-2xl font-bold tabular-nums text-peligro">
-                {formatearMonto(resumen.montoPerdido)}
+                {formatearImporte(resumen.montoPerdido)}
               </p>
               <p className="mt-1 text-xs text-muted">Cotizaciones perdidas</p>
             </div>
@@ -346,7 +339,7 @@ export default function ReportesPage() {
                 Total aprobado
               </p>
               <p className="mt-2 font-display text-2xl font-bold tabular-nums text-ink">
-                {formatearMonto(resumen.montoTotalAprobado)}
+                {formatearImporte(resumen.montoTotalAprobado)}
               </p>
               <p className="mt-1 text-xs text-muted">
                 {resumen.vencidasPendientesDeMarca > 0

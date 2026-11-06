@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import {
   Cliente,
+  ConfiguracionCotizacion,
   Cotizacion,
   CotizacionEvento,
   CotizacionLinea,
@@ -43,6 +44,7 @@ import {
   previsualizarPlantillaSchema,
   renderizarDocumento,
   datosEjemploPlantilla,
+  modoRedondeoDe,
   requireOrganizacionContext,
   requirePermission,
   columnaAtributoSinCodigo,
@@ -171,6 +173,9 @@ export class PlantillasDocumentoService {
 
     const datos = datosEjemploPlantilla(org.nombre);
     datos.locale = org.locale;
+    const formato = await this.formatoOrganizacion(org.id);
+    datos.decimalesRedondeo = formato.decimalesRedondeo;
+    datos.modoRedondeo = formato.modoRedondeo;
     datos.logoUrlEfectivo =
       config.identidad.logoUrl ?? org.logoUrl ?? null;
 
@@ -456,11 +461,15 @@ export class PlantillasDocumentoService {
       if (cliente) clienteNombre = cliente.nombre;
     }
 
+    const formato = await this.formatoOrganizacion(org.id);
+
     return {
       clienteNombre,
       folio: cotizacion.folio,
       vigenciaHasta: cotizacion.vigenciaHasta?.toISOString() ?? null,
       locale: org.locale,
+      decimalesRedondeo: formato.decimalesRedondeo,
+      modoRedondeo: formato.modoRedondeo,
       monedaBaseCodigo:
         monedaPorId.get(cotizacion.monedaBaseId)?.codigoIso ?? 'USD',
       subtotal: String(cotizacion.subtotal),
@@ -494,6 +503,19 @@ export class PlantillasDocumentoService {
         totalLinea: String(l.total ?? l.subtotal ?? '0.0000'),
         atributos: l.atributosCongelados ?? null,
       })),
+    };
+  }
+
+  private async formatoOrganizacion(organizacionId: string): Promise<{
+    decimalesRedondeo: number;
+    modoRedondeo: ReturnType<typeof modoRedondeoDe>;
+  }> {
+    const cfg = await this.dataSource
+      .getRepository(ConfiguracionCotizacion)
+      .findOne({ where: { organizacionId } });
+    return {
+      decimalesRedondeo: cfg?.decimalesRedondeo ?? 2,
+      modoRedondeo: modoRedondeoDe(cfg?.modoRedondeo),
     };
   }
 

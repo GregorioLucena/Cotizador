@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PERMISOS, hasPermission, type OrgContext } from '@cotizador/shared';
+import { useImporteOrganizacion } from '@/lib/formato';
 import {
   ApiClientError,
   apiFetch,
@@ -40,6 +41,7 @@ type PrecioRow = {
 type ItemOpcion = { id: string; sku: string | null; nombre: string };
 
 export default function ListaPrecioDetallePage() {
+  const formatearImporte = useImporteOrganizacion();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const listaId = params.id;
@@ -280,7 +282,7 @@ export default function ListaPrecioDetallePage() {
                     {p.item?.nombre ?? p.itemId}
                   </td>
                   <td className="px-4 py-3.5 text-right tabular-nums font-semibold text-ink">
-                    {p.precio}
+                    {formatearImporte(p.precio)}
                   </td>
                   <td className="px-4 py-3.5">
                     {p.estadoRegistro === 'INACTIVO' ? (

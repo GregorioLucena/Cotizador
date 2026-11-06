@@ -340,16 +340,6 @@ export function formatearCantidadUi(cantidad: string): string {
   return String(n);
 }
 
-export function formatearImporteUi(valor: string | null | undefined): string {
-  if (valor == null || valor === '') return '—';
-  const n = Number(valor);
-  if (!Number.isFinite(n)) return valor;
-  return n.toLocaleString('es', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
-  });
-}
-
 export function formatearPuntajeUi(puntaje: string): string {
   const n = Number(puntaje);
   if (!Number.isFinite(n)) return puntaje;

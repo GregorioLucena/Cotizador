@@ -157,7 +157,7 @@ modulo: solo se consulta y se edita.
 | `aplicaImpuesto` | Si | Booleano. Falso oculta el impuesto en el calculo y en el documento |
 | `porcentajeImpuesto` | Si cuando `aplicaImpuesto` | `numeric(9,4)` entre 0 y 100 |
 | `preciosIncluyenImpuesto` | Si | Verdadero significa que los precios del catalogo ya lo contienen y el impuesto se desglosa hacia atras |
-| `decimalesRedondeo` | Si | Entero entre 0 y 4. Decimales del importe calculado |
+| `decimalesRedondeo` | Si | Entero entre 0 y 4. Decimales del importe calculado y de su presentacion |
 | `modoRedondeo` | Si | `NORMAL`, `ARRIBA` o `ABAJO` |
 | `mostrarDescuentoDetallado` | Si | Verdadero muestra el descuento por linea; falso lo muestra solo en el total |
 | `permiteSobrescribirPrecio` | Si | Falso bloquea la sobrescritura para todos, incluso con el permiso |
@@ -256,7 +256,11 @@ modulo: solo se consulta y se edita.
     valor verdadero el impuesto se desglosa del precio cargado; con valor falso se suma sobre el
     subtotal. La interfaz debe mostrar un ejemplo numerico de ambos casos.
 37. `decimalesRedondeo` debe estar entre 0 y 4 y `modoRedondeo` debe ser `NORMAL`, `ARRIBA` o
-    `ABAJO`. El redondeo se aplica segun `docs/decisions/0005-motor-de-precios.md`.
+    `ABAJO`. El redondeo del total se aplica segun `docs/decisions/0005-motor-de-precios.md`.
+    El mismo par gobierna la presentacion de importes en la interfaz, el PDF y el mensaje de
+    WhatsApp. La API sigue transportando cadenas con 4 decimales. `GET /api/auth/perfil` incluye
+    `locale`, `decimalesRedondeo` y `modoRedondeo` en `organizacion` para que quien cotiza formatee
+    sin el permiso de configuracion.
 38. Cuando `permiteSobrescribirPrecio` es falso, la sobrescritura queda bloqueada para toda la
     organizacion, incluso para un usuario con `cotizaciones.sobrescribir_precio`. La configuracion es
     una restriccion adicional al permiso, nunca un sustituto.

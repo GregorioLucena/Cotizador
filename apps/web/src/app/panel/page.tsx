@@ -26,6 +26,7 @@ import {
 } from '@/lib/api';
 import { AppShell, StatusBanner } from '@/components/shell/app-shell';
 import { cn } from '@/lib/cn';
+import { useImporteOrganizacion } from '@/lib/formato';
 
 type PerfilData = {
   usuario: {
@@ -135,6 +136,7 @@ function AccesoCard({ acceso }: { acceso: Acceso }) {
 
 export default function PanelPage() {
   const router = useRouter();
+  const formatearImporte = useImporteOrganizacion();
   const [perfil, setPerfil] = useState<PerfilData | null>(null);
   const [resumen, setResumen] = useState<CotizacionesResumen | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -437,10 +439,7 @@ export default function PanelPage() {
                 Monto ganado
               </p>
               <p className="mt-1 font-display text-2xl font-bold tabular-nums text-exito">
-                {Number(resumen.montoGanado).toLocaleString('es-VE', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                {formatearImporte(resumen.montoGanado)}
               </p>
               <p className="mt-0.5 text-xs text-muted">Cotizaciones ganadas</p>
             </div>

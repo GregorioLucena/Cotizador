@@ -243,7 +243,7 @@ export function AppShell({
             <div className="flex items-center justify-between border-b border-borde bg-teal px-4 py-3.5 text-white">
               <div>
                 <p className="font-display text-lg font-bold tracking-tight">Menú</p>
-                <p className="text-xs text-white/70">Navegá por el panel</p>
+                <p className="text-xs text-white/70">Navega por el panel</p>
               </div>
               <button
                 type="button"

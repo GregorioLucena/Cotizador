@@ -42,7 +42,7 @@ export default function LandingPage() {
                 Del WhatsApp al folio — precios del catálogo, aprobación tuya.
               </h1>
               <p className="mx-auto max-w-sm text-sm leading-relaxed text-white/65 md:mx-0 md:max-w-md">
-                Pegás el mensaje. Revisás el semáforo. Aprobás. Nada se envía sin vos.
+                Pegas el mensaje. Revisas el semáforo. Apruebas. Nada se envía sin ti.
               </p>
               <div className="flex flex-col gap-2.5 sm:flex-row sm:justify-center md:justify-start">
                 <Link
@@ -111,7 +111,7 @@ export default function LandingPage() {
       <section id="como" className="border-t border-borde bg-paper px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-2xl text-center md:text-left">
           <p className="font-display text-2xl font-bold tracking-tight text-ink md:text-3xl">
-            La IA lee. El catálogo cotiza. Vos aprobás.
+            La IA lee. El catálogo cotiza. Tú apruebas.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-slate md:text-base">
             Pensado mobile-first a 375px: una sola tarea en el mostrador — pegar, revisar semáforo y

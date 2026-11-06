@@ -746,6 +746,9 @@ export class CotizacionesRevisionService {
     const configCot = await this.dataSource
       .getRepository(ConfiguracionCotizacion)
       .findOne({ where: { organizacionId: orgId } });
+    const org = await this.dataSource.getRepository(Organizacion).findOne({
+      where: { id: orgId },
+    });
 
     const texto = armarMensajeWhatsApp({
       nombreCliente,
@@ -770,6 +773,9 @@ export class CotizacionesRevisionService {
       tasaAplicada: cotizacion.tasaAplicada ?? null,
       tasaFecha: cotizacion.tasaFecha ?? null,
       vigenciaHoras: configCot?.vigenciaHorasPredeterminada ?? null,
+      decimalesRedondeo: configCot?.decimalesRedondeo ?? 2,
+      modoRedondeo: configCot?.modoRedondeo ?? 'NORMAL',
+      locale: org?.locale ?? 'es-VE',
       textos: {
         saludo: textosCfg.saludo,
         condiciones: textosCfg.condiciones,

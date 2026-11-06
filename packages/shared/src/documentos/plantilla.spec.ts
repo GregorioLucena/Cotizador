@@ -99,6 +99,19 @@ describe('renderizarDocumento', () => {
     const render = renderizarDocumento(cfg, datos);
     expect(render.html).toContain('Hola Cliente de ejemplo');
     expect(render.textoWhatsapp).toContain('Hola Cliente de ejemplo');
+    expect(render.textoWhatsapp).toContain('140,00 USD');
+    expect(render.textoWhatsapp).toContain('10 und ×');
+    expect(render.textoWhatsapp).not.toContain('140.0000');
+  });
+
+  it('el mensaje usa los decimales de redondeo de la organización', () => {
+    const cfg = plantillaDocumentoConfigSchema.parse(cfgBase);
+    const datos = datosEjemploPlantilla('Demo');
+    datos.decimalesRedondeo = 0;
+    const render = renderizarDocumento(cfg, datos);
+    expect(render.textoWhatsapp).toContain('Total: 140 USD');
+    expect(render.html).toContain('140 USD');
+    expect(render.textoWhatsapp).not.toContain('140,00');
   });
 });
 

@@ -226,8 +226,10 @@ Reglas del bloque:
 | `mostrarMonedaPresentacion` | `true` | Muestra el total convertido si la cotización tiene moneda de presentación |
 | `mostrarTasaAplicada` | `true` | Muestra la tasa y su fecha junto al total de presentación |
 
-Los importes se muestran como cadenas con 4 decimales en la API y se formatean para el PDF según el
-`locale` de la organización. La conversión solo afecta al total, nunca línea por línea, según
+Los importes viajan en la API como cadenas con 4 decimales. En el PDF y en el mensaje de WhatsApp
+se formatean con el `locale` de la organización y con `decimalesRedondeo` y `modoRedondeo` de la
+configuración de cotización. La cantidad no usa esos decimales: se muestra sin ceros de relleno.
+La conversión solo afecta al total, nunca línea por línea, según
 `docs/decisions/0008-moneda-base-y-presentacion.md`.
 
 ### Bloque `textos`
@@ -346,7 +348,10 @@ es texto plano: sin HTML, sin Markdown enriquecido.
 31. Todos los importes del documento provienen de la cotización aprobada. Ninguno se recalcula al
     renderizar.
 32. Los importes viajan en la API como cadenas con 4 decimales.
-33. Si la cotización tiene moneda de presentación, el PDF muestra el total convertido solo cuando
+33. Al renderizar, cada importe se muestra con `decimalesRedondeo` y `modoRedondeo` de la
+    configuración de cotización de la organización y con su `locale`. El PDF y el texto de
+    WhatsApp usan el mismo formateo. La cantidad se muestra sin ceros de relleno.
+34. Si la cotización tiene moneda de presentación, el PDF muestra el total convertido solo cuando
     `mostrarMonedaPresentacion` es verdadero, junto con tasa y fecha si `mostrarTasaAplicada` es
     verdadero.
 

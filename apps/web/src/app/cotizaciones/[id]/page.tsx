@@ -33,6 +33,7 @@ import {
   clearSession,
   getAccessToken,
 } from '@/lib/api';
+import { useImporteOrganizacion } from '@/lib/formato';
 import {
   calcularBloqueosAprobacion,
   candidatosExpandidosPorDefecto,
@@ -42,7 +43,6 @@ import {
   etiquetaTipoEvento,
   formatearCantidadUi,
   formatearFechaEvento,
-  formatearImporteUi,
   formatearPuntajeUi,
   mensajeErrorApi,
   normalizarDetalleRespuesta,
@@ -197,6 +197,7 @@ export default function CotizacionDetallePage() {
   const id = params.id;
   const confirm = useConfirm();
   const toast = useToast();
+  const formatearImporte = useImporteOrganizacion();
 
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [cotizacion, setCotizacion] = useState<CotizacionDetalle | null>(null);
@@ -840,20 +841,20 @@ export default function CotizacionDetallePage() {
                   {esBorrador ? 'Total borrador' : 'Total congelado'}
                 </p>
                 <p className="font-display text-3xl font-bold tracking-tight tabular-nums">
-                  {formatearImporteUi(cotizacion.total)}
+                  {formatearImporte(cotizacion.total)}
                 </p>
               </div>
               <div className="text-right text-base text-white/80">
-                <p>Subtotal {formatearImporteUi(cotizacion.subtotal)}</p>
+                <p>Subtotal {formatearImporte(cotizacion.subtotal)}</p>
                 {Number(cotizacion.descuentoTotal) > 0 && (
-                  <p>Desc. {formatearImporteUi(cotizacion.descuentoTotal)}</p>
+                  <p>Desc. {formatearImporte(cotizacion.descuentoTotal)}</p>
                 )}
                 {Number(cotizacion.impuestoTotal) > 0 && (
-                  <p>Imp. {formatearImporteUi(cotizacion.impuestoTotal)}</p>
+                  <p>Imp. {formatearImporte(cotizacion.impuestoTotal)}</p>
                 )}
                 {cotizacion.totalPresentacion && (
                   <p className="mt-0.5">
-                    Presentación {formatearImporteUi(cotizacion.totalPresentacion)}
+                    Presentación {formatearImporte(cotizacion.totalPresentacion)}
                   </p>
                 )}
                 {cotizacion.vigenciaHasta && (
@@ -1002,7 +1003,7 @@ export default function CotizacionDetallePage() {
                             )}
                           >
                             {linea.precioUnitario
-                              ? formatearImporteUi(linea.precioUnitario)
+                              ? formatearImporte(linea.precioUnitario)
                               : '—'}
                           </p>
                         </div>
@@ -1015,7 +1016,7 @@ export default function CotizacionDetallePage() {
                             )}
                           >
                             {linea.total
-                              ? formatearImporteUi(linea.total)
+                              ? formatearImporte(linea.total)
                               : 'sin precio'}
                           </p>
                         </div>
@@ -1030,12 +1031,12 @@ export default function CotizacionDetallePage() {
                               }
                             >
                               {linea.precioUnitario
-                                ? formatearImporteUi(linea.precioUnitario)
+                                ? formatearImporte(linea.precioUnitario)
                                 : 'sin precio'}
                             </span>
                             {linea.total ? (
                               <span className="font-semibold text-ink">
-                                {formatearImporteUi(linea.total)}
+                                {formatearImporte(linea.total)}
                               </span>
                             ) : null}
                           </div>

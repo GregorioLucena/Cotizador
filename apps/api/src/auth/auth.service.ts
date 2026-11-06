@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { IsNull, MoreThan, Not, Repository } from 'typeorm';
 import {
+  ConfiguracionCotizacion,
   EstadoRegistro,
   Organizacion,
   Sesion,
@@ -254,13 +255,28 @@ export class AuthService {
       throw new NotFoundError('USUARIO_NO_ENCONTRADO', 'No se encontró el usuario indicado.');
     }
 
-    let organizacion: { id: string; nombre: string } | null = null;
+    let organizacion: {
+      id: string;
+      nombre: string;
+      locale: string;
+      decimalesRedondeo: number;
+      modoRedondeo: string;
+    } | null = null;
     if (ctx.organizacionId) {
       const org = await this.organizacionRepo.findOne({
         where: { id: ctx.organizacionId },
       });
       if (org) {
-        organizacion = { id: org.id, nombre: org.nombre };
+        const cfg = await this.organizacionRepo.manager
+          .getRepository(ConfiguracionCotizacion)
+          .findOne({ where: { organizacionId: org.id } });
+        organizacion = {
+          id: org.id,
+          nombre: org.nombre,
+          locale: org.locale || 'es-VE',
+          decimalesRedondeo: cfg?.decimalesRedondeo ?? 2,
+          modoRedondeo: cfg?.modoRedondeo ?? 'NORMAL',
+        };
       }
     }
 

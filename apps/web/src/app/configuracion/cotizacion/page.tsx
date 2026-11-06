@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiClientError, apiFetch, getAccessToken } from '@/lib/api';
+import { invalidarFormatoOrganizacion } from '@/lib/formato';
 import {
   AppShell,
   BackLink,
@@ -70,6 +71,7 @@ export default function CotizacionConfigPage() {
         }),
       });
       setCfg(data);
+      invalidarFormatoOrganizacion();
       toast.success('Configuración de cotización guardada.');
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error');

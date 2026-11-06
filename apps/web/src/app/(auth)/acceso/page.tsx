@@ -58,7 +58,7 @@ export default function AccesoPage() {
         <Link href="/" className="font-display text-3xl font-semibold tracking-tight text-white">
           Cotizador
         </Link>
-        <p className="mt-2 text-sm text-white/60">Ingresá al panel de tu organización</p>
+        <p className="mt-2 text-sm text-white/60">Ingresa al panel de tu organización</p>
       </div>
 
       <form
@@ -75,7 +75,7 @@ export default function AccesoPage() {
             required
             value={email}
             onChange={(ev) => setEmail(ev.target.value)}
-            placeholder="vos@negocio.com"
+            placeholder="correo@negocio.com"
           />
         </Field>
         <Field label="Contraseña" htmlFor="password" required>

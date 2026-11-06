@@ -21,6 +21,7 @@ export * from './normalizacion/texto';
 export * from './normalizacion/whatsapp';
 export * from './normalizacion/solicitud';
 export * from './precios/motor';
+export * from './precios/formato-presentacion';
 export * from './ia/proveedor';
 export * from './ia/prompt-composer';
 export * from './resolucion/cascada';

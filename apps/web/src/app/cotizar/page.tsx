@@ -204,7 +204,7 @@ export default function CotizarPage() {
 
     const trimmed = texto.trim();
     if (!trimmed) {
-      setError('Pegá o escribí el mensaje del pedido.');
+      setError('Pega o escribe el mensaje del pedido.');
       return;
     }
     if (trimmed.length > MAX_TEXTO) {
@@ -212,11 +212,11 @@ export default function CotizarPage() {
       return;
     }
     if (modoCliente === 'buscar' && !clienteElegido) {
-      setError('Elegí un cliente o usá nombre libre.');
+      setError('Elige un cliente o usa un nombre libre.');
       return;
     }
     if (modoCliente === 'libre' && !nombreLibre.trim()) {
-      setError('Indicá el nombre del cliente.');
+      setError('Indica el nombre del cliente.');
       return;
     }
 
@@ -274,7 +274,7 @@ export default function CotizarPage() {
     <AppShell nav="organizacion" maxWidth="lg">
       <PageHeader
         title="Cotizar"
-        description="Pegá el WhatsApp. Generamos el borrador con precios del catálogo."
+        description="Pega el WhatsApp. Generamos el borrador con precios del catálogo."
       />
 
       {error && (
@@ -438,7 +438,7 @@ export default function CotizarPage() {
                       </ul>
                     ) : (
                       <p className="text-xs text-muted">
-                        Escribí un nombre o WhatsApp para ver coincidencias.
+                        Escribe un nombre o WhatsApp para ver coincidencias.
                       </p>
                     )}
                   </>

@@ -23,6 +23,7 @@ import {
   toneEstadoCotizacion,
   type EstadoCotizacion,
 } from '@/lib/cotizaciones';
+import { useImporteOrganizacion } from '@/lib/formato';
 
 type CotizacionRow = {
   id: string;
@@ -66,6 +67,7 @@ function formatearFecha(iso: string) {
 
 export default function HistorialPage() {
   const router = useRouter();
+  const formatearImporte = useImporteOrganizacion();
   const [contexto, setContexto] = useState<OrgContext | null>(null);
   const [data, setData] = useState<Listado | null>(null);
   const [search, setSearch] = useState('');
@@ -277,7 +279,7 @@ export default function HistorialPage() {
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block font-display text-base font-bold tabular-nums text-ink">
-                    {c.total}
+                    {formatearImporte(c.total)}
                   </span>
                   <span className="text-xs uppercase tracking-wide text-muted">
                     moneda base

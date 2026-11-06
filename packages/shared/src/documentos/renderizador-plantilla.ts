@@ -1,5 +1,11 @@
 import type { PlantillaDocumentoConfig } from '../schemas/plantilla-documento.schemas';
 import { MARCADORES_PLANTILLA } from '../schemas/plantilla-documento.schemas';
+import {
+  formatearCantidadPresentacion,
+  formatearImportePresentacion,
+  modoRedondeoDe,
+} from '../precios/formato-presentacion';
+import type { ModoRedondeo } from '../precios/motor';
 
 export type LineaRenderDocumento = {
   orden: number;
@@ -20,6 +26,10 @@ export type DatosRenderDocumento = {
   folio: string;
   vigenciaHasta?: string | null;
   locale?: string;
+  /** Decimales de `configuraciones_cotizacion`. Ausente → 2. */
+  decimalesRedondeo?: number;
+  /** Modo de `configuraciones_cotizacion`. Ausente → NORMAL. */
+  modoRedondeo?: ModoRedondeo;
   monedaBaseCodigo: string;
   subtotal: string;
   descuentoTotal: string;
@@ -67,21 +77,20 @@ export function resolverMarcadores(
   );
 }
 
+type FormatoImporteRender = {
+  locale: string;
+  decimales: number;
+  modo: ModoRedondeo;
+};
+
 function formatearImporteLocale(
-  valor: string,
-  locale: string,
-  decimales = 2,
+  valor: string | null | undefined,
+  formato: FormatoImporteRender,
 ): string {
-  const n = Number(valor);
-  if (!Number.isFinite(n)) return valor;
-  try {
-    return new Intl.NumberFormat(locale, {
-      minimumFractionDigits: decimales,
-      maximumFractionDigits: decimales,
-    }).format(n);
-  } catch {
-    return n.toFixed(decimales);
-  }
+  return formatearImportePresentacion(valor, formato.decimales, {
+    locale: formato.locale,
+    modo: formato.modo,
+  });
 }
 
 function formatearFechaLocale(
@@ -112,7 +121,7 @@ function valorAtributo(
 function celdaColumna(
   col: PlantillaDocumentoConfig['columnas'][number],
   linea: LineaRenderDocumento,
-  locale: string,
+  formato: FormatoImporteRender,
 ): string {
   switch (col.campo) {
     case 'ORDEN':
@@ -128,16 +137,13 @@ function celdaColumna(
     case 'UNIDAD':
       return linea.unidadCodigo ?? '';
     case 'CANTIDAD':
-      return formatearImporteLocale(linea.cantidad, locale, 4).replace(
-        /,?0+$/,
-        (m) => (m.includes(',') || m.includes('.') ? m.replace(/0+$/, '').replace(/[.,]$/, '') : m),
-      ) || linea.cantidad;
+      return formatearCantidadPresentacion(linea.cantidad);
     case 'PRECIO_UNITARIO':
-      return formatearImporteLocale(linea.precioUnitario, locale);
+      return formatearImporteLocale(linea.precioUnitario, formato);
     case 'DESCUENTO':
-      return formatearImporteLocale(linea.descuentoMonto ?? '0', locale);
+      return formatearImporteLocale(linea.descuentoMonto ?? '0', formato);
     case 'TOTAL_LINEA':
-      return formatearImporteLocale(linea.totalLinea, locale);
+      return formatearImporteLocale(linea.totalLinea, formato);
     default:
       return '';
   }
@@ -203,6 +209,11 @@ export function renderizarDocumento(
 ): ResultadoRenderDocumento {
   const advertencias: string[] = [];
   const locale = datos.locale ?? 'es-VE';
+  const formato: FormatoImporteRender = {
+    locale,
+    decimales: datos.decimalesRedondeo ?? 2,
+    modo: modoRedondeoDe(datos.modoRedondeo),
+  };
   const id = config.identidad;
   const estilo = config.estilo;
   const totales = config.totales;
@@ -214,7 +225,7 @@ export function renderizarDocumento(
     advertencias.push('LOGO_AUSENTE');
   }
 
-  const totalFmt = `${formatearImporteLocale(datos.total, locale)} ${datos.monedaBaseCodigo}`;
+  const totalFmt = `${formatearImporteLocale(datos.total, formato)} ${datos.monedaBaseCodigo}`;
   const marcadores = {
     cliente: datos.clienteNombre,
     folio: datos.folio,
@@ -251,7 +262,7 @@ export function renderizarDocumento(
       const celdas = columnasVisibles
         .map(
           (col) =>
-            `<td style="padding:${densPad};border-bottom:1px solid #e5e7eb;font-size:12px;">${escapeHtml(celdaColumna(col, linea, locale))}</td>`,
+            `<td style="padding:${densPad};border-bottom:1px solid #e5e7eb;font-size:12px;">${escapeHtml(celdaColumna(col, linea, formato))}</td>`,
         )
         .join('');
       return `<tr>${celdas}</tr>`;
@@ -268,17 +279,17 @@ export function renderizarDocumento(
   const bloqueTotales: string[] = [];
   if (totales.mostrarSubtotal) {
     bloqueTotales.push(
-      `<div>Subtotal: ${escapeHtml(formatearImporteLocale(datos.subtotal, locale))} ${escapeHtml(datos.monedaBaseCodigo)}</div>`,
+      `<div>Subtotal: ${escapeHtml(formatearImporteLocale(datos.subtotal, formato))} ${escapeHtml(datos.monedaBaseCodigo)}</div>`,
     );
   }
   if (totales.mostrarDescuento) {
     bloqueTotales.push(
-      `<div>Descuento: ${escapeHtml(formatearImporteLocale(datos.descuentoTotal, locale))} ${escapeHtml(datos.monedaBaseCodigo)}</div>`,
+      `<div>Descuento: ${escapeHtml(formatearImporteLocale(datos.descuentoTotal, formato))} ${escapeHtml(datos.monedaBaseCodigo)}</div>`,
     );
   }
   if (totales.mostrarImpuesto && datos.impuestoTotal != null) {
     bloqueTotales.push(
-      `<div>Impuesto: ${escapeHtml(formatearImporteLocale(datos.impuestoTotal, locale))} ${escapeHtml(datos.monedaBaseCodigo)}</div>`,
+      `<div>Impuesto: ${escapeHtml(formatearImporteLocale(datos.impuestoTotal, formato))} ${escapeHtml(datos.monedaBaseCodigo)}</div>`,
     );
   }
   bloqueTotales.push(
@@ -289,7 +300,7 @@ export function renderizarDocumento(
     datos.totalPresentacion &&
     datos.monedaPresentacionCodigo
   ) {
-    let ref = `Total ref.: ${escapeHtml(formatearImporteLocale(datos.totalPresentacion, locale))} ${escapeHtml(datos.monedaPresentacionCodigo)}`;
+    let ref = `Total ref.: ${escapeHtml(formatearImporteLocale(datos.totalPresentacion, formato))} ${escapeHtml(datos.monedaPresentacionCodigo)}`;
     if (
       totales.mostrarTasaAplicada &&
       datos.tasaAplicada &&
@@ -366,7 +377,7 @@ export function renderizarDocumento(
     const visibles = datos.lineas.slice(0, max);
     const lineasTexto = visibles.map((l, i) => {
       const desc = l.descripcion.trim() || 'Item';
-      return `${i + 1}. ${desc} — ${l.cantidad} ${l.unidadCodigo ?? 'und'} × ${l.precioUnitario} = ${l.totalLinea} ${datos.monedaBaseCodigo}`;
+      return `${i + 1}. ${desc} — ${formatearCantidadPresentacion(l.cantidad)} ${l.unidadCodigo ?? 'und'} × ${formatearImporteLocale(l.precioUnitario, formato)} = ${formatearImporteLocale(l.totalLinea, formato)} ${datos.monedaBaseCodigo}`;
     });
     if (datos.lineas.length > max) {
       lineasTexto.push(
@@ -379,26 +390,28 @@ export function renderizarDocumento(
   const totalesWa: string[] = [];
   if (totales.mostrarSubtotal) {
     totalesWa.push(
-      `Subtotal: ${datos.subtotal} ${datos.monedaBaseCodigo}`,
+      `Subtotal: ${formatearImporteLocale(datos.subtotal, formato)} ${datos.monedaBaseCodigo}`,
     );
   }
   if (totales.mostrarDescuento) {
     totalesWa.push(
-      `Descuento: ${datos.descuentoTotal} ${datos.monedaBaseCodigo}`,
+      `Descuento: ${formatearImporteLocale(datos.descuentoTotal, formato)} ${datos.monedaBaseCodigo}`,
     );
   }
   if (totales.mostrarImpuesto && datos.impuestoTotal != null) {
     totalesWa.push(
-      `Impuesto: ${datos.impuestoTotal} ${datos.monedaBaseCodigo}`,
+      `Impuesto: ${formatearImporteLocale(datos.impuestoTotal, formato)} ${datos.monedaBaseCodigo}`,
     );
   }
-  totalesWa.push(`Total: ${datos.total} ${datos.monedaBaseCodigo}`);
+  totalesWa.push(
+    `Total: ${formatearImporteLocale(datos.total, formato)} ${datos.monedaBaseCodigo}`,
+  );
   if (
     totales.mostrarMonedaPresentacion &&
     datos.totalPresentacion &&
     datos.monedaPresentacionCodigo
   ) {
-    let lineaRef = `Total ref.: ${datos.totalPresentacion} ${datos.monedaPresentacionCodigo}`;
+    let lineaRef = `Total ref.: ${formatearImporteLocale(datos.totalPresentacion, formato)} ${datos.monedaPresentacionCodigo}`;
     if (
       totales.mostrarTasaAplicada &&
       datos.tasaAplicada &&

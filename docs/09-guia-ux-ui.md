@@ -480,11 +480,12 @@ Microcopys frecuentes:
 ## Formato de datos
 
 La API transporta importes como **cadenas decimales** y fechas en **ISO 8601 UTC**. El formateo
-visible vive en `apps/web/src/lib/formato.ts` usando `locale` y monedas de la organización.
+visible vive en `formatearImportePresentacion` (`packages/shared/src/precios/formato-presentacion.ts`).
+Lo consumen la web, el PDF y el mensaje de WhatsApp.
 
 | Dato | Almacen / API | Presentacion |
 |------|---------------|--------------|
-| Importes | cadena `"1234.5600"` / `numeric(18,4)` | Segun `decimales` de la moneda y `decimalesRedondeo` de config; simbolo de moneda |
+| Importes | cadena `"1234.5600"` / `numeric(18,4)` | Segun `decimalesRedondeo` y `modoRedondeo` de la configuracion de cotizacion, con el `locale` de la organizacion |
 | Tasas | `"36.500000"` / `numeric(18,6)` | Hasta 6 decimales significativos |
 | Cantidades | `"2.0000"` | Sin decimales basura si la unidad no admite decimales |
 | Confianza / puntaje | `"0.7800"` | En UI de candidatos: porcentaje entero o dos decimales (`78%` o `0.78`); coherente en toda la app |

@@ -1,3 +1,9 @@
+import {
+  formatearCantidadPresentacion,
+  formatearImportePresentacion,
+  modoRedondeoDe,
+} from '../precios/formato-presentacion';
+
 /**
  * Arma el texto plano para pegar en WhatsApp a partir de una cotización
  * ya congelada (aprobada o posterior) y textos de plantilla/configuración.
@@ -45,6 +51,12 @@ export type EntradaMensajeWhatsApp = {
   tasaFecha?: string | null;
   /** Horas de vigencia a mostrar; si no hay, se omite la línea. */
   vigenciaHoras?: number | null;
+  /** Decimales de la configuración de cotización. Ausente → 2. */
+  decimalesRedondeo?: number;
+  /** Modo de la configuración de cotización. Ausente → NORMAL. */
+  modoRedondeo?: string | null;
+  /** Locale de la organización. Ausente → es-VE. */
+  locale?: string | null;
   textos: TextosPlantillaWhatsApp;
   /** Condiciones congeladas en la cotización; tienen prioridad sobre plantilla. */
   textoCondicionesCotizacion?: string | null;
@@ -63,21 +75,11 @@ function aplicarPlantilla(
     .replaceAll('{cliente}', nombreCliente);
 }
 
-/**
- * Formatea total de presentación estilo ejemplo: `4.095,00 Bs`.
- * Si no hay decimales de moneda, usa el string tal cual con código.
- */
-function formatearPresentacion(
-  totalPresentacion: string,
-  codigo: string,
-): string {
-  const n = Number(totalPresentacion);
-  if (!Number.isFinite(n)) {
-    return `${totalPresentacion} ${codigo}`;
-  }
-  const partes = n.toFixed(2).split('.');
-  const entero = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `${entero},${partes[1]} ${codigo}`;
+function importe(entrada: EntradaMensajeWhatsApp, valor: string | null | undefined): string {
+  return formatearImportePresentacion(valor, entrada.decimalesRedondeo ?? 2, {
+    locale: entrada.locale ?? 'es-VE',
+    modo: modoRedondeoDe(entrada.modoRedondeo),
+  });
 }
 
 export function armarMensajeWhatsApp(entrada: EntradaMensajeWhatsApp): string {
@@ -103,7 +105,7 @@ export function armarMensajeWhatsApp(entrada: EntradaMensajeWhatsApp): string {
     const visibles = entrada.lineas.slice(0, maxLineas);
     const lineasTexto = visibles.map((l, i) => {
       const desc = l.descripcion.trim() || 'Item';
-      return `${i + 1}. ${desc} — ${l.cantidad} ${l.unidadCodigo} × ${l.precioUnitario} = ${l.totalLinea} ${entrada.monedaBaseCodigo}`;
+      return `${i + 1}. ${desc} — ${formatearCantidadPresentacion(l.cantidad)} ${l.unidadCodigo} × ${importe(entrada, l.precioUnitario)} = ${importe(entrada, l.totalLinea)} ${entrada.monedaBaseCodigo}`;
     });
     if (entrada.lineas.length > maxLineas) {
       lineasTexto.push(
@@ -116,30 +118,27 @@ export function armarMensajeWhatsApp(entrada: EntradaMensajeWhatsApp): string {
   const totales: string[] = [];
   if (mostrarSubtotal) {
     totales.push(
-      `Subtotal: ${entrada.subtotal} ${entrada.monedaBaseCodigo}`,
+      `Subtotal: ${importe(entrada, entrada.subtotal)} ${entrada.monedaBaseCodigo}`,
     );
   }
   if (mostrarDescuento) {
     totales.push(
-      `Descuento: ${entrada.descuentoTotal} ${entrada.monedaBaseCodigo}`,
+      `Descuento: ${importe(entrada, entrada.descuentoTotal)} ${entrada.monedaBaseCodigo}`,
     );
   }
   if (mostrarImpuesto && entrada.impuestoTotal != null) {
     totales.push(
-      `Impuesto: ${entrada.impuestoTotal} ${entrada.monedaBaseCodigo}`,
+      `Impuesto: ${importe(entrada, entrada.impuestoTotal)} ${entrada.monedaBaseCodigo}`,
     );
   }
-  totales.push(`Total: ${entrada.total} ${entrada.monedaBaseCodigo}`);
+  totales.push(`Total: ${importe(entrada, entrada.total)} ${entrada.monedaBaseCodigo}`);
 
   if (
     mostrarPresentacion &&
     entrada.totalPresentacion &&
     entrada.monedaPresentacionCodigo
   ) {
-    const ref = formatearPresentacion(
-      entrada.totalPresentacion,
-      entrada.monedaPresentacionCodigo,
-    );
+    const ref = `${importe(entrada, entrada.totalPresentacion)} ${entrada.monedaPresentacionCodigo}`;
     let lineaRef = `Total ref.: ${ref}`;
     if (mostrarTasa && entrada.tasaAplicada && entrada.tasaFecha) {
       lineaRef += ` (tasa ${entrada.tasaAplicada} del ${entrada.tasaFecha})`;
